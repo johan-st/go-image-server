@@ -37,12 +37,3 @@ func run() error {
 	s.l.Printf("server is up and listening on port %s", port)
 	return mainSrv.ListenAndServe()
 }
-
-func newServer(l *log.Logger) *server {
-	s := &server{
-		l:      l,
-		router: *http.NewServeMux(),
-	}
-	s.routes()
-	return s
-}

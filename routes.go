@@ -6,18 +6,18 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/johan-st/go-image-server/way"
 	"gitlab.com/golang-commonmark/markdown"
 )
 
 type server struct {
 	l      *log.Logger
-	router http.ServeMux
+	router way.Router
 }
 
 func (s *server) routes() {
-	s.router.HandleFunc("/docs", s.handleDocs())
+	s.router.HandleFunc("GET", "/", s.handleDocs())
 	// s.router.HandleFunc("/echo", s.handleEcho())
-	s.router.HandleFunc("/", s.handleIndex())
 
 }
 
@@ -45,23 +45,6 @@ func (s *server) handleDocs() http.HandlerFunc {
 	}
 }
 
-// func (s *server) handleEcho() http.HandlerFunc {
-// 	s.l.Print("s.handleEcho setup")
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		r.Write(w)
-// 	}
-// }
-func (s *server) handleIndex() http.HandlerFunc {
-	s.l.Print("s.handleIndex setup")
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			s.respondError(w, r, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		w.WriteHeader(200)
-		fmt.Fprintf(w, "INDEX handler")
-	}
-}
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 	msg := r.Method + " | " + r.URL.Path + " | " + r.RemoteAddr
@@ -73,4 +56,15 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, "<h1>%d:</h1><pre>%s</pre>", statusCode, msg)
+}
+
+// Contructor
+
+func newServer(l *log.Logger) *server {
+	s := &server{
+		l:      l,
+		router: *way.NewRouter(),
+	}
+	s.routes()
+	return s
 }
