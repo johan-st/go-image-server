@@ -17,9 +17,11 @@ type server struct {
 
 func (s *server) routes() {
 	s.router.HandleFunc("GET", "/", s.handleDocs())
-	// s.router.HandleFunc("/echo", s.handleEcho())
+	s.router.HandleFunc("GET", "/:img", s.handleImg())
 
 }
+
+// HANDLERS
 
 func (s *server) handleDocs() http.HandlerFunc {
 	s.l.Print("s.handleDocs setup")
@@ -44,11 +46,11 @@ func (s *server) handleDocs() http.HandlerFunc {
 		fmt.Fprintf(w, "<html><body><style>%s</style>%s</body></html>", style, docs)
 	}
 }
-
-func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.router.ServeHTTP(w, r)
-	msg := r.Method + " | " + r.URL.Path + " | " + r.RemoteAddr
-	s.l.Print(msg)
+func (s *server) handleImg() http.HandlerFunc {
+	s.l.Print("s.handleImg setup")
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "img")
+	}
 }
 
 // RESPONSE HELPERS
@@ -58,7 +60,7 @@ func (s *server) respondError(w http.ResponseWriter, r *http.Request, msg string
 	fmt.Fprintf(w, "<h1>%d:</h1><pre>%s</pre>", statusCode, msg)
 }
 
-// Contructor
+// OTHER ESSENTIALS
 
 func newServer(l *log.Logger) *server {
 	s := &server{
@@ -67,4 +69,10 @@ func newServer(l *log.Logger) *server {
 	}
 	s.routes()
 	return s
+}
+
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(w, r)
+	msg := r.Method + " | " + r.URL.Path + " | " + r.RemoteAddr
+	s.l.Print(msg)
 }
