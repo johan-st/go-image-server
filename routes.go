@@ -17,7 +17,7 @@ type server struct {
 func (s *server) routes() {
 	s.router.HandleFunc("/docs", s.handleDocs())
 	// s.router.HandleFunc("/echo", s.handleEcho())
-	s.router.HandleFunc("/*", s.handleIndex())
+	s.router.HandleFunc("/", s.handleIndex())
 
 }
 
