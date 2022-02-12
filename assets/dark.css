@@ -1,0 +1,36 @@
+:root {
+  --clr-primary: #f90;
+  --clr-primary-alt: #fa3;
+}
+body {
+  background-color: #333;
+  color: #ccc;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--clr-primary);
+}
+h1 {
+  font-size: 3rem;
+}
+h2 {
+  font-size: 1.8rem;
+}
+h3 {
+  font-size: 1.1rem;
+}
+
+a {
+  color: var(--clr-primary);
+}
+a:visited {
+  color: var(--clr-primary-alt);
+}
