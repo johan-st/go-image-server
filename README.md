@@ -64,6 +64,6 @@ Requirements not mentioned should be regarded as **WONT**
 
 ## log
 
-### 2022-02-08
-
-- create repo and brain-dump requirements etc
+- 2022-02-08: create repo and brain-dump requirements etc
+- 2022-02-11: try out routing setups and settle on matryan/way routing and implement
+- 2022-02-12: Add images and start defining tests for handlers

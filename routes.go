@@ -15,30 +15,30 @@ type server struct {
 	router way.Router
 }
 
-func (s *server) routes() {
-	s.router.HandleFunc("GET", "/", s.handleDocs())
-	s.router.HandleFunc("GET", "/:img", s.handleImg())
+func (srv *server) routes() {
+	srv.router.HandleFunc("GET", "/", srv.handleDocs())
+	srv.router.HandleFunc("GET", "/:img", srv.handleImg())
 
 }
 
 // HANDLERS
 
-func (s *server) handleDocs() http.HandlerFunc {
-	s.l.Print("s.handleDocs setup")
+func (srv *server) handleDocs() http.HandlerFunc {
+	// srv.l.Print("s.handleDocs setup")
 	md := markdown.New(markdown.XHTMLOutput(true))
 
 	f, err := ioutil.ReadFile("assets/USAGE.md")
 	docs := md.RenderToString(f)
 	if err != nil {
-		s.l.Fatalf("Could not read docs\n%s", err)
+		srv.l.Fatalf("Could not read docs\n%s", err)
 	}
 	style, err := ioutil.ReadFile("assets/dark.css")
 	if err != nil {
-		s.l.Fatalf("Could not read assets/dark.css\n%s", err)
+		srv.l.Fatalf("Could not read assets/dark.css\n%s", err)
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			s.respondError(w, r, "method not allowed", http.StatusMethodNotAllowed)
+			srv.respondError(w, r, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		w.Header().Add("content-type", "text/html")
@@ -46,16 +46,17 @@ func (s *server) handleDocs() http.HandlerFunc {
 		fmt.Fprintf(w, "<html><body><style>%s</style>%s</body></html>", style, docs)
 	}
 }
-func (s *server) handleImg() http.HandlerFunc {
-	s.l.Print("s.handleImg setup")
+func (srv *server) handleImg() http.HandlerFunc {
+	// srv.l.Print("s.handleImg setup")
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "img")
+		img := way.Param(r.Context(), "img")
+		fmt.Fprintf(w, "%s", img)
 	}
 }
 
 // RESPONSE HELPERS
 
-func (s *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
+func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, "<h1>%d:</h1><pre>%s</pre>", statusCode, msg)
 }
@@ -63,16 +64,16 @@ func (s *server) respondError(w http.ResponseWriter, r *http.Request, msg string
 // OTHER ESSENTIALS
 
 func newServer(l *log.Logger) *server {
-	s := &server{
+	srv := &server{
 		l:      l,
 		router: *way.NewRouter(),
 	}
-	s.routes()
-	return s
+	srv.routes()
+	return srv
 }
 
-func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.router.ServeHTTP(w, r)
+func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	srv.router.ServeHTTP(w, r)
 	msg := r.Method + " | " + r.URL.Path + " | " + r.RemoteAddr
-	s.l.Print(msg)
+	srv.l.Print(msg)
 }
