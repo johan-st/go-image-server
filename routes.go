@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/johan-st/go-image-server/way"
 	"gitlab.com/golang-commonmark/markdown"
@@ -17,7 +18,8 @@ type server struct {
 
 func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/", srv.handleDocs())
-	srv.router.HandleFunc("GET", "/:img", srv.handleImg())
+	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
+	srv.router.HandleFunc("GET", "/:id/:filename", srv.handleImg())
 
 }
 
@@ -49,16 +51,29 @@ func (srv *server) handleDocs() http.HandlerFunc {
 func (srv *server) handleImg() http.HandlerFunc {
 	// srv.l.Print("s.handleImg setup")
 	return func(w http.ResponseWriter, r *http.Request) {
-		img := way.Param(r.Context(), "img")
-		fmt.Fprintf(w, "%s", img)
+		id_str := way.Param(r.Context(), "id")
+		id, err := strconv.Atoi(id_str)
+		if err != nil {
+			srv.l.Println(err)
+			srv.respondError(w, r, "img id must be an integer", http.StatusBadRequest)
+			return
+		}
+		// filename := way.Param(r.Context(), "filename")
+		srv.serveOriginal(w, r, id)
 	}
 }
 
-// RESPONSE HELPERS
+//  HELPERS
 
 func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
 	w.WriteHeader(statusCode)
-	fmt.Fprintf(w, "<h1>%d:</h1><pre>%s</pre>", statusCode, msg)
+	fmt.Fprintf(w, "<html><h1>%d:</h1><pre>%s</pre></html>", statusCode, msg)
+}
+
+func (srv *server) serveOriginal(w http.ResponseWriter, r *http.Request, id int) {
+	srv.l.Printf("id: %d\n", id)
+	path := pathById(id)
+	http.ServeFile(w, r, path)
 }
 
 // OTHER ESSENTIALS

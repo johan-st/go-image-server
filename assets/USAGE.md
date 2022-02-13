@@ -6,6 +6,8 @@
 
 This documentation resides here
 
-### GET /:image
+### GET /:image_id/:desired_filename.jpeg
 
-Any path added after the slash is treated an image request. Ther server will try to match an image.
+Requests to any path beyond root ("/") are treated as an image request.
+Subsequent path does not change the response but is helpfull for naming the "file" fetched.
+The titular example return a file name "desired_filname.jpg"

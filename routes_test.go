@@ -34,12 +34,11 @@ func TestHandleImg(t *testing.T) {
 		router: *way.NewRouter(),
 	}
 	srv.routes()
-	req := httptest.NewRequest("GET", "/blobbers", nil)
+	req := httptest.NewRequest("GET", "/1", nil)
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	is.Equal(w.Code, http.StatusOK)
-	if !strings.Contains(w.Body.String(), "blobbers") {
-		srv.l.Println(w.Body)
-		is.Fail()
-	}
+	// fmt.Println(w.Result().Header["Content-Type"])
+	is.Equal(w.Result().StatusCode, http.StatusOK)
+	is.Equal(w.Result().Header["Content-Type"][0], "image/jpeg")
+	// is.Equal(w.Result().Header)
 }

@@ -24,16 +24,16 @@ func run() error {
 	lf := log.Ldate | log.Ltime
 	l := log.New(os.Stdout, "[go-image-server] ", lf)
 
-	s := newServer(l)
+	srv := newServer(l)
 	mainSrv := &http.Server{
 		Addr:              ":" + string(port),
-		Handler:           s,
+		Handler:           srv,
 		ReadTimeout:       1 * time.Second,
 		ReadHeaderTimeout: 1 * time.Second,
 		WriteTimeout:      1 * time.Second,
 		IdleTimeout:       60 * time.Second,
-		ErrorLog:          s.l,
+		ErrorLog:          srv.l,
 	}
-	s.l.Printf("server is up and listening on port %s", port)
+	srv.l.Printf("server is up and listening on port %s", port)
 	return mainSrv.ListenAndServe()
 }
