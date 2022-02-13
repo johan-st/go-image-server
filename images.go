@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -10,7 +9,7 @@ import (
 // pathById handles translating image id's into paths to the original.
 func pathById(id int) (string, error) {
 	if id <= 0 {
-		return "", errors.New("id must be greter than 0")
+		return "", fmt.Errorf("image id was malfigured\nGOT: %d\nEXPECTED an integer greater than 0 (zero)", id)
 	}
 	path := "originals/" + fmt.Sprint(id) + ".jpg"
 	return path, nil
