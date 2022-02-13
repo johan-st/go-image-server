@@ -7,6 +7,7 @@ import (
 	"strconv"
 )
 
+// pathById handles translating image id's into paths to the original.
 func pathById(id int) (string, error) {
 	if id <= 0 {
 		return "", errors.New("id must be greter than 0")
@@ -21,6 +22,7 @@ type preprocessingParameters struct {
 	height  int
 }
 
+// parseParameters parses url.Values into the data the preprocessor needs to adapt the image to the users request.
 func parseParameters(v url.Values) (preprocessingParameters, error) {
 	pp := preprocessingParameters{}
 

@@ -1,5 +1,10 @@
 # go-image-server
 
+## NOTICE!
+
+This server is still under development.
+issues are to be expected.
+
 ## routes
 
 ### GET /
@@ -15,3 +20,15 @@ This path returns the original image by id
 
 Subsequent path does not change the response but is helpfull for naming the "file" fetched.
 The titular example return a file name "desired_filname.jpg"
+
+## Preprocessing
+
+### How to get the size you want?
+
+Describing the image you want is done through query parameters added to the url.
+
+#### parameters are:
+
+- q: quality, accepts integers between 1 and 100 (inclusive). This parameter determines the rate of compression from none (100% quality) to destructive (1% quality).
+- w: width, accepts integers greater than 0. This parameter determines the width in pixels of te returned image.
+- h: height, accepts integers greater than 0. This parameter determines the height in pixels of te returned image.

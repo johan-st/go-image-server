@@ -16,6 +16,7 @@ type server struct {
 	router way.Router
 }
 
+// Register handlers for routes
 func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/", srv.handleDocs())
 	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
@@ -25,6 +26,8 @@ func (srv *server) routes() {
 
 // HANDLERS
 
+// handleDocs responds to a request with USAGE.md parsed to html.
+// It also inlines some rudimentary css.
 func (srv *server) handleDocs() http.HandlerFunc {
 	md := markdown.New(markdown.XHTMLOutput(true))
 
@@ -47,6 +50,10 @@ func (srv *server) handleDocs() http.HandlerFunc {
 		fmt.Fprintf(w, "<html><body><style>%s</style>%s</body></html>", style, docs)
 	}
 }
+
+// HandleImg tages a request and tries to return the requested image by id.
+// The id is assumed to be given by the path of the request.
+// handleImg also takes query parameter into account to deliver a preprocessed version of the image.
 func (srv *server) handleImg() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id_str := way.Param(r.Context(), "id")
@@ -66,6 +73,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 //  HELPERS
 
+// respondError sends out a respons containing an error. This helper function is meant to be generic enough to serve most needs to communicate errors to the users
 func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)

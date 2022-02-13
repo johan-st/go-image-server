@@ -21,12 +21,12 @@ A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD*
 
 Requirements not mentioned should be regarded as **WONT**
 
-- **MUST** store and serve images
-- **SHOULD** preprocess images on demand
-  - **SHOULD** resize
-  - **COULD** compress to target quality
-- **COULD** cache processed images for future releases
-- **COULD** be fast
+- [x] **MUST** store and serve images
+- [ ] **SHOULD** preprocess images on demand
+  - [ ] **SHOULD** resize
+  - [ ] **COULD** compress to target quality
+- [ ] **COULD** cache processed images for future releases
+- [ ] **COULD** be fast
 
 ### todo
 
@@ -48,7 +48,7 @@ Requirements not mentioned should be regarded as **WONT**
   - add watermark on demand
   - add instagram-like filters
 - cache processed images for future releases
-- be fast
+- be fast (needs definition)
 - have configurable cache recycle rules
 - have admin gui/webapp
 - handle cors
@@ -69,6 +69,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-12: Add images and start defining tests for handlers
 - 2022-02-12: Add ability to fetch photos
 - 2022-02-13: Added a few questions that need answering
+- 2022-02-13: Add parsing of query parameters
 
 # Questions to answer
 
@@ -79,3 +80,4 @@ Requirements not mentioned should be regarded as **WONT**
 - What is easiest to work with as a front end dev?
 - What parameters should be mandatory
 - Should I have presets for quality?
+- Should I handle alt-texts?
