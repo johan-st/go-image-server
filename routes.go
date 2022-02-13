@@ -61,11 +61,13 @@ func (srv *server) handleImg() http.HandlerFunc {
 		id, err := strconv.Atoi(id_str)
 		if err != nil {
 			srv.respondError(w, r, fmt.Sprintf("Could not parse image id.\nGOT: %s\nID MUST BE AN INTEGER GREATER THAN ZERO", id_str), http.StatusBadRequest)
+			return
 		}
 		q := r.URL.Query()
 		pp, err := parseParameters(q)
 		if err != nil {
 			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
+			return
 		}
 		srv.serveImage(w, r, id, pp)
 	}

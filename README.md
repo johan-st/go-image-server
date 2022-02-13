@@ -70,6 +70,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-12: Add ability to fetch photos
 - 2022-02-13: Added a few questions that need answering
 - 2022-02-13: Add parsing of query parameters
+- 2022-02-13: Update documentation
 
 # Questions to answer
 

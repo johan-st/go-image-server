@@ -30,10 +30,10 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 	if quality_str != "" {
 		quality, err := strconv.Atoi(quality_str)
 		if err != nil {
-			return preprocessingParameters{}, err
+			return preprocessingParameters{}, fmt.Errorf("parameter h (quality) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", quality_str, err)
 		}
 		if quality < 1 || quality > 100 {
-			return preprocessingParameters{}, errors.New("parameter q (quality) must be greater than 0 (zero) and less or equal to 100")
+			return preprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds\nGOT: %d\n q must be greater than 0 (zero) and less or equal to 100", quality)
 		}
 		pp.quality = quality
 	}
@@ -42,10 +42,10 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 	if width_str != "" {
 		width, err := strconv.Atoi(width_str)
 		if err != nil {
-			return preprocessingParameters{}, err
+			return preprocessingParameters{}, fmt.Errorf("parameter h (width) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", width_str, err)
 		}
 		if width < 1 {
-			return preprocessingParameters{}, errors.New("parameter w (width) must be greater than 0 (zero)")
+			return preprocessingParameters{}, fmt.Errorf("parameter w (width) out of bounds\nGOT: %d\n EXPECTED w to be greater than 0 (zero)", width)
 		}
 		pp.width = width
 	}
@@ -54,10 +54,10 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 	if height_str != "" {
 		height, err := strconv.Atoi(height_str)
 		if err != nil {
-			return preprocessingParameters{}, err
+			return preprocessingParameters{}, fmt.Errorf("parameter h (height) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", height_str, err)
 		}
 		if height < 1 {
-			return preprocessingParameters{}, errors.New("parameter h (height) must be greater than 0 (zero)")
+			return preprocessingParameters{}, fmt.Errorf("parameter h (height) out of bounds\nGOT: %d\nEXPECTED h to be be greater than 0 (zero)", height)
 		}
 		pp.height = height
 	}
