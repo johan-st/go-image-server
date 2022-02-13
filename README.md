@@ -68,3 +68,14 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-11: try out routing setups and settle on matryan/way routing and implement
 - 2022-02-12: Add images and start defining tests for handlers
 - 2022-02-12: Add ability to fetch photos
+- 2022-02-13: Added a few questions that need answering
+
+# Questions to answer
+
+## structure of request
+
+- Do html and css limit query parameters?
+- path or query for preprocessing
+- What is easiest to work with as a front end dev?
+- What parameters should be mandatory
+- Should I have presets for quality?
