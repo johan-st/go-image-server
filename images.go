@@ -59,9 +59,6 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 		}
 		pp.height = height
 	}
-	// fmt.Printf("_____________________\n%+v\n____________________\n", v)
-	// fmt.Printf("_____________________\n%+v\n____________________\n", pp)
-	// log.Fatalf("_____________________\n%+v\n____________________\n", id_str)
 
 	return pp, nil
 }

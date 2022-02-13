@@ -37,8 +37,6 @@ func TestHandleImg(t *testing.T) {
 	req := httptest.NewRequest("GET", "/1", nil)
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	// fmt.Println(w.Result().Header["Content-Type"])
 	is.Equal(w.Result().StatusCode, http.StatusOK)
 	is.Equal(w.Result().Header["Content-Type"][0], "image/jpeg")
-	// is.Equal(w.Result().Header)
 }

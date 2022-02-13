@@ -26,7 +26,6 @@ func (srv *server) routes() {
 // HANDLERS
 
 func (srv *server) handleDocs() http.HandlerFunc {
-	// srv.l.Print("s.handleDocs setup")
 	md := markdown.New(markdown.XHTMLOutput(true))
 
 	f, err := ioutil.ReadFile("assets/USAGE.md")
@@ -49,7 +48,6 @@ func (srv *server) handleDocs() http.HandlerFunc {
 	}
 }
 func (srv *server) handleImg() http.HandlerFunc {
-	// srv.l.Print("s.handleImg setup")
 	return func(w http.ResponseWriter, r *http.Request) {
 		id_str := way.Param(r.Context(), "id")
 
@@ -62,11 +60,6 @@ func (srv *server) handleImg() http.HandlerFunc {
 		if err != nil {
 			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
 		}
-
-		// srv.l.Printf("query parameters are:\nquality: %d\nwidth: %d\nheight: %d\n", pp.quality, pp.width, pp.height)
-
-		// filename := way.Param(r.Context(), "filename")
-		// srv.serveOriginal(w, r, id)
 		srv.serveImage(w, r, id, pp)
 	}
 }
