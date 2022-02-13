@@ -32,7 +32,7 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 			return preprocessingParameters{}, fmt.Errorf("parameter h (quality) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", quality_str, err)
 		}
 		if quality < 1 || quality > 100 {
-			return preprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds\nGOT: %d\n EXPECTED q to be greater than 0 (zero) and less or equal to 100", quality)
+			return preprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 100", quality)
 		}
 		pp.quality = quality
 	}
@@ -44,7 +44,7 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 			return preprocessingParameters{}, fmt.Errorf("parameter h (width) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", width_str, err)
 		}
 		if width < 1 {
-			return preprocessingParameters{}, fmt.Errorf("parameter w (width) out of bounds\nGOT: %d\n EXPECTED w to be greater than 0 (zero)", width)
+			return preprocessingParameters{}, fmt.Errorf("parameter w (width) out of bounds\nGOT: %d\nEXPECTED w to be greater than 0 (zero)", width)
 		}
 		pp.width = width
 	}
