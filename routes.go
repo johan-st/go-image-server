@@ -52,14 +52,22 @@ func (srv *server) handleImg() http.HandlerFunc {
 	// srv.l.Print("s.handleImg setup")
 	return func(w http.ResponseWriter, r *http.Request) {
 		id_str := way.Param(r.Context(), "id")
+
 		id, err := strconv.Atoi(id_str)
 		if err != nil {
-			srv.l.Println(err)
-			srv.respondError(w, r, "img id must be an integer", http.StatusBadRequest)
-			return
+			srv.respondError(w, r, fmt.Sprintf("Could not parse image id.\nGOT: %s\nID MUST BE AN INTEGER GREATER THAN ZERO", id_str), http.StatusBadRequest)
 		}
+		q := r.URL.Query()
+		pp, err := parseParameters(q)
+		if err != nil {
+			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
+		}
+
+		// srv.l.Printf("query parameters are:\nquality: %d\nwidth: %d\nheight: %d\n", pp.quality, pp.width, pp.height)
+
 		// filename := way.Param(r.Context(), "filename")
-		srv.serveOriginal(w, r, id)
+		// srv.serveOriginal(w, r, id)
+		srv.serveImage(w, r, id, pp)
 	}
 }
 
@@ -67,12 +75,15 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
 	w.WriteHeader(statusCode)
-	fmt.Fprintf(w, "<html><h1>%d:</h1><pre>%s</pre></html>", statusCode, msg)
+	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }
 
-func (srv *server) serveOriginal(w http.ResponseWriter, r *http.Request, id int) {
-	srv.l.Printf("id: %d\n", id)
-	path := pathById(id)
+func (srv *server) serveImage(w http.ResponseWriter, r *http.Request, id int, ir preprocessingParameters) {
+	path, err := pathById(id)
+	if err != nil {
+		srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.ServeFile(w, r, path)
 }
 
