@@ -19,6 +19,7 @@ type server struct {
 // Register handlers for routes
 func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/", srv.handleDocs())
+	srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
 	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
 	srv.router.HandleFunc("GET", "/:id/:filename", srv.handleImg())
 
@@ -73,10 +74,18 @@ func (srv *server) handleImg() http.HandlerFunc {
 	}
 }
 
+// handleFavicon serves the favicon.ico.
+func (srv *server) handleFavicon() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "assets/favicon.ico")
+	}
+}
+
 //  HELPERS
 
 // respondError sends out a respons containing an error. This helper function is meant to be generic enough to serve most needs to communicate errors to the users
 func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
+	srv.l.Printf("ERROR (%d): %s\n", statusCode, msg)
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }
