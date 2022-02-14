@@ -48,7 +48,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 		}
 		w.Header().Add("content-type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "<html><body><style>%s</style>%s</body></html>", style, docs)
+		fmt.Fprintf(w, "<html><head><title>jst_ImageServer</title></head><body><style>%s</style>%s</body></html>", style, docs)
 	}
 }
 

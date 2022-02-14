@@ -1,9 +1,10 @@
-# go-image-server
+# jst_ImageServer
+
+a go image server
 
 ## NOTICE!
 
-This server is still under development.
-issues are to be expected.
+This server is still under development. Incomplete features and issues are to be expected.
 
 ## routes
 
@@ -18,8 +19,8 @@ This path returns the original image by id
 
 ### GET /:image_id/:desired_filename.jpeg
 
-Subsequent path does not change the response but is helpfull for naming the "file" fetched.
-The titular example return a file name "desired_filname.jpg"
+Subsequent path does not change the response but is helpfull for naming the file fetched.
+The titular example return a file named desired_filname.jpg
 
 ## Preprocessing
 
