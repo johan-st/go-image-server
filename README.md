@@ -22,19 +22,19 @@ A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD*
 Requirements not mentioned should be regarded as **WONT**
 
 - [x] **MUST** store and serve images
-- [ ] **SHOULD** preprocess images on demand
-  - [ ] **SHOULD** resize
-  - [ ] **COULD** compress to target quality
+- [x] **SHOULD** preprocess images on demand
+  - [x] **SHOULD** resize
+  - [x] **COULD** compress to target quality
 - [ ] **COULD** cache processed images for future releases
 - [ ] **COULD** be fast
 
 ### todo
 
 - [x] Planing
-- [ ] Basic http server
-- [ ] Serve images from disk
-- [ ] Resize image based on query parameter
-- [ ] Compress to target quality
+- [x] Basic http server
+- [x] Serve images from disk
+- [x] Resize image based on query parameter
+- [x] Compress to target quality
 - [ ] Cache requested images for future requests
 - [ ] decide on benchmark-method for single images
 
@@ -71,6 +71,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-13: Added a few questions that need answering
 - 2022-02-13: Add parsing of query parameters
 - 2022-02-13: Update documentation
+- 2022-02-17: prototype resize and quality
 
 # Questions to answer
 

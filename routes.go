@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"image/jpeg"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/johan-st/go-image-server/way"
+	"github.com/nfnt/resize"
 	"gitlab.com/golang-commonmark/markdown"
 )
 
@@ -70,6 +73,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
+
 		srv.serveImage(w, r, id, pp)
 	}
 }
@@ -90,13 +94,39 @@ func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg stri
 	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }
 
-func (srv *server) serveImage(w http.ResponseWriter, r *http.Request, id int, ir preprocessingParameters) {
-	path, err := pathById(id)
+// TODO: This handler needs a refactor and caching.
+func (srv *server) serveImage(w http.ResponseWriter, r *http.Request, id int, pp preprocessingParameters) {
+
+	oPath, err := originalPathById(id)
 	if err != nil {
 		srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.ServeFile(w, r, path)
+
+	oImg, err := loadImage(oPath)
+	if err != nil {
+		srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	img := resize.Resize(uint(pp.width), uint(pp.height), oImg, resize.Lanczos3)
+
+	cName := fmt.Sprintf("%d-w%d-h%d-q%d.jpeg", id, pp.width, pp.height, pp.quality)
+	cPath := fmt.Sprintf("cache/%s", cName)
+	fmt.Println(cPath)
+	file, err := os.Create(cPath)
+	if err != nil {
+		srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
+	}
+	defer file.Close()
+
+	opt := &jpeg.Options{Quality: pp.quality}
+	err = jpeg.Encode(file, img, opt)
+	if err != nil {
+		srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
+	}
+
+	http.ServeFile(w, r, cPath)
 }
 
 // OTHER ESSENTIALS

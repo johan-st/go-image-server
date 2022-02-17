@@ -47,28 +47,53 @@ func Test_parseParameters(t *testing.T) {
 		{
 			"no parameters",
 			args{parseQuery("")},
-			preprocessingParameters{quality: 0, width: 0, height: 0},
+			preprocessingParameters{_type: "jpeg", quality: 100, width: 0, height: 0},
 			false,
 		}, {
 			"quality set",
 			args{parseQuery("q=50")},
-			preprocessingParameters{quality: 50, width: 0, height: 0},
+			preprocessingParameters{_type: "jpeg", quality: 50, width: 0, height: 0},
 			false,
 		}, {
 			"handles mixed parameters",
 			args{parseQuery("q=100&w=900&h=450")},
-			preprocessingParameters{quality: 100, width: 900, height: 450},
+			preprocessingParameters{_type: "jpeg", quality: 100, width: 900, height: 450},
 			false,
 		}, {
 			"q=100 should succeed",
 			args{parseQuery("q=100")},
-			preprocessingParameters{quality: 100, width: 0, height: 0},
+			preprocessingParameters{_type: "jpeg", quality: 100, width: 0, height: 0},
+			false,
+		}, {
+			"type jpeg should succeed",
+			args{parseQuery("t=jpeg")},
+			preprocessingParameters{_type: "jpeg", quality: 100, width: 0, height: 0},
+			false,
+		}, {
+			"type png should succeed",
+			args{parseQuery("t=png")},
+			preprocessingParameters{_type: "png", quality: 100, width: 0, height: 0},
+			false,
+		}, {
+			"t=gif should succeed",
+			args{parseQuery("t=gif")},
+			preprocessingParameters{_type: "gif", quality: 100, width: 0, height: 0},
 			false,
 		}, {
 			"width and height set",
 			args{parseQuery("w=50&h=500")},
-			preprocessingParameters{quality: 0, width: 50, height: 500},
+			preprocessingParameters{quality: 100, width: 50, height: 500, _type: "jpeg"},
 			false,
+		}, {
+			"type jpg should fail",
+			args{parseQuery("w=50&h=500&t=jpg")},
+			preprocessingParameters{},
+			true,
+		}, {
+			"type vim should fail",
+			args{parseQuery("w=50&t=vim&h=500")},
+			preprocessingParameters{},
+			true,
 		}, {
 			"q=-1 should fail",
 			args{parseQuery("q=-1")},
@@ -107,7 +132,7 @@ func Test_parseParameters(t *testing.T) {
 		}, {
 			"Values given are very large",
 			args{parseQuery("w=999999999999999999&q=100&h=990000")},
-			preprocessingParameters{quality: 100, width: 999999999999999999, height: 990000},
+			preprocessingParameters{quality: 100, width: 999999999999999999, height: 990000, _type: "jpeg"},
 			false,
 		}, {
 			"Values given are TOO large",

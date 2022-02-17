@@ -22,7 +22,7 @@ func TestHandleDocs(t *testing.T) {
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
 	is.Equal(w.Code, http.StatusOK)
-	if !strings.Contains(w.Body.String(), "<h1>go-image-server</h1>") {
+	if !strings.Contains(w.Body.String(), "<h1>jst_ImageServer</h1>") {
 		is.Fail()
 	}
 }
