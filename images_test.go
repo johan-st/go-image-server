@@ -21,7 +21,7 @@ func Test_pathById(t *testing.T) {
 		{"one", args{99}, "originals/99.jpg", false}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := pathById(tt.args.id)
+			got, err := originalPathById(tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("pathById() error = %v, wantErr %v", err, tt.wantErr)
 				return
