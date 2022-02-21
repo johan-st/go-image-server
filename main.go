@@ -18,7 +18,7 @@ func main() {
 }
 
 func run() error {
-
+	clearCache()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

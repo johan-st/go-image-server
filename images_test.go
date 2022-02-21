@@ -198,14 +198,7 @@ func Setup_fileExists(path string) {
 
 }
 func Taredown_fileExists() {
-	err := os.RemoveAll("./cache")
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.Mkdir("./cache", 0666)
-	if err != nil {
-		fmt.Println(err)
-	}
+	clearCache()
 }
 func Test_fileExists(t *testing.T) {
 	path := "./cache/3-w300-h200-q30.png"

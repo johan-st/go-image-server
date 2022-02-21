@@ -149,3 +149,14 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 	}
 	return pp, nil
 }
+
+func clearCache() {
+	err := os.RemoveAll("./cache")
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.Mkdir("./cache", 0666)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
