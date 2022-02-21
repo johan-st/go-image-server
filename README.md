@@ -83,7 +83,12 @@ Requirements not mentioned should be regarded as **WONT**
 
 - Do html and css limit query parameters?
 - path or query for preprocessing
+  - Query works fine
 - What is easiest to work with as a front end dev?
 - What parameters should be mandatory
+  - none. Just image id
 - Should I have presets for quality?
+- What are sensible defaults when no parameters are passed?
+  - thumbnail to conserve resources?
+  - uncompressed original?
 - Should I handle alt-texts?

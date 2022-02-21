@@ -29,7 +29,15 @@ The titular example return a file named desired_filname.jpg
 Describing the image you want is done through query parameters added to the url.
 
 #### parameters are:
-
 - q: quality, accepts integers between 1 and 100 (inclusive). This parameter determines the rate of compression from none (100% quality) to destructive (1% quality).
 - w: width, accepts integers greater than 0. This parameter determines the width in pixels of te returned image.
 - h: height, accepts integers greater than 0. This parameter determines the height in pixels of te returned image.
+
+
+#### Quality have different meanings depending on format. 
+
+| format                | range      | enterpretation          |
+| --------------------- | ---------- | ----------------------- |
+| jpeg (default format) | 1-100      | 1 to 100% quality       |
+| gif                   | 1-100      | 1 to 100% of 256 colors |
+| png                   | is ignored | always full quality     |
