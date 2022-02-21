@@ -37,6 +37,7 @@ Requirements not mentioned should be regarded as **WONT**
 - [x] Compress to target quality
 - [x] Cache requested images for future requests
 - [ ] decide on benchmark-method for single images
+- [ ] asking for a non-exsistant id should give 404 (not 500)
 - [ ] add usage log 
 - [ ] add cache reclaimation
 
