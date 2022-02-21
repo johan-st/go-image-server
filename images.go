@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
-	"log"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
 	"net/url"
 	"os"
 	"strconv"
+
+	"github.com/nfnt/resize"
 )
 
 // originalPathById handles translating image id's into paths to the original.
@@ -28,20 +29,72 @@ type preprocessingParameters struct {
 	_type   string
 }
 
+// Constructs the path where the cached image should be saved.
+func getCachePath(id int, pp preprocessingParameters) string {
+	cName := fmt.Sprintf("%d-w%d-h%d-q%d.%s", id, pp.width, pp.height, pp.quality, pp._type)
+	cPath := fmt.Sprintf("cache/%s", cName)
+	return cPath
+}
+
+func fileExists(cachePath string) bool {
+	_, err := os.Open(cachePath)
+	return err == nil
+}
+
 // loadImage retunes the image specified by the path
 func loadImage(path string) (image.Image, error) {
 
 	file, err := os.Open(path)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer file.Close()
 
 	img, _, err := image.Decode(file)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	return img, nil
+}
+
+// cacheImage processes an image (by id) and caches the resuts. Returns cachedPath on success
+func processAndCache(id int, pp preprocessingParameters) (string, error) {
+	oPath, err := originalPathById(id)
+	if err != nil {
+		return "", err
+	}
+	oImg, err := loadImage(oPath)
+	if err != nil {
+		return "", err
+	}
+	cPath := getCachePath(id, pp)
+	file, err := os.Create(cPath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	img := resize.Resize(uint(pp.width), uint(pp.height), oImg, resize.Lanczos3)
+	if pp._type == "jpeg" {
+		opt := &jpeg.Options{Quality: pp.quality}
+		err = jpeg.Encode(file, img, opt)
+		if err != nil {
+			return "", err
+		}
+	} else if pp._type == "png" {
+		err = png.Encode(file, img)
+		if err != nil {
+			return "", err
+		}
+	} else if pp._type == "gif" {
+		nc := (pp.quality * 256) / 100
+		opt := &gif.Options{NumColors: nc}
+		err = gif.Encode(file, img, opt)
+		if err != nil {
+			return "", err
+		}
+	}
+	return cPath, nil
 }
 
 // parseParameters parses url.Values into the data the preprocessor needs to adapt the image to the users request.

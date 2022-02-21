@@ -25,7 +25,7 @@ Requirements not mentioned should be regarded as **WONT**
 - [x] **SHOULD** preprocess images on demand
   - [x] **SHOULD** resize
   - [x] **COULD** compress to target quality
-- [ ] **COULD** cache processed images for future releases
+- [X] **COULD** cache processed images for future releases
 - [ ] **COULD** be fast
 
 ### todo
@@ -35,8 +35,10 @@ Requirements not mentioned should be regarded as **WONT**
 - [x] Serve images from disk
 - [x] Resize image based on query parameter
 - [x] Compress to target quality
-- [ ] Cache requested images for future requests
+- [x] Cache requested images for future requests
 - [ ] decide on benchmark-method for single images
+- [ ] add usage log 
+- [ ] add cache reclaimation
 
 # Requirements
 
@@ -58,7 +60,7 @@ Requirements not mentioned should be regarded as **WONT**
 - have format changes
 - handle vector graphics
 - handle special formats (.raw etc...)
-- hav api for cms integration
+- have api for cms integration
 - select focus point for crop
 - be horizontaly scalable (originals storage and cache layer?)
 
@@ -72,6 +74,8 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-13: Add parsing of query parameters
 - 2022-02-13: Update documentation
 - 2022-02-17: prototype resize and quality
+- 2022-02-21: refactor resize and quality
+- 2022-02-21: prototype cache
 
 # Questions to answer
 

@@ -1,7 +1,12 @@
 package main
 
 import (
+	"fmt"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"net/url"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -160,4 +165,70 @@ func parseQuery(q string) url.Values {
 		panic(err)
 	}
 	return v
+}
+
+func Test_getCachePath(t *testing.T) {
+	type args struct {
+		id int
+		pp preprocessingParameters
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"id 1 and no parameters", args{id: 1, pp: preprocessingParameters{quality: 100, width: 0, height: 0, _type: "jpeg"}}, "cache/1-w0-h0-q100.jpeg"},
+		{"id 2 and parameters", args{id: 2, pp: preprocessingParameters{quality: 95, width: 900, height: 600, _type: "gif"}}, "cache/2-w900-h600-q95.gif"},
+		{"id 3 and parameters", args{id: 3, pp: preprocessingParameters{quality: 30, width: 300, height: 200, _type: "png"}}, "cache/3-w300-h200-q30.png"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getCachePath(tt.args.id, tt.args.pp); got != tt.want {
+				t.Errorf("getCachePath() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+func Setup_fileExists(path string) {
+	file, err := os.Create(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer file.Close()
+
+}
+func Taredown_fileExists() {
+	err := os.RemoveAll("./cache")
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.Mkdir("./cache", 0666)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+func Test_fileExists(t *testing.T) {
+	path := "./cache/3-w300-h200-q30.png"
+	faultyPath := "./cache/3-w300-h200-q30.jpeg"
+	Setup_fileExists(path)
+	defer Taredown_fileExists()
+
+	type args struct {
+		cachePath string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"path to file does not exist", args{cachePath: faultyPath}, false},
+		{"path to file does exist", args{cachePath: path}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := fileExists(tt.args.cachePath); got != tt.want {
+				t.Errorf("fileExists() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
