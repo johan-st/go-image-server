@@ -92,3 +92,6 @@ Requirements not mentioned should be regarded as **WONT**
   - thumbnail to conserve resources?
   - uncompressed original?
 - Should I handle alt-texts?
+
+# thoughts
+- if used as a cdn a simple rsync could keep all cahces in sync and restore cache from master or other source on boot. Possibly even clone cache from all peers.
