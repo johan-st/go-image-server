@@ -15,6 +15,7 @@ It **SHOULD** have at least two (2) quality levels and **SHOULD** be able to cac
 
 A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD** have rudimentary authentication/domain restrictions.
 
+## Mars 2022
 ## Februari 2022
 
 ### [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method)
@@ -40,6 +41,8 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] asking for a non-exsistant id should give 404 (not 500)
 - [ ] add usage log 
 - [ ] add cache reclaimation
+- [ ] decide on how to handle handle requests for images larger than original?
+- [ ] crop should keep aspect ratio
 
 # Requirements
 

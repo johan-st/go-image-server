@@ -82,7 +82,7 @@ func Test_parseParameters(t *testing.T) {
 		}, {
 			"t=gif should succeed",
 			args{parseQuery("t=gif")},
-			preprocessingParameters{_type: "gif", quality: 100, width: 0, height: 0},
+			preprocessingParameters{_type: "gif", quality: 256, width: 0, height: 0},
 			false,
 		}, {
 			"width and height set",

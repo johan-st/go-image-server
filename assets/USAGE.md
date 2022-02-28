@@ -36,8 +36,8 @@ Describing the image you want is done through query parameters added to the url.
 
 #### Quality have different meanings depending on format. 
 
-| format                | range | enterpretation                  |
-| --------------------- | ----- | ------------------------------- |
-| jpeg (default format) | 1-100 | % quality                       |
-| gif                   | 1-100 | % of 256 colors                 |
-| png                   |       | is ignored  always full quality |
+| format                | range | enterpretation                   |
+| --------------------- | ----- | -------------------------------- |
+| jpeg (default format) | 1-100 | % quality                        |
+| gif                   | 1-256 | nr of colors                     |
+| png                   |       | is ignored.  always full quality |

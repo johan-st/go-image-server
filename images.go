@@ -87,7 +87,7 @@ func processAndCache(id int, pp preprocessingParameters) (string, error) {
 			return "", err
 		}
 	} else if pp._type == "gif" {
-		nc := (pp.quality * 256) / 100
+		nc := pp.quality
 		opt := &gif.Options{NumColors: nc}
 		err = gif.Encode(file, img, opt)
 		if err != nil {
@@ -98,23 +98,56 @@ func processAndCache(id int, pp preprocessingParameters) (string, error) {
 }
 
 // parseParameters parses url.Values into the data the preprocessor needs to adapt the image to the users request.
+// 0 or empty string will be treated as default values.
 func parseParameters(v url.Values) (preprocessingParameters, error) {
 	pp := preprocessingParameters{}
 
-	quality_str := v.Get("q")
-	if quality_str != "" {
-		quality, err := strconv.Atoi(quality_str)
-		if err != nil {
-			return preprocessingParameters{}, fmt.Errorf("parameter h (quality) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", quality_str, err)
+	// type
+	type_str := v.Get("t")
+	if type_str != "" {
+		if type_str != "jpeg" && type_str != "png" && type_str != "gif" {
+			return preprocessingParameters{}, fmt.Errorf("parameter t (type) could not be parsed\nGOT: %s\nEXPECTED an \"jpeg\", \"gif\" or \"png\"", type_str)
 		}
-		if quality < 1 || quality > 100 {
-			return preprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 100", quality)
-		}
-		pp.quality = quality
+		pp._type = type_str
 	} else {
-		pp.quality = 100
+		pp._type = "jpeg"
 	}
 
+	// quality
+
+	quality_str := v.Get("q")
+	if quality_str == "" {
+		if pp._type == "jpeg" {
+			pp.quality = 100
+		} else if pp._type == "gif" {
+			pp.quality = 256
+		} else if pp._type == "png" {
+			pp.quality = 100
+		}
+	} else {
+		quality, err := strconv.Atoi(quality_str)
+		if err != nil {
+			return preprocessingParameters{}, fmt.Errorf("parameter q (quality) could not be parsed\nGOT: %s\nEXPECTED an integer\nERROR: %s", quality_str, err)
+		}
+		if pp._type == "jpeg" {
+			if quality < 1 || quality > 100 {
+				return preprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds for type \"jpeg\"\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 100", quality)
+			}
+		} else if pp._type == "png" {
+
+			if quality < 1 || quality > 100 {
+				return preprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds for type \"png\"\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 100", quality)
+			}
+		} else if pp._type == "gif" {
+
+			if quality < 1 || quality > 256 {
+				return preprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds for type \"gif\"\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 256", quality)
+			}
+		}
+		pp.quality = quality
+	}
+
+	// width
 	width_str := v.Get("w")
 	if width_str != "" {
 		width, err := strconv.Atoi(width_str)
@@ -127,6 +160,7 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 		pp.width = width
 	}
 
+	// height
 	height_str := v.Get("h")
 	if height_str != "" {
 		height, err := strconv.Atoi(height_str)
@@ -138,15 +172,7 @@ func parseParameters(v url.Values) (preprocessingParameters, error) {
 		}
 		pp.height = height
 	}
-	type_str := v.Get("t")
-	if type_str != "" {
-		if type_str != "jpeg" && type_str != "png" && type_str != "gif" {
-			return preprocessingParameters{}, fmt.Errorf("parameter t (type) could not be parsed\nGOT: %s\nEXPECTED an \"jpeg\", \"gif\" or \"png\"", height_str)
-		}
-		pp._type = type_str
-	} else {
-		pp._type = "jpeg"
-	}
+
 	return pp, nil
 }
 
