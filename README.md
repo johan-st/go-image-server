@@ -80,6 +80,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-17: prototype resize and quality
 - 2022-02-21: refactor resize and quality
 - 2022-02-21: prototype cache
+- 2022-02-28: have quality for gif be specifc fr gif (1-256)
 
 # Questions to answer
 
@@ -91,10 +92,10 @@ Requirements not mentioned should be regarded as **WONT**
 - What is easiest to work with as a front end dev?
 - What parameters should be mandatory
   - none. Just image id
-- Should I have presets for quality?
 - What are sensible defaults when no parameters are passed?
   - thumbnail to conserve resources?
   - uncompressed original?
+  - middle ground?
 - Should I handle alt-texts?
 
 # thoughts
