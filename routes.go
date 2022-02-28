@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/johan-st/go-image-server/images"
 	"github.com/johan-st/go-image-server/way"
 	"gitlab.com/golang-commonmark/markdown"
 )
@@ -65,7 +66,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 			return
 		}
 		q := r.URL.Query()
-		pp, err := parseParameters(q)
+		pp, err := images.ParseParameters(q)
 		if err != nil {
 			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
 			return
@@ -91,13 +92,13 @@ func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg stri
 }
 
 // TODO: This handler needs a refactor and caching.
-func (srv *server) serveImage(w http.ResponseWriter, r *http.Request, id int, pp preprocessingParameters) {
+func (srv *server) serveImage(w http.ResponseWriter, r *http.Request, id int, pp images.PreprocessingParameters) {
 
-	cPath := getCachePath(id, pp)
-	if !fileExists(cPath) {
-		_, err := processAndCache(id, pp)
+	cPath := images.GetCachePath(id, pp)
+	if !images.FileExists(cPath) {
+		_, err := images.ProcessAndCache(id, pp)
 		if err != nil {
-			srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
+			srv.respondError(w, r, err.Error(), http.StatusNotFound)
 			return
 		}
 	}

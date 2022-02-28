@@ -15,5 +15,6 @@
 
 # cache and build artifacts
 cache/*
+images/cache/*
 go-image-server
 go-image-server.exe

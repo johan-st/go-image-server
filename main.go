@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/johan-st/go-image-server/images"
 )
 
 func main() {
@@ -18,7 +20,7 @@ func main() {
 }
 
 func run() error {
-	clearCache()
+	images.ClearCache()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
