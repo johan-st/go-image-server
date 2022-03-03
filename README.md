@@ -81,6 +81,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-21: refactor resize and quality
 - 2022-02-21: prototype cache
 - 2022-02-28: have quality for gif be specifc fr gif (1-256)
+- 2022-02-28: make images a package
 
 # Questions to answer
 
