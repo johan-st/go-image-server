@@ -101,3 +101,5 @@ Requirements not mentioned should be regarded as **WONT**
 
 # thoughts
 - if used as a cdn a simple rsync could keep all cahces in sync and restore cache from master or other source on boot. Possibly even clone cache from all peers.
+- set default return per image?
+
