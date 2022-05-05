@@ -1,6 +1,6 @@
 # go-image-server
 
-on stop shop for serving the images you need in the formate you want.
+one stop shop for serving the images you need in the formate you want.
 
 Idea is to be able to upload a an image in high resolution and quality and have the server handle scaling etc (as per query parameters). The image server should cache images it modifies to speed up future delivery of the same request.
 
