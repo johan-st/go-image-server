@@ -15,12 +15,33 @@ It **SHOULD** have at least two (2) quality levels and **SHOULD** be able to cac
 
 A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD** have rudimentary authentication/domain restrictions.
 
-## Mars 2022
-## Februari 2022
-
-### [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method)
+# Sprints
+## [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method)
+Planing and prioritization of features and requirements to be implemented during each sprint.
 
 Requirements not mentioned should be regarded as **WONT**
+
+## April & MAY 2023
+_(back at it)_
+
+- [ ] **MUST** have tests working and passing on linux and windows
+- [ ] **SHOULD** error on startup if file permissions are wrong
+- [ ] **COULD** have a webpage for uploading images
+- [ ] **COULD** have a webpage for viewing and deleting images
+
+
+### todo
+- [ ] Fix tests
+- [ ] Refactor tests to work on the image modules API (not as part of the module)  
+- [ ] decide on benchmark-method for single images
+- [ ] asking for a non-exsistant id should give 404 (not 500)
+- [ ] add usage log 
+- [ ] add simple cache retention and reclaimation
+- [ ] decide on how to handle handle requests for images larger than original?
+- [ ] crop should keep aspect ratio
+
+## Februari 2022
+
 
 - [x] **MUST** store and serve images
 - [x] **SHOULD** preprocess images on demand
@@ -82,6 +103,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2022-02-21: prototype cache
 - 2022-02-28: have quality for gif be specifc fr gif (1-256)
 - 2022-02-28: make images a package
+- 2023-04-25: look over code and tests. Plan future work
 
 # Questions to answer
 
