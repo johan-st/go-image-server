@@ -18,7 +18,7 @@ func originalPathById(id int) (string, error) {
 	if id <= 0 {
 		return "", fmt.Errorf("image id was malfigured\nGOT: %d\nEXPECTED an integer greater than 0 (zero)", id)
 	}
-	path := "originals/" + fmt.Sprint(id) + ".jpg"
+	path := "originals" + string(os.PathSeparator) + fmt.Sprint(id) + ".jpg"
 	return path, nil
 }
 
@@ -32,7 +32,7 @@ type PreprocessingParameters struct {
 // Constructs the path where the cached image should be saved.
 func GetCachePath(id int, pp PreprocessingParameters) string {
 	cName := fmt.Sprintf("%d-w%d-h%d-q%d.%s", id, pp.width, pp.height, pp.quality, pp._type)
-	cPath := fmt.Sprintf("cache/%s", cName)
+	cPath := fmt.Sprintf("cache%s%s", string(os.PathSeparator), cName)
 	return cPath
 }
 
@@ -177,7 +177,7 @@ func ParseParameters(v url.Values) (PreprocessingParameters, error) {
 }
 
 func ClearCache() {
-	err := os.RemoveAll("./cache")
+	err := os.RemoveAll("." + string(os.PathSeparator) + "cache")
 	if err != nil {
 		fmt.Println(err)
 	}

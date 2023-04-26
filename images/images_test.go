@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -31,8 +32,8 @@ func Test_pathById(t *testing.T) {
 				t.Errorf("pathById() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("pathById() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got, strings.ReplaceAll(tt.want, "/", string(os.PathSeparator))) {
+				t.Errorf("pathById() = %v, want %v", got, strings.ReplaceAll(tt.want, "/", string(os.PathSeparator)))
 			}
 		})
 	}
@@ -183,8 +184,8 @@ func Test_getCachePath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetCachePath(tt.args.id, tt.args.pp); got != tt.want {
-				t.Errorf("GetCachePath() = %v, want %v", got, tt.want)
+			if got := GetCachePath(tt.args.id, tt.args.pp); got != strings.ReplaceAll(tt.want, "/", string(os.PathSeparator)) {
+				t.Errorf("GetCachePath() = %v, want %v", got, strings.ReplaceAll(tt.want, "/", string(os.PathSeparator)))
 			}
 		})
 	}
@@ -201,8 +202,10 @@ func Taredown_fileExists() {
 	ClearCache()
 }
 func Test_fileExists(t *testing.T) {
-	path := "./cache/3-w300-h200-q30.png"
-	faultyPath := "./cache/3-w300-h200-q30.jpeg"
+
+	path := strings.ReplaceAll("./cache/3-w300-h200-q30.png", "/", string(os.PathSeparator))
+	faultyPath := strings.ReplaceAll("./cache/3-w300-h200-q30.jpeg", "/", string(os.PathSeparator))
+
 	Setup_fileExists(path)
 	defer Taredown_fileExists()
 
