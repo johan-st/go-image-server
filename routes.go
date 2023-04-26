@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/johan-st/go-image-server/images"
@@ -33,12 +33,12 @@ func (srv *server) routes() {
 func (srv *server) handleDocs() http.HandlerFunc {
 	md := markdown.New(markdown.XHTMLOutput(true))
 
-	f, err := ioutil.ReadFile("assets/USAGE.md")
+	f, err := os.ReadFile("assets/USAGE.md")
 	docs := md.RenderToString(f)
 	if err != nil {
 		srv.l.Fatalf("Could not read docs\n%s", err)
 	}
-	style, err := ioutil.ReadFile("assets/dark.css")
+	style, err := os.ReadFile("assets/dark.css")
 	if err != nil {
 		srv.l.Fatalf("Could not read assets/dark.css\n%s", err)
 	}
