@@ -26,7 +26,7 @@ _(#backatit)_
 
 - [ ] **MUST** have tests working and passing on linux and windows
   - [x] linux 
-  - [ ] windows
+  - [X] windows
 - [x] **SHOULD** error on startup if file permissions are wrong
   - Decided to have the server try to set the permissions for image and cache folder itself if they are not permissive enough. It will only extend permissions, never reduce them.
 - [ ] **SHOULD** be configurable by file or environment variables
@@ -45,11 +45,15 @@ _(#backatit)_
 - [ ] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
+- [ ] handle folder creation and permissions
+  - [ ] win
+  - [ ] linux
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
 - 2023-04-26: Fix permission issues with cache and image folders. Tests now pass on linux
 - 2023-04-26: slight restructure of README.md
+- 2023-04-26: Fix tests (and image module) on windows
 
 ## Februari 2022
 
