@@ -24,7 +24,7 @@ Requirements not mentioned should be regarded as **WONT**
 ## April & May 2023
 _(#backatit)_
 
-- [ ] **MUST** have tests working and passing on linux and windows
+- [x] **MUST** have tests working and passing on linux and windows
   - [x] linux 
   - [X] windows
 - [x] **SHOULD** error on startup if file permissions are wrong
@@ -36,11 +36,11 @@ _(#backatit)_
 
 ### todo
 - [X] Fix tests
+- [X] asking for a non-exsistant id should give 404 (not 500)
+  - was already fixed in previous sprint
 - [ ] Paths should be configurable
 - [ ] Refactor tests to work on the image modules API (not as part of the module)  
 - [ ] decide on benchmark-method for single images
-- [X] asking for a non-exsistant id should give 404 (not 500)
-  - was already fixed in previous sprint
 - [ ] add usage log 
 - [ ] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
@@ -54,6 +54,7 @@ _(#backatit)_
 - 2023-04-26: Fix permission issues with cache and image folders. Tests now pass on linux
 - 2023-04-26: slight restructure of README.md
 - 2023-04-26: Fix tests (and image module) on windows
+- 2023-04-26: refactor out io/util as it is deprecated
 
 ## Februari 2022
 
