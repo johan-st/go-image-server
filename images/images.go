@@ -181,7 +181,8 @@ func ClearCache() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = os.Mkdir("./cache", 0666)
+	// TODO: Path ( and maybe permissions) should be configurable
+	err = os.Mkdir("./cache", 0755)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -21,24 +21,34 @@ Planing and prioritization of features and requirements to be implemented during
 
 Requirements not mentioned should be regarded as **WONT**
 
-## April & MAY 2023
+## April & May 2023
 _(back at it)_
 
 - [ ] **MUST** have tests working and passing on linux and windows
-- [ ] **SHOULD** error on startup if file permissions are wrong
+  - [x] linux 
+  - [ ] windows
+- [x] **SHOULD** error on startup if file permissions are wrong
+  - Decided to have the server try to set the permissions for image and cache folder itself if they are not permissive enough. It will only extend permissions, never reduce them.
 - [ ] **COULD** have a webpage for uploading images
 - [ ] **COULD** have a webpage for viewing and deleting images
 
 
 ### todo
-- [ ] Fix tests
+- [X] Fix tests
+- [ ] Paths should be configurable
 - [ ] Refactor tests to work on the image modules API (not as part of the module)  
 - [ ] decide on benchmark-method for single images
-- [ ] asking for a non-exsistant id should give 404 (not 500)
+- [X] asking for a non-exsistant id should give 404 (not 500)
+  - was already fixed in previous sprint
 - [ ] add usage log 
 - [ ] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
+
+### log
+- 2023-04-25: look over code and tests. Plan future work
+- 2023-04-26: Fix permission issues with cache and image folders. Tests now pass on linux
+- 2023-04-26: slight restructure of README.md
 
 ## Februari 2022
 
@@ -64,6 +74,20 @@ _(back at it)_
 - [ ] add cache reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
+### log
+
+- 2022-02-08: create repo and brain-dump requirements etc
+- 2022-02-11: try out routing setups and settle on matryan/way routing and implement
+- 2022-02-12: Add images and start defining tests for handlers
+- 2022-02-12: Add ability to fetch photos
+- 2022-02-13: Added a few questions that need answering
+- 2022-02-13: Add parsing of query parameters
+- 2022-02-13: Update documentation
+- 2022-02-17: prototype resize and quality
+- 2022-02-21: refactor resize and quality
+- 2022-02-21: prototype cache
+- 2022-02-28: have quality for gif be specifc fr gif (1-256)
+- 2022-02-28: make images a package
 
 # Requirements
 
@@ -88,22 +112,6 @@ _(back at it)_
 - have api for cms integration
 - select focus point for crop
 - be horizontaly scalable (originals storage and cache layer?)
-
-## log
-
-- 2022-02-08: create repo and brain-dump requirements etc
-- 2022-02-11: try out routing setups and settle on matryan/way routing and implement
-- 2022-02-12: Add images and start defining tests for handlers
-- 2022-02-12: Add ability to fetch photos
-- 2022-02-13: Added a few questions that need answering
-- 2022-02-13: Add parsing of query parameters
-- 2022-02-13: Update documentation
-- 2022-02-17: prototype resize and quality
-- 2022-02-21: refactor resize and quality
-- 2022-02-21: prototype cache
-- 2022-02-28: have quality for gif be specifc fr gif (1-256)
-- 2022-02-28: make images a package
-- 2023-04-25: look over code and tests. Plan future work
 
 # Questions to answer
 
