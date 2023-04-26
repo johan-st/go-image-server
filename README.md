@@ -22,13 +22,14 @@ Planing and prioritization of features and requirements to be implemented during
 Requirements not mentioned should be regarded as **WONT**
 
 ## April & May 2023
-_(back at it)_
+_(#backatit)_
 
 - [ ] **MUST** have tests working and passing on linux and windows
   - [x] linux 
   - [ ] windows
 - [x] **SHOULD** error on startup if file permissions are wrong
   - Decided to have the server try to set the permissions for image and cache folder itself if they are not permissive enough. It will only extend permissions, never reduce them.
+- [ ] **SHOULD** be configurable by file or environment variables
 - [ ] **COULD** have a webpage for uploading images
 - [ ] **COULD** have a webpage for viewing and deleting images
 
