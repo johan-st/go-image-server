@@ -13,6 +13,14 @@ import (
 	"github.com/nfnt/resize"
 )
 
+type Config struct {
+	OriginalsDir      string
+	CacheDir          string
+	CreateDirs        bool
+	SetPerms          bool
+	ClearCacheOnStart bool
+}
+
 // originalPathById handles translating image id's into paths to the original.
 func originalPathById(id int) (string, error) {
 	if id <= 0 {
