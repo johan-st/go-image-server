@@ -57,6 +57,7 @@ _(#backatit)_
 - 2023-04-26: slight restructure of README.md
 - 2023-04-26: Fix tests (and image module) on windows
 - 2023-04-26: refactor out io/util as it is deprecated
+- 2023-04-28: Think through images package API (images_api_test.go)
 
 ## Februari 2022
 
