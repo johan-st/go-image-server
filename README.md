@@ -48,8 +48,8 @@ _(#backatit)_
 - [ ] handle folder creation and permissions
   - [ ] win
   - [ ] linux
-- [ ] tests need to be able to run with no setup (exept conf) after clone
-- [ ] app need to be able to run with no setup (except conf) after clone
+- [ ] tests need to be able to run with no setup after clone (include sane default conf in repo)
+- [ ] app need to be able to run with no setup after clone (include sane default conf in repo)
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
