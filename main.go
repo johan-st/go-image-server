@@ -1,30 +1,31 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/log"
-	img "github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/images"
 )
 
 func main() {
-	l := log.New(os.Stderr)
-	l.SetLevel(log.InfoLevel)
+	l := newCustomLogger()
 
 	err := run(l)
 	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+		l.Fatal(err)
 	}
 }
 
 func run(l *log.Logger) error {
+
 	ihLogger := l.WithPrefix("[ImageHandler]")
 	// ihLogger.SetLevel(log.DebugLevel)
 
-	ih, err := img.New(img.Config{
+	ih, err := images.New(images.Config{
 		OriginalsDir: "img/originals",
 		CacheDir:     "img/cache",
 		CreateDirs:   true,
@@ -33,9 +34,6 @@ func run(l *log.Logger) error {
 	if err != nil {
 		return err
 	}
-	ih.CacheClear()
-	ih.CacheHouseKeeping()
-	ih.ListIds()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -51,12 +49,44 @@ func run(l *log.Logger) error {
 		WriteTimeout:      1 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-	srv.l.Printf("server is up and listening on port %s", port)
+	srv.l.Infof("server is up and listening on port %s", port)
+
 	return mainSrv.ListenAndServe()
+	// return fmt.Errorf("arbitrary error")
+}
+
+// LOGGER STUFF
+
+// set up logger
+func newCustomLogger() *log.Logger {
+	opt := log.Options{
+		Prefix:          "[main]",
+		Level:           envLogLevel(),
+		ReportCaller:    false,
+		CallerFormatter: funcCallerFormater,
+		ReportTimestamp: true,
+		TimeFormat:      time.Layout,
+		Formatter:       log.TextFormatter,
+		Fields:          []interface{}{},
+	}
+	l := log.NewWithOptions(os.Stderr, opt)
+
+	if l.GetLevel() == log.DebugLevel {
+		l.SetReportCaller(true)
+	}
+
+	// logfile, err := os.OpenFile("image-server.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// if err != nil {
+	// l.Error("Could no set up logfile", "error", err)
+	// }
+	// defer logfile.Close()
+	// l.SetOutput(logfile)
+	// l.SetFormatter(log.JSONFormatter)
+	return l
 }
 
 // NOTE: is duplicated in imageHandler
-func logLevel() log.Level {
+func envLogLevel() log.Level {
 
 	switch os.Getenv("LOG_LEVEL") {
 	case "DEBUG":
@@ -70,5 +100,45 @@ func logLevel() log.Level {
 	case "FATAL":
 		return log.FatalLevel
 	}
-	return log.ErrorLevel
+	return log.InfoLevel
+}
+
+func funcCallerFormater(file string, line int, funcName string) string {
+	return fmt.Sprintf("%s:%d %s", trimCaller(file, 1, '/'), line, trimCaller(funcName, 1, '.'))
+}
+
+// Cleanup a path by returning the last n segments of the path only.
+func trimCaller(path string, n int, sep byte) string {
+	// lovely borrowed from zap
+	// nb. To make sure we trim the path correctly on Windows too, we
+	// counter-intuitively need to use '/' and *not* os.PathSeparator here,
+	// because the path given originates from Go stdlib, specifically
+	// runtime.Caller() which (as of Mar/17) returns forward slashes even on
+	// Windows.
+	//
+	// See https://github.com/golang/go/issues/3335
+	// and https://github.com/golang/go/issues/18151
+	//
+	// for discussion on the issue on Go side.
+
+	// Return the full path if n is 0.
+	if n <= 0 {
+		return path
+	}
+
+	// Find the last separator.
+	idx := strings.LastIndexByte(path, sep)
+	if idx == -1 {
+		return path
+	}
+
+	for i := 0; i < n-1; i++ {
+		// Find the penultimate separator.
+		idx = strings.LastIndexByte(path[:idx], sep)
+		if idx == -1 {
+			return path
+		}
+	}
+
+	return path[idx+1:]
 }

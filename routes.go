@@ -26,6 +26,7 @@ type server struct {
 func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/", srv.handleDocs())
 	srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
+	srv.router.HandleFunc("GET", "/clearcache", srv.handleClearCache())
 	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
 	// srv.router.HandleFunc("GET", "/:id/:filename", srv.handleImg())
 
@@ -72,7 +73,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Info("handling request", "method", r.Method, "path", r.URL.Path)
+		l.Info("handling request", "method", r.Method, "path", r.URL.Path, "query", r.URL.Query())
 		id_str := way.Param(r.Context(), "id")
 
 		id, err := strconv.Atoi(id_str)
@@ -116,6 +117,25 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Info("favicon requested")
 		http.ServeFile(w, r, "assets/favicon.ico")
+	}
+}
+
+func (srv *server) handleClearCache() http.HandlerFunc {
+	// setup
+	l := srv.l.With("handler", "handleClearCache")
+
+	// handler
+	return func(w http.ResponseWriter, r *http.Request) {
+		bytes, err := srv.ih.CacheClear()
+		if err != nil {
+			l.Error("could not clear cache", "err", err)
+			srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		l.Warn("cache cleared by manual request", "bytes released", bytes)
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "cache cleared\n%d bytes released", bytes)
 	}
 }
 
@@ -195,7 +215,7 @@ func parseImageParameters(val url.Values) (images.ImageParameters, error) {
 		} else {
 			errs = append(errs, err)
 		}
-	} else if val.Has("a") {
+	} else if val.Has("s") {
 		if v, err := parseImageSize(val.Get("s")); err == nil {
 			p.MaxSize = v
 		} else {

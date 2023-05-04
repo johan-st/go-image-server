@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -73,7 +74,7 @@ type ImageParameters struct {
 }
 
 func (ip *ImageParameters) String() string {
-	return fmt.Sprintf("%dx%d_q%d", ip.Width, ip.Height, ip.Quality)
+	return fmt.Sprintf("%dx%d_q%d_%d", ip.Width, ip.Height, ip.Quality, ip.MaxSize)
 }
 
 // ImageHandler will try to keep the cache within these limits but does not guarantee it.
@@ -227,47 +228,144 @@ func (h *ImageHandler) Add(path string) (ImageId, error) {
 
 func (h *ImageHandler) Remove(id ImageId) error {
 	h.l.Info("Remove", "id", id)
-	// remove file
 	// remove from cache
-	return fmt.Errorf("not implemented")
+	h.CacheClearFor(id)
+	// remove original
+	oPath := h.originalPath(id)
+	err := os.Remove(oPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //  TODO: decide which of these should even exist
 
 // clear all cache
-func (h *ImageHandler) CacheClear() error {
-	h.l.Info("CacheClear")
-	return fmt.Errorf("not implemented")
+func (h *ImageHandler) CacheClear() (int, error) {
+	h.l.Debug("CacheClear")
+	// cachefoldersize
+	dir, err := os.Open(h.conf.CacheDir)
+	if err != nil {
+		h.l.Error("CacheClear", "error", err)
+		return 0, err
+	}
+	defer dir.Close()
+
+	// get list of files
+	files, err := dir.Readdir(0)
+	if err != nil {
+		h.l.Error("CacheClear", "error", err)
+		return 0, err
+	}
+
+	totalBytes := 0
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		totalBytes += int(f.Size())
+		// remove files
+		err = os.Remove(h.conf.CacheDir + "/" + f.Name())
+		if err != nil {
+			h.l.Error("CacheClear", "error", err)
+			return 0, err
+		}
+	}
+	h.l.Info("Cached cleared", "freed Bytes", totalBytes)
+	return totalBytes, nil
 }
 
-func (h *ImageHandler) CacheClearFor(id ImageId) error {
-	h.l.Info("CacheClearFor", "id", id)
+func (h *ImageHandler) CacheClearFor(id ImageId) (int, error) {
+	h.l.Debug("id", id)
 
-	return fmt.Errorf("not implemented")
+	bytesFreed := 0
+	dir, err := os.Open(h.conf.CacheDir)
+	if err != nil {
+		h.l.Error("CacheClearFor", "error", err)
+		return 0, err
+	}
+	defer dir.Close()
+
+	// get list of files
+	files, err := dir.Readdir(0)
+	if err != nil {
+		h.l.Error("CacheClearFor", "error", err)
+		return 0, err
+	}
+
+	errs := []error{}
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		// remove files
+		if strings.HasPrefix(f.Name(), id.String()) {
+			bytesFreed += int(f.Size())
+			err = os.Remove(h.conf.CacheDir + "/" + f.Name())
+			if err != nil {
+				h.l.Error("CacheClearFor", "error", err)
+				errs = append(errs, err)
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return bytesFreed, fmt.Errorf("errors while removing files. errors: %s", errs)
+	}
+
+	return bytesFreed, nil
 }
 
 // TODO: page and chunk as arguments
 func (h *ImageHandler) ListIds() ([]ImageId, error) {
-	h.l.Info("ListIds")
+	h.l.Debug("ListIds")
+
+	dir, err := os.Open(h.conf.OriginalsDir)
+	if err != nil {
+		h.l.Error("ListIds", "error", err)
+		return nil, err
+	}
+	defer dir.Close()
+
+	// get list of files
+	files, err := dir.Readdir(0)
+	if err != nil {
+		h.l.Error("ListIds", "error", err)
+		return nil, err
+	}
 
 	ids := []ImageId{}
-	ids = append(ids, ImageId(1))
-	ids = append(ids, ImageId(2))
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		// add id to list
+		idStr := strings.Split(f.Name(), ".")[0]
+		idInt, err := strconv.Atoi(idStr)
+		if err != nil {
+			h.l.Error("ListIds", "error", err)
+			return nil, err
+		}
+		id := ImageId(idInt)
 
-	return ids, fmt.Errorf("not implemented")
+		h.l.Debug("ListIds got", "id", id, "from", f.Name()) //DEBUG: remove this
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 // TODO: should probably lock the cache while doing this
 func (h *ImageHandler) CacheHouseKeeping() (int, error) {
-	bytesSaved := 0
-	defer h.l.Info("CacheHouseKeeping", "Bytes saved", bytesSaved)
+
 	// sort by last access time
 	// List files to remove
 	// lock cache
 	// remove files
 	// unlock cache
-	bytesSaved += 500
-	return bytesSaved, fmt.Errorf("not implemented")
+
+	h.l.Error("CacheHouseKeeping is not yet implementes")
+	return 0, fmt.Errorf("not implemented")
 }
 
 func findLatestId(originalsPath string) ImageId {

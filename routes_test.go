@@ -1,17 +1,27 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/log"
+	"github.com/johan-st/go-image-server/images"
 	"github.com/johan-st/go-image-server/way"
 	"github.com/matryer/is"
 )
 
-func TestHandleDocs(t *testing.T) {
+// it is very cool that we can test the the routes and handlers but it is probably not worth the effort in this case.
+
+const (
+	testFsDir          = "test-fs"
+	test_import_source = testFsDir + "/originals"
+)
+
+func Test_HandleDocs(t *testing.T) {
 	is := is.New(t)
 	srv := server{
 		l:      log.Default(),
@@ -27,29 +37,52 @@ func TestHandleDocs(t *testing.T) {
 	}
 }
 
-func TestHandleImg(t *testing.T) {
+func Test_HandleImg(t *testing.T) {
 	is := is.New(t)
+
+	// arrange
+	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
+	is.NoErr(err)
+
+	defer os.RemoveAll(originalsDir)
+
+	cachePath, err := os.MkdirTemp(testFsDir, "testAdd-Cache_")
+	is.NoErr(err)
+
+	defer os.RemoveAll(cachePath)
+
+	conf := images.Config{
+		OriginalsDir: originalsDir,
+		CacheDir:     cachePath,
+	}
+
+	ih, err := images.New(conf, nil)
+	is.NoErr(err)
+
+	id, err := ih.Add(test_import_source + "/one.jpg")
+	is.NoErr(err)
+
 	srv := server{
 		l:      log.Default(),
 		router: *way.NewRouter(),
+		ih:     ih,
 	}
 	srv.routes()
-	req := httptest.NewRequest("GET", "/1", nil)
 	w := httptest.NewRecorder()
-	srv.ServeHTTP(w, req)
+
+	// act
+	srv.ServeHTTP(w, httptest.NewRequest("GET", "/"+id.String(), nil))
+
+	// assert
 	is.Equal(w.Result().StatusCode, http.StatusOK)
 	is.Equal(w.Result().Header["Content-Type"][0], "image/jpeg")
-}
+	sizeRes := w.Result().Header["Content-Length"][0]
+	stat, err := os.Stat(originalsDir + "/" + id.String() + ".jpg")
+	is.NoErr(err)
 
-func TestHandleFavicon(t *testing.T) {
-	is := is.New(t)
-	srv := server{
-		l:      log.Default(),
-		router: *way.NewRouter(),
+	imageSize := stat.Size()
+
+	if v, _ := strconv.Atoi(sizeRes); v < int(imageSize)*9/10 {
+		t.Fatal("Content-Lenghth is too small for test image, size: "+sizeRes, "imageSize: "+strconv.Itoa(int(imageSize)))
 	}
-	srv.routes()
-	req := httptest.NewRequest("GET", "/favicon.ico", nil)
-	w := httptest.NewRecorder()
-	srv.ServeHTTP(w, req)
-	is.Equal(w.Result().StatusCode, http.StatusOK)
 }

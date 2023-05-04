@@ -146,4 +146,5 @@ _(#backatit)_
 # thoughts
 - if used as a cdn a simple rsync could keep all cahces in sync and restore cache from master or other source on boot. Possibly even clone cache from all peers.
 - set default return per image?
+- should be able to use aritrary folders for images (linked by cache)
 
