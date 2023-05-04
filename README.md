@@ -50,6 +50,8 @@ _(#backatit)_
   - [ ] linux
 - [ ] tests need to be able to run with no setup after clone (include sane default conf in repo)
 - [ ] app need to be able to run with no setup after clone (include sane default conf in repo)
+- [ ] support webp
+
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
@@ -58,6 +60,9 @@ _(#backatit)_
 - 2023-04-26: Fix tests (and image module) on windows
 - 2023-04-26: refactor out io/util as it is deprecated
 - 2023-04-28: Think through images package API (images_api_test.go)
+- 2023-05-02: further work on types and interface for images package
+- 2023-05-03: further work on types and interface for images package
+- 2023-05-04: use charm.io log. continue refatoring...  
 
 ## Februari 2022
 
