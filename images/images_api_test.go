@@ -1,77 +1,175 @@
 package images_test
 
 import (
+	"os"
 	"testing"
-	"time"
-	// img "github.com/johan-st/go-image-server/images"
+
+	img "github.com/johan-st/go-image-server/images"
 )
 
-func Test_DreamInteraction(t *testing.T) {
+const (
+	testFsDir          = "test-fs"
+	test_import_source = testFsDir + "/originals"
+)
 
-	// defaults, errors if not set properly.
-	conf,err := img.Config(img.ConfigParams{
-			OriginalsDir: "../test_images",
-			CacheDir:     "../test_cache",
-			// fallback to defaults if image params could not be used
-			FallbackToDefaults: true,
-			Defaults: img.ImageDefaults{
-				Width:       250,
-				Height:      250,
-				QualityJpeg: 80,
-				QualityPng:  80,
-				QualityGif:  170,
-				MaxSize:     1*img.Megabytes + 500*img.Kilobytes,
-			}})
-
-
-	// image params overrides defaults if set
-	p1 := img.ImageJpeg{
-		Id:      1, // required
-		Width:   1200,
-		Quality: 80,
-		MaxSize: 300 * img.Kilobytes,
+func Test_Add(t *testing.T) {
+	// Arange
+	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
+	if err != nil {
+		t.Fatal(err)
 	}
-	p2 := img.ImagePng{
-		Id:     2, // required
-		Height: 350,
+	defer os.RemoveAll(originalsDir)
+
+	cachePath, err := os.MkdirTemp(testFsDir, "testAdd-Cache_")
+	if err != nil {
+		t.Fatal(err)
 	}
-	p3 := img.ImageGif{
-		Id:      1, // required
-		Width:   50,
-		Height:  50,
-		Quality: 200,
-		MaxSize: 1*img.Megabytes + 500*img.Kilobytes,
+	defer os.RemoveAll(cachePath)
+
+	conf := img.Config{
+		OriginalsDir: originalsDir,
+		CacheDir:     cachePath,
 	}
 
-	// get images. if not cached, create it
-	img1Path, err := img.Get(conf, p1)
-	img2Path, err := img.Get(conf, p2)
-	img3Path, err := img.Get(conf, p3)
+	ih, err := img.New(conf, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// act
+	id, err := ih.Add(test_import_source + "/one.jpg")
 
-	// error handling: maybe somthing like this to allow inteligent retries and custom error messages?
-	bool := img.ErrIsIdNotFound(err)
-	bool = img.ErrIsIdNotSet(err)
-	bool = img.ErrIsBadParams(err)
+	// assert
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// get all ids
-	ids = img.ListIds(conf)
+	_, err = os.Stat(originalsDir + "/" + id.String() + ".jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func Test_Get(t *testing.T) {
+
+	// arange
+	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(originalsDir)
+
+	cachePath, err := os.MkdirTemp(testFsDir, "testAdd-Cache_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(cachePath)
+
+	conf := img.Config{
+		OriginalsDir: originalsDir,
+		CacheDir:     cachePath,
+	}
+
+	ih, err := img.New(conf, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := ih.Add(test_import_source + "/two.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// act
+	path, err := ih.Get(img.ImageParameters{}, id)
+
+	// assert
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat.Size() == 0 {
+		t.Fatal("file is empty")
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
 
 }
 
-// clear cache based on rules
-	cacheRules := img.CacheRules{
-		MaxAge:       24 * time.Hour,
-		MaxCacheSize: 20 * img.Gigabytes,
-	}
-	err = img.CacheClear(conf, cacheRules)
+// func Test_FullInteraction(t *testing.T) {
+// 	t.FailNow()
 
-	// clear one image
-	err = img.CacheClear(conf, 2)
+// 	// arange
+// 	originalsDir, err := os.MkdirTemp(testFsDir, "testAPI_originals_")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	defer os.RemoveAll(originalsDir)
+// 	cachePath, err := os.MkdirTemp(testFsDir, "testAPI_cache_")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	defer os.RemoveAll(cachePath)
 
-	// rebuild all cached
-	err = img.CacheRebuild(conf)
+// 	conf := img.Config{
+// 		OriginalsDir: originalsDir,
+// 		CacheDir:     cachePath,
+// 		DefaultParams: img.ImageParameters{
+// 			Format:  img.Jpeg,
+// 			Width:   900,
+// 			Height:  600,
+// 			Quality: 80,
+// 			MaxSize: 1*img.Megabytes + 500*img.Kilobytes,
+// 		},
+// 		CreateDirs: true,
+// 		SetPerms:   true}
 
-	// rebuild one image
-	err = img.CacheRebuild(conf, 1)
+// 	ih, err := img.New(conf, nil)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-}
+// 	// act
+// 	p1 := img.ImageParameters{}
+// 	p2 := img.ImageParameters{
+// 		Format:  img.Gif,
+// 		Quality: 64,
+// 	}
+// 	p3 := img.ImageParameters{
+// 		Format:  img.Png,
+// 		Width:   100,
+// 		Height:  400,
+// 		Quality: 90,
+// 		MaxSize: img.Infinite,
+// 	}
+
+// 	// get images. if not cached, create it
+// 	img1Path, err := ih.Get(p1, 1)
+// 	img2Path, err := ih.Get(p2, 4)
+// 	img3Path, err := ih.Get(p3, 5)
+
+// 	if errors.Is(err, img.ErrIdNotFound{}) {
+// 		t.Fatal(err)
+// 	}
+
+// 	fmt.Println(img1Path)
+// 	fmt.Println(img2Path)
+// 	fmt.Println(img3Path)
+
+// 	// get all ids
+// 	ids, err := ih.ListIds()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	fmt.Println(ids)
+
+// 	// clear cache based on rules
+// 	err = ih.CacheClear()
+
+// 	// clear one image
+// 	err = ih.CacheClear()
+// }

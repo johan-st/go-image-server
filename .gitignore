@@ -14,7 +14,6 @@
 # vendor/
 
 # cache and build artifacts
-cache/*
-images/cache/*
+img
 go-image-server
 go-image-server.exe

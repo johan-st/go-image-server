@@ -6,50 +6,357 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	"net/url"
+	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strconv"
+	"time"
+
+	"github.com/charmbracelet/log"
 
 	"github.com/nfnt/resize"
+	//github.com/hashicorp/golang-lru/v2
+	// TODO: consider using hashicorp lru or ARC for cache
+	// build my own cache will be a good exercise. If I match the interface of hashicorp lru,
+	// I can easily switch to it later. Or even let the user of this package give me a lru
+	// eqvivalent on creation.
 )
 
+// TODO: create interface of used mathods to facilitate injecting a logger
+// type Logger interface {
+// 	Debug(msg interface{}, keyval ...interface{})
+// 	Debugf(format string, args ...interface{})
+// 	Info(msg interface{}, keyval ...interface{})
+// 	Infof(format string, args ...interface{})
+// 	Warn(msg interface{}, keyval ...interface{})
+// 	Warnf(format string, args ...interface{})
+// 	Error(msg interface{}, keyval ...interface{})
+// 	Errorf(format string, args ...interface{})
+// 	Fatal(msg interface{}, keyval ...interface{})
+// 	Fatalf(format string, args ...interface{})
+//  With
+// }
+
+const (
+	DefaultOriginalsDir = "img/originals"
+	DefaultCacheDir     = "img/cache"
+	commonExt           = ".jpg" //somewhat of a hack. all files are saved as '*.jpg' TODO: clean up
+)
+
+// ImageHandler is the main type of this package.
+type ImageHandler struct {
+	conf     Config  // TODO: Read-only?
+	latestId ImageId // TODO: this can be accessed by multiple goroutines. Make thread-safe.
+	l        *log.Logger
+}
+
+// Config represents the configuration of an ImageHandler.
+// unset (0/"") parameters will be considered as "use default".
 type Config struct {
-	OriginalsDir      string
-	CacheDir          string
-	CreateDirs        bool
-	SetPerms          bool
-	ClearCacheOnStart bool
+	OriginalsDir  string          // path to originals			(default: "img/originals")
+	CacheDir      string          // path to cache			(default: "img/cache")
+	DefaultParams ImageParameters // default image parameters		(default: see ImageParameters)
+	CacheRules    CacheRules      // cache rules			(default: see CacheRules)
+	CreateDirs    bool            // create directories if needed	(default: false)
+	SetPerms      bool            // set permissions if needed		(default: false)
 }
 
-// originalPathById handles translating image id's into paths to the original.
-func originalPathById(id int) (string, error) {
-	if id <= 0 {
-		return "", fmt.Errorf("image id was malfigured\nGOT: %d\nEXPECTED an integer greater than 0 (zero)", id)
+// ImageParameters represents how an image should be pressented.
+// note: Use 0 (zero) to explicitly set default.
+type ImageParameters struct {
+	Format  Format // Jpeg, Png, Gif		(default: Jpeg)
+	Width   uint   // width in pixels 		(default: match original)
+	Height  uint   // height in pixels		(default: match original)
+	Quality int    // Jpeg:1-100, Gif:1-256	(default: jpeg: 80, gif: 256)
+	MaxSize Size   // Max file size in bytes	(default: Infinite)
+}
+
+func (ip *ImageParameters) String() string {
+	return fmt.Sprintf("%dx%d_q%d", ip.Width, ip.Height, ip.Quality)
+}
+
+// ImageHandler will try to keep the cache within these limits but does not guarantee it.
+//
+// note: Use 0 (zero) to explicitly set default.
+type CacheRules struct {
+	MaxTimeSinceUse time.Duration // Max age in seconds		(default: 0, unlimited)
+	MaxSize         Size          // Max cache size in bytes	(default: 1 Gigabyte)
+}
+
+type ImageId int
+
+func (id ImageId) String() string {
+	return strconv.Itoa(int(id))
+}
+
+// Format represents image formats.
+type Format int
+
+const (
+	Jpeg Format = iota // quality 1-100
+	Png                // always lossless
+	Gif                // num colors 1-256
+)
+
+// Represents file sizes:
+//   - Infinite = 0
+//   - 1 Kilobyte = 1024 bytes
+//   - 1 Megabyte = 1024 Kilobytes
+//   - 1 Gigabyte = 1024 Megabytes
+//   - 1 Terabyte = 1024 Gigabytes
+//   - 1 Petabyte = 1024 Terabytes
+type Size uint64
+
+const (
+	Infinite  Size = 0                // no limit
+	Kilobytes      = 1024             // 1 Kilobyte = 1024 bytes
+	Megabytes      = 1024 * Kilobytes // 1 Megabyte = 1024 Kilobytes
+	Gigabytes      = 1024 * Megabytes // 1 Gigabyte = 1024 Megabytes
+	Terabytes      = 1024 * Gigabytes // 1 Terabyte = 1024 Gigabytes
+	Petabytes      = 1024 * Terabytes // 1 Petabyte = 1024 Terabytes
+)
+
+type ErrIdNotFound struct {
+	IdGiven ImageId
+	Err     error
+}
+
+func (e ErrIdNotFound) Error() string {
+	return fmt.Sprintf("id (%d) not found\nerror: %s", e.IdGiven, e.Err.Error())
+}
+
+func (e ErrIdNotFound) Is(err error) bool {
+	_, ok := err.(ErrIdNotFound)
+	return ok
+}
+
+// New creates a new Imageandler with the given configuration.
+// Caller is responsible for running CacheHousekeeping() periodically to trigger cache cleanup.
+// Preferably when the server is not under heavy load.
+func New(conf Config, l *log.Logger) (*ImageHandler, error) {
+	err := checkDirs(conf)
+	if err != nil {
+		return &ImageHandler{}, err
 	}
-	path := "originals" + string(os.PathSeparator) + fmt.Sprint(id) + ".jpg"
-	return path, nil
+	if l == nil {
+		l = log.New(os.Stderr).WithPrefix("Image Handler")
+		l.SetLevel(logLevel())
+		l.Info("Using default logger")
+	}
+
+	l.Debug("New", "Config", conf)
+	return &ImageHandler{
+			conf:     conf,
+			latestId: findLatestId(conf.OriginalsDir),
+			l:        l},
+		nil
 }
 
-type PreprocessingParameters struct {
-	quality int
-	width   int
-	height  int
-	_type   string
+// returns the path to the processed image.
+func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
+	cachePath := h.cachePath(params, id)
+	h.l.Info("Get", "ImageId", id, "ImageParameters", params, "cachePath", cachePath)
+
+	_, err := os.Stat(cachePath)
+	// file exists
+	if err == nil {
+		return cachePath, nil
+	}
+
+	// error other than file does not exist
+	if !os.IsNotExist(err) {
+		return "", err
+	}
+
+	// file does not exist
+	err = h.processAndCache(params, id, cachePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", ErrIdNotFound{IdGiven: id, Err: err}
+		}
+		return "", err
+	}
+
+	// file was created
+	return cachePath, nil
 }
 
-// Constructs the path where the cached image should be saved.
-func GetCachePath(id int, pp PreprocessingParameters) string {
-	cName := fmt.Sprintf("%d-w%d-h%d-q%d.%s", id, pp.width, pp.height, pp.quality, pp._type)
-	cPath := fmt.Sprintf("cache%s%s", string(os.PathSeparator), cName)
-	return cPath
+func (h *ImageHandler) Add(path string) (ImageId, error) {
+	h.l.Info("Add", "path", path)
+
+	// check if file exists
+	srcf, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer srcf.Close()
+
+	// check if file is a supported image
+	ext := filepath.Ext(path)
+	supext := []string{".jpg", ".jpeg", ".png", ".gif"}
+	if !contains(supext, ext) {
+		return 0, fmt.Errorf("unsupported image format")
+	}
+	// TODO: check with the image package instead of just the extension?
+	// _, _, err = image.Decode(srcf)
+	// if err != nil {
+	// 	return 0, err
+	// }
+
+	// get next id
+	nextId := h.latestId + 1
+	h.latestId = nextId
+
+	// determine destination path (TODO: should extention be changed?)
+	dst := h.conf.OriginalsDir + "/" + nextId.String() + ".jpg"
+
+	// copy file to originals
+	dstf, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return 0, err
+	}
+	defer dstf.Close()
+	_, err = io.Copy(dstf, srcf)
+	if err != nil {
+		return 0, err
+	}
+	// return id
+	return nextId, nil
 }
 
-func FileExists(cachePath string) bool {
-	_, err := os.Open(cachePath)
-	return err == nil
+func (h *ImageHandler) Remove(id ImageId) error {
+	h.l.Info("Remove", "id", id)
+	// remove file
+	// remove from cache
+	return fmt.Errorf("not implemented")
 }
 
-// loadImage retunes the image specified by the path
+//  TODO: decide which of these should even exist
+
+// clear all cache
+func (h *ImageHandler) CacheClear() error {
+	h.l.Info("CacheClear")
+	return fmt.Errorf("not implemented")
+}
+
+func (h *ImageHandler) CacheClearFor(id ImageId) error {
+	h.l.Info("CacheClearFor", "id", id)
+
+	return fmt.Errorf("not implemented")
+}
+
+// TODO: page and chunk as arguments
+func (h *ImageHandler) ListIds() ([]ImageId, error) {
+	h.l.Info("ListIds")
+
+	ids := []ImageId{}
+	ids = append(ids, ImageId(1))
+	ids = append(ids, ImageId(2))
+
+	return ids, fmt.Errorf("not implemented")
+}
+
+// TODO: should probably lock the cache while doing this
+func (h *ImageHandler) CacheHouseKeeping() (int, error) {
+	bytesSaved := 0
+	defer h.l.Info("CacheHouseKeeping", "Bytes saved", bytesSaved)
+	// sort by last access time
+	// List files to remove
+	// lock cache
+	// remove files
+	// unlock cache
+	bytesSaved += 500
+	return bytesSaved, fmt.Errorf("not implemented")
+}
+
+func findLatestId(originalsPath string) ImageId {
+	return 0
+}
+
+// Create a new image with the given configuration and store it in the cache.
+// return the path to the cached image.
+// TODO: quality 0 should be default
+func (h *ImageHandler) processAndCache(params ImageParameters, id ImageId, cachePath string) error {
+	oPath := h.originalPath(id)
+	oImg, err := loadImage(oPath)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(cachePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	img := resize.Resize(params.Width, params.Height, oImg, resize.Lanczos3)
+
+	switch params.Format {
+	case Jpeg:
+		if params.Quality == 0 {
+			params.Quality = 90
+		}
+		opt := &jpeg.Options{Quality: params.Quality}
+		err = jpeg.Encode(file, img, opt)
+		if err != nil {
+			return err
+		}
+	case Png:
+		err = png.Encode(file, img)
+		if err != nil {
+			return err
+		}
+	case Gif:
+		if params.Quality == 0 {
+			params.Quality = 256
+		}
+		nc := params.Quality
+		opt := &gif.Options{NumColors: nc}
+		err = gif.Encode(file, img, opt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (h *ImageHandler) originalPath(id ImageId) string {
+	return filepath.Join(h.conf.OriginalsDir, id.String()+commonExt)
+}
+
+func (h *ImageHandler) cachePath(params ImageParameters, id ImageId) string {
+	return filepath.Join(h.conf.CacheDir, id.String()+"_"+params.String()+commonExt)
+}
+
+// HELPER
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+// NOTE: is duplicated in main
+func logLevel() log.Level {
+	switch os.Getenv("LOG_LEVEL") {
+	case "DEBUG":
+		return log.DebugLevel
+	case "INFO":
+		return log.InfoLevel
+	case "WARN":
+		return log.WarnLevel
+	case "ERROR":
+		return log.ErrorLevel
+	case "FATAL":
+		return log.FatalLevel
+	}
+	return log.ErrorLevel
+}
+
+// retunes the image specified by the path
 func loadImage(path string) (image.Image, error) {
 
 	file, err := os.Open(path)
@@ -65,133 +372,70 @@ func loadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-// cacheImage processes an image (by id) and caches the resuts. Returns cachedPath on success
-func ProcessAndCache(id int, pp PreprocessingParameters) (string, error) {
-	oPath, err := originalPathById(id)
+func checkDirs(c Config) error {
+	paths := []string{c.OriginalsDir, c.CacheDir}
+	err := checkExists(paths, c.CreateDirs)
 	if err != nil {
-		return "", err
+		return err
 	}
-	oImg, err := loadImage(oPath)
-	if err != nil {
-		return "", err
-	}
-	cPath := GetCachePath(id, pp)
-	file, err := os.Create(cPath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	img := resize.Resize(uint(pp.width), uint(pp.height), oImg, resize.Lanczos3)
-	if pp._type == "jpeg" {
-		opt := &jpeg.Options{Quality: pp.quality}
-		err = jpeg.Encode(file, img, opt)
-		if err != nil {
-			return "", err
-		}
-	} else if pp._type == "png" {
-		err = png.Encode(file, img)
-		if err != nil {
-			return "", err
-		}
-	} else if pp._type == "gif" {
-		nc := pp.quality
-		opt := &gif.Options{NumColors: nc}
-		err = gif.Encode(file, img, opt)
-		if err != nil {
-			return "", err
-		}
-	}
-	return cPath, nil
+	return checkFilePermissions(paths, c.SetPerms)
 }
 
-// ParseParameters parses url.Values into the data the preprocessor needs to adapt the image to the users request.
-// 0 or empty string will be treated as default values.
-func ParseParameters(v url.Values) (PreprocessingParameters, error) {
-	pp := PreprocessingParameters{}
-
-	// type
-	type_str := v.Get("t")
-	if type_str != "" {
-		if type_str != "jpeg" && type_str != "png" && type_str != "gif" {
-			return PreprocessingParameters{}, fmt.Errorf("parameter t (type) could not be parsed\nGOT: %s\nEXPECTED an \"jpeg\", \"gif\" or \"png\"", type_str)
-		}
-		pp._type = type_str
-	} else {
-		pp._type = "jpeg"
-	}
-
-	// quality
-
-	quality_str := v.Get("q")
-	if quality_str == "" {
-		if pp._type == "jpeg" {
-			pp.quality = 100
-		} else if pp._type == "gif" {
-			pp.quality = 256
-		} else if pp._type == "png" {
-			pp.quality = 100
-		}
-	} else {
-		quality, err := strconv.Atoi(quality_str)
-		if err != nil {
-			return PreprocessingParameters{}, fmt.Errorf("parameter q (quality) could not be parsed\nGOT: %s\nEXPECTED an integer\nERROR: %s", quality_str, err)
-		}
-		if pp._type == "jpeg" {
-			if quality < 1 || quality > 100 {
-				return PreprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds for type \"jpeg\"\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 100", quality)
-			}
-		} else if pp._type == "png" {
-
-			if quality < 1 || quality > 100 {
-				return PreprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds for type \"png\"\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 100", quality)
-			}
-		} else if pp._type == "gif" {
-
-			if quality < 1 || quality > 256 {
-				return PreprocessingParameters{}, fmt.Errorf("parameter q (quality) out of bounds for type \"gif\"\nGOT: %d\nEXPECTED q to be greater than 0 (zero) and less or equal to 256", quality)
+func checkExists(paths []string, createDirs bool) error {
+	for _, path := range paths {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			if createDirs {
+				err = os.MkdirAll(path, 0700)
+				if err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("directory %s does not exist", path)
 			}
 		}
-		pp.quality = quality
 	}
-
-	// width
-	width_str := v.Get("w")
-	if width_str != "" {
-		width, err := strconv.Atoi(width_str)
-		if err != nil {
-			return PreprocessingParameters{}, fmt.Errorf("parameter h (width) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", width_str, err)
-		}
-		if width < 1 {
-			return PreprocessingParameters{}, fmt.Errorf("parameter w (width) out of bounds\nGOT: %d\nEXPECTED w to be greater than 0 (zero)", width)
-		}
-		pp.width = width
-	}
-
-	// height
-	height_str := v.Get("h")
-	if height_str != "" {
-		height, err := strconv.Atoi(height_str)
-		if err != nil {
-			return PreprocessingParameters{}, fmt.Errorf("parameter h (height) could not be parsed\nGOT: %s\nEXPECTED an integer\nINTERNAL ERROR: %s", height_str, err)
-		}
-		if height < 1 {
-			return PreprocessingParameters{}, fmt.Errorf("parameter h (height) out of bounds\nGOT: %d\nEXPECTED h to be be greater than 0 (zero)", height)
-		}
-		pp.height = height
-	}
-
-	return pp, nil
+	return nil
 }
 
-func ClearCache() {
-	err := os.RemoveAll("." + string(os.PathSeparator) + "cache")
-	if err != nil {
-		fmt.Println(err)
+// check that the images directory exists and is writable. If not, set up needed permissions.
+// TODO: folders should be configurable
+// TODO: check perm bool
+func checkFilePermissions(paths []string, setPerms bool) error {
+	for _, path := range paths {
+		err := filepath.WalkDir(path, permAtLeast(0700, 0600))
+		if err != nil {
+			return err
+		}
 	}
-	// TODO: Path ( and maybe permissions) should be configurable
-	err = os.Mkdir("./cache", 0755)
-	if err != nil {
-		fmt.Println(err)
+	return nil
+}
+
+// Will extend permissions if needed, but will not reduce them.
+func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
+	return func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		i, err := d.Info()
+		if err != nil {
+			return err
+		}
+		perm := os.FileMode(0)
+		if d.IsDir() {
+			perm = dir
+		} else {
+			perm = file
+		}
+
+		if i.Mode().Perm()&perm < perm {
+			p := i.Mode().Perm() | perm
+			err := os.Chmod(path, p)
+			if err != nil {
+				return fmt.Errorf("'%s' has insufficient permissions and setting new permission failed. (was: %o, need at least: %o)", path, i.Mode().Perm(), perm)
+			}
+			fmt.Printf("'%s' had insufficient permissions. Setting permissions to %o. (was: %o, need at least: %o)\n", path, p, i.Mode().Perm(), perm)
+
+		}
+		return nil
 	}
 }
