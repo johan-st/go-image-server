@@ -63,6 +63,8 @@ _(#backatit)_
 - 2023-05-02: further work on types and interface for images package
 - 2023-05-03: further work on types and interface for images package
 - 2023-05-04: use charm.io log. continue refatoring...  
+- 2023-05-05: implement "not implemented yet" func. there are a few left for work with caching  
+- 2023-05-05: start implementing a cache backed by a slice. This was the simplest way I could think of while working on the cache API
 
 ## Februari 2022
 
