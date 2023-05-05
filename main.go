@@ -22,6 +22,8 @@ func main() {
 
 func run(l *log.Logger) error {
 
+	// image handler might not need a logger
+	// should return errors and let the caller decide how to handle and log them
 	ihLogger := l.WithPrefix("[ImageHandler]")
 	// ihLogger.SetLevel(log.DebugLevel)
 
@@ -49,10 +51,32 @@ func run(l *log.Logger) error {
 		WriteTimeout:      1 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-	srv.l.Infof("server is up and listening on port %s", port)
 
+	// DEBUG: add some images
+	for _, img := range []string{"one.jpg", "two.jpg", "three.jpg", "four.jpg", "five.jpg", "six.png"} {
+		_, err := ih.Add("test-fs/originals/" + img)
+		if err != nil {
+			srv.l.Warn("could not add image", "error", err)
+		}
+	}
+	ids, err := ih.ListIds()
+	if err != nil {
+		srv.l.Error("could not list images", "error", err)
+	}
+	idsStr := ""
+	for i, id := range ids {
+		if i > 0 {
+			idsStr += ", "
+		}
+
+		idsStr += id.String()
+	}
+
+	srv.l.Info("available images:", "images", idsStr)
+	// DEBUG:end
+
+	srv.l.Infof("server is up and listening on port %s", port)
 	return mainSrv.ListenAndServe()
-	// return fmt.Errorf("arbitrary error")
 }
 
 // LOGGER STUFF
@@ -65,7 +89,7 @@ func newCustomLogger() *log.Logger {
 		ReportCaller:    false,
 		CallerFormatter: funcCallerFormater,
 		ReportTimestamp: true,
-		TimeFormat:      time.Layout,
+		TimeFormat:      "",
 		Formatter:       log.TextFormatter,
 		Fields:          []interface{}{},
 	}
