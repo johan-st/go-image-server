@@ -50,6 +50,7 @@ type ImageHandler struct {
 	conf     Config  // TODO: Read-only?
 	latestId ImageId // TODO: this can be accessed by multiple goroutines. Make thread-safe.
 	l        *log.Logger
+	cache    cache //TODO: slice as initial prototype
 }
 
 // Config represents the configuration of an ImageHandler.
@@ -75,14 +76,6 @@ type ImageParameters struct {
 
 func (ip *ImageParameters) String() string {
 	return fmt.Sprintf("%dx%d_q%d_%d", ip.Width, ip.Height, ip.Quality, ip.MaxSize)
-}
-
-// ImageHandler will try to keep the cache within these limits but does not guarantee it.
-//
-// note: Use 0 (zero) to explicitly set default.
-type CacheRules struct {
-	MaxTimeSinceUse time.Duration // Max age in seconds		(default: 0, unlimited)
-	MaxSize         Size          // Max cache size in bytes	(default: 1 Gigabyte)
 }
 
 type ImageId int
@@ -146,12 +139,21 @@ func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 		l.Info("Using default logger")
 	}
 
-	l.Debug("New", "Config", conf)
-	return &ImageHandler{
-			conf:     conf,
-			latestId: findLatestId(conf.OriginalsDir),
-			l:        l},
-		nil
+	l.Debug("Creating new ImageHandler", "Config", conf)
+	ih := ImageHandler{
+		conf:     conf,
+		latestId: ImageId(0),
+		l:        l,
+		cache:    make([]cacheObject, 2),
+	}
+
+	ih.latestId, err = ih.findLatestId()
+	if err != nil {
+		ih.l.Fatal("could not get latest id during setup.", "error", err)
+		return nil, err
+	}
+	ih.cache.stat()
+	return &ih, nil
 }
 
 // returns the path to the processed image.
@@ -159,19 +161,16 @@ func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
 	cachePath := h.cachePath(params, id)
 	h.l.Info("Get", "ImageId", id, "ImageParameters", params, "cachePath", cachePath)
 
-	_, err := os.Stat(cachePath)
-	// file exists
+	// Look for the image in the cache, return it if it does
+	co, err := h.cache.get(cachePath)
 	if err == nil {
-		return cachePath, nil
-	}
-
-	// error other than file does not exist
-	if !os.IsNotExist(err) {
-		return "", err
+		// TODO: check error type here to make sure it represents a cache
+		// miss and not any other error
+		return co.path, nil
 	}
 
 	// file does not exist
-	err = h.processAndCache(params, id, cachePath)
+	size, err := h.createImage(params, id, cachePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", ErrIdNotFound{IdGiven: id, Err: err}
@@ -179,7 +178,19 @@ func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
 		return "", err
 	}
 
+	// TODO: we might benefit from running add as a go rutine.
+	// That way we can decouple it's runtime from the response
+	//
+	// On the other hand, creating an image takes a significant
+	// amount of time so this step will not noticably effect
+	// the responsetime
+	h.cache.add(cacheObject{
+		path:         cachePath,
+		size:         size,
+		lastAccessed: time.Now()})
 	// file was created
+
+	fmt.Println(h.cache.stat())
 	return cachePath, nil
 }
 
@@ -317,7 +328,7 @@ func (h *ImageHandler) CacheClearFor(id ImageId) (int, error) {
 	return bytesFreed, nil
 }
 
-// TODO: page and chunk as arguments
+// TODO: page and chunk as arguments for when we have thousands of ids
 func (h *ImageHandler) ListIds() ([]ImageId, error) {
 	h.l.Debug("ListIds")
 
@@ -349,7 +360,7 @@ func (h *ImageHandler) ListIds() ([]ImageId, error) {
 		}
 		id := ImageId(idInt)
 
-		h.l.Debug("ListIds got", "id", id, "from", f.Name()) //DEBUG: remove this
+		h.l.Debug("ListIds got", "id", id, "from", f.Name())
 		ids = append(ids, id)
 	}
 	return ids, nil
@@ -368,23 +379,33 @@ func (h *ImageHandler) CacheHouseKeeping() (int, error) {
 	return 0, fmt.Errorf("not implemented")
 }
 
-func findLatestId(originalsPath string) ImageId {
-	return 0
+func (h *ImageHandler) findLatestId() (ImageId, error) {
+	ids, err := h.ListIds()
+	if err != nil {
+		return ImageId(0), err
+	}
+
+	max := ImageId(0)
+	for _, id := range ids {
+		if id > max {
+			max = id
+		}
+	}
+	return ImageId(max), nil
 }
 
-// Create a new image with the given configuration and store it in the cache.
-// return the path to the cached image.
-// TODO: quality 0 should be default
-func (h *ImageHandler) processAndCache(params ImageParameters, id ImageId, cachePath string) error {
+// Create a new image with the given configuration and
+// returns the path to the cached image.
+func (h *ImageHandler) createImage(params ImageParameters, id ImageId, cachePath string) (Size, error) {
 	oPath := h.originalPath(id)
 	oImg, err := loadImage(oPath)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	file, err := os.OpenFile(cachePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer file.Close()
 
@@ -398,12 +419,12 @@ func (h *ImageHandler) processAndCache(params ImageParameters, id ImageId, cache
 		opt := &jpeg.Options{Quality: params.Quality}
 		err = jpeg.Encode(file, img, opt)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	case Png:
 		err = png.Encode(file, img)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	case Gif:
 		if params.Quality == 0 {
@@ -413,10 +434,14 @@ func (h *ImageHandler) processAndCache(params ImageParameters, id ImageId, cache
 		opt := &gif.Options{NumColors: nc}
 		err = gif.Encode(file, img, opt)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	stat, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return Size(stat.Size()), nil
 }
 func (h *ImageHandler) originalPath(id ImageId) string {
 	return filepath.Join(h.conf.OriginalsDir, id.String()+commonExt)
