@@ -28,7 +28,7 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
 	srv.router.HandleFunc("GET", "/clearcache", srv.handleClearCache())
 	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
-	// srv.router.HandleFunc("GET", "/:id/:filename", srv.handleImg())
+	srv.router.HandleFunc("GET", "/:id/:filename", srv.handleImg())
 
 }
 
