@@ -39,6 +39,7 @@ func run(l *log.Logger) error {
 
 	port := os.Getenv("PORT")
 	if port == "" {
+		l.Debug("enviornment variable PORT was not specified", "fallback", 8080)
 		port = "8080"
 	}
 
@@ -112,7 +113,7 @@ func newCustomLogger() *log.Logger {
 // NOTE: is duplicated in imageHandler
 func envLogLevel() log.Level {
 
-	switch os.Getenv("LOG_LEVEL") {
+	switch os.Getenv("LOG") {
 	case "DEBUG":
 		return log.DebugLevel
 	case "INFO":
