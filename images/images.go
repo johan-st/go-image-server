@@ -103,12 +103,11 @@ const (
 type Size uint64
 
 const (
-	Infinite Size = 0               // no limit
-	Kilobyte      = 1024            // 1 Kilobyte = 1024 bytes
-	Megabyte      = 1024 * Kilobyte // 1 Megabyte = 1024 Kilobytes
-	Gigabyte      = 1024 * Megabyte // 1 Gigabyte = 1024 Megabytes
-	Terabyte      = 1024 * Gigabyte // 1 Terabyte = 1024 Gigabytes
-	Petabyte      = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
+	Kilobyte = 1024            // 1 Kilobyte = 1024 bytes
+	Megabyte = 1024 * Kilobyte // 1 Megabyte = 1024 Kilobytes
+	Gigabyte = 1024 * Megabyte // 1 Gigabyte = 1024 Megabytes
+	Terabyte = 1024 * Gigabyte // 1 Terabyte = 1024 Gigabytes
+	Petabyte = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
 )
 
 type ErrIdNotFound struct {
@@ -567,7 +566,7 @@ func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
 // Size.String()
 func (s Size) String() string {
 	if s == 0 {
-		return "No Limit"
+		return "0"
 	}
 	if s >= Petabyte {
 		return sizeStringHelper(Petabyte, Terabyte, s, " PB")
