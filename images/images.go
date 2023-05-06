@@ -103,12 +103,12 @@ const (
 type Size uint64
 
 const (
-	Infinite  Size = 0                // no limit
-	Kilobytes      = 1024             // 1 Kilobyte = 1024 bytes
-	Megabytes      = 1024 * Kilobytes // 1 Megabyte = 1024 Kilobytes
-	Gigabytes      = 1024 * Megabytes // 1 Gigabyte = 1024 Megabytes
-	Terabytes      = 1024 * Gigabytes // 1 Terabyte = 1024 Gigabytes
-	Petabytes      = 1024 * Terabytes // 1 Petabyte = 1024 Terabytes
+	Infinite Size = 0               // no limit
+	Kilobyte      = 1024            // 1 Kilobyte = 1024 bytes
+	Megabyte      = 1024 * Kilobyte // 1 Megabyte = 1024 Kilobytes
+	Gigabyte      = 1024 * Megabyte // 1 Gigabyte = 1024 Megabytes
+	Terabyte      = 1024 * Gigabyte // 1 Terabyte = 1024 Gigabytes
+	Petabyte      = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
 )
 
 type ErrIdNotFound struct {
@@ -144,7 +144,7 @@ func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 		conf:     conf,
 		latestId: ImageId(0),
 		l:        l,
-		cache:    make([]cacheObject, 2),
+		cache:    newCache(4),
 	}
 
 	ih.latestId, err = ih.findLatestId()
@@ -561,4 +561,55 @@ func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
 		}
 		return nil
 	}
+}
+
+// TODO: Break out size into a units package
+// Size.String()
+func (s Size) String() string {
+	if s == 0 {
+		return "No Limit"
+	}
+	if s >= Petabyte {
+		return sizeStringHelper(Petabyte, Terabyte, s, " PB")
+	}
+	if s >= Terabyte {
+		return sizeStringHelper(Terabyte, Gigabyte, s, " TB")
+	}
+	if s >= Gigabyte {
+		return sizeStringHelper(Gigabyte, Megabyte, s, " GB")
+	}
+	if s >= Megabyte {
+		return sizeStringHelper(Megabyte, Kilobyte, s, " MB")
+	}
+	if s >= Kilobyte {
+		return sizeStringHelper(Kilobyte, 1, s, " KB")
+	}
+	return fmt.Sprintf("%d B", s)
+
+}
+
+// sizeStringHelper returnes a string representing the size with two decimals.
+// If the amount is exact then it will not show any decimals.
+func sizeStringHelper(divInteger, divRemainder, s Size, suffix string) string {
+	if s%divInteger == 0 {
+		return fmt.Sprintf("%d%s", s/divInteger, suffix)
+	}
+
+	whole := s / divInteger
+	rem := (s % divInteger) / divRemainder
+	return signi3(int(whole), int(rem)) + suffix
+}
+
+// signi3 rounds to three significant digits given wholes and thousands
+func signi3(whole, remainder int) string {
+	if remainder < 5 {
+		return fmt.Sprintf("%d.00", whole)
+	}
+
+	if remainder%10 >= 5 {
+		remainder = (remainder + 5) / 10
+	} else {
+		remainder = remainder / 10
+	}
+	return fmt.Sprintf("%d.%d", whole, remainder)
 }

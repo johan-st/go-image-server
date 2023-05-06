@@ -255,7 +255,7 @@ func parseImageSize(str string) (images.Size, error) {
 	// return error if not possible
 	if strings.Contains(strUp, "MB") {
 		if v, err := strconv.Atoi(strings.TrimSuffix(strUp, "MB")); err == nil {
-			return images.Size(v * images.Megabytes), nil
+			return images.Size(v * images.Megabyte), nil
 		} else {
 			return images.Size(0), fmt.Errorf("could not parse image size in Megabytes: %s\n(supported units are: B, KB and MB)", str)
 		}
@@ -263,7 +263,7 @@ func parseImageSize(str string) (images.Size, error) {
 
 	if strings.Contains(strUp, "KB") {
 		if v, err := strconv.Atoi(strings.TrimSuffix(strUp, "KB")); err == nil {
-			return images.Size(v * images.Kilobytes), nil
+			return images.Size(v * images.Kilobyte), nil
 		} else {
 			return images.Size(0), fmt.Errorf("could not parse image size in Kilobytes: %s\n(supported units are: B, KB and MB)", str)
 		}
@@ -279,7 +279,7 @@ func parseImageSize(str string) (images.Size, error) {
 	}
 
 	if v, err := strconv.Atoi(strUp); err == nil {
-		return images.Size(v * images.Kilobytes), nil
+		return images.Size(v * images.Kilobyte), nil
 	} else {
 		return images.Size(0), fmt.Errorf("could not parse image size: %s\n(supported units are: B, KB and MB)", str)
 
