@@ -26,6 +26,8 @@ func run(l *log.Logger) error {
 	// should return errors and let the caller decide how to handle and log them
 	ihLogger := l.WithPrefix("[ImageHandler]")
 	// ihLogger.SetLevel(log.DebugLevel)
+	// DEBUG: clears cache folder on boot. Not intended behaviour
+	os.RemoveAll("img")
 
 	ih, err := images.New(images.Config{
 		OriginalsDir: "img/originals",

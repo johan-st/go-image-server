@@ -3,6 +3,11 @@ package images
 import (
 	"fmt"
 	"time"
+	//github.com/hashicorp/golang-lru/v2
+	// TODO: consider using hashicorp lru or ARC for cache
+	// build my own cache will be a good exercise. If I match the interface of hashicorp lru,
+	// I can easily switch to it later. Or even let the user of this package give me a lru
+	// eqvivalent on creation.
 )
 
 // ImageHandler will try to keep the cache within these limits but does not guarantee it.
@@ -14,7 +19,21 @@ type CacheRules struct {
 	MaxSize         Size          // Max cache size in bytes	(default: 1 Gigabyte)
 }
 
-type cache []cacheObject
+type cache struct {
+	totalSize       Size
+	numberOfObjects int
+	cap             int
+	objects         []cacheObject
+}
+
+func (c cache) String() string {
+	return fmt.Sprintf(`cache:
+	totalSize       %s
+	numberOfObjects %d
+	cap             %d
+	objects         %d
+`, c.totalSize, c.numberOfObjects, c.cap, len(c.objects))
+}
 
 type cacheObject struct {
 	path         string
@@ -22,17 +41,37 @@ type cacheObject struct {
 	lastAccessed time.Time
 }
 
+func (co cacheObject) String() string {
+	return fmt.Sprintf(`cacheObject 
+	path         %s
+	size         %s
+	lastAccessed %s
+`,
+		co.path,
+		co.size,
+		co.lastAccessed)
+}
+
+func newCache(capacity int) cache {
+	return cache{
+		totalSize:       0,
+		numberOfObjects: 0,
+		cap:             capacity,
+		objects:         make([]cacheObject, 0, capacity),
+	}
+}
+
 func (c *cache) add(co cacheObject) {
-	*c = append(*c, co)
+	c.objects = append(c.objects, co)
 }
 
 func (c *cache) get(path string) (cacheObject, error) {
-	for i, o := range *c {
+	for i, o := range c.objects {
 		if o.path == "" {
 			continue
 		}
 		if o.path == path {
-			(*c)[i].lastAccessed = time.Time{}
+			c.objects[i].lastAccessed = time.Time{}
 			return o, nil
 		}
 	}
@@ -40,9 +79,9 @@ func (c *cache) get(path string) (cacheObject, error) {
 }
 
 func (c *cache) del(path string) {
-	for i, co := range *c {
+	for i, co := range c.objects {
 		if co.path == path {
-			(*c)[i].path = ""
+			c.objects[i].path = ""
 			return
 		}
 	}
@@ -57,14 +96,21 @@ type cacheStat struct {
 	mostRUPath  string
 }
 
-func (cs *cacheStat) String() string {
-	return fmt.Sprintf("----- cache -----\n  - count: %d\n  - size: %d\n  - least recently used:\n     - path:%s\n     - time: %s\n  - most recently used:\n     - path:%s\n     - time: %s\n\n-----------------  \n\n",
+func (cs cacheStat) String() string {
+	return fmt.Sprintf(`cacheStat
+	count       %d
+	size        %s
+	leastRU     %s
+	leastRUPath %s
+	mostRU      %s
+	mostRUPath  %s
+`,
 		cs.count,
 		cs.size,
-		cs.leastRUPath,
 		cs.leastRU,
-		cs.mostRUPath,
+		cs.leastRUPath,
 		cs.mostRU,
+		cs.mostRUPath,
 	)
 }
 
@@ -73,9 +119,10 @@ func (c *cache) stat() cacheStat {
 	count := 0
 	mru := time.Time{}
 	mruP := ""
-	lru := time.Time{}
+	lru := time.Now().AddDate(100, 0, 0)
 	lruP := ""
-	for _, co := range *c {
+
+	for _, co := range c.objects {
 		if co.path == "" {
 			continue
 		}
@@ -84,14 +131,12 @@ func (c *cache) stat() cacheStat {
 		if co.lastAccessed.After(mru) {
 			mru = co.lastAccessed
 			mruP = co.path
-			fmt.Println("mru", mru)
-			fmt.Println("mruP", mruP)
 		} else if co.lastAccessed.Before(lru) {
 			lru = co.lastAccessed
 			lruP = co.path
 		}
-
 	}
+
 	cs := cacheStat{
 		count:       count,
 		size:        size,
@@ -100,8 +145,5 @@ func (c *cache) stat() cacheStat {
 		leastRU:     lru,
 		leastRUPath: lruP,
 	}
-	// DEBUG: FIX THIS FIRST
-	// TODO: why not updated?
-	fmt.Println("stat:", cs)
 	return cs
 }

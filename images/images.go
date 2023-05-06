@@ -127,6 +127,8 @@ func (e ErrIdNotFound) Is(err error) bool {
 // New creates a new Imageandler with the given configuration.
 // Caller is responsible for running CacheHousekeeping() periodically to trigger cache cleanup.
 // Preferably when the server is not under heavy load.
+//
+// TODO: should take a list of parameters to create for all images
 func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 	err := checkDirs(conf)
 	if err != nil {
@@ -151,7 +153,7 @@ func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 		ih.l.Fatal("could not get latest id during setup.", "error", err)
 		return nil, err
 	}
-	ih.cache.stat()
+	ih.l.Debug(func() string { return ih.cache.stat().String() })
 	return &ih, nil
 }
 
@@ -177,19 +179,22 @@ func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
 		return "", err
 	}
 
+	co = cacheObject{
+		path:         cachePath,
+		size:         size,
+		lastAccessed: time.Now()}
+
 	// TODO: we might benefit from running add as a go rutine.
 	// That way we can decouple it's runtime from the response
 	//
 	// On the other hand, creating an image takes a significant
 	// amount of time so this step will not noticably effect
 	// the responsetime
-	h.cache.add(cacheObject{
-		path:         cachePath,
-		size:         size,
-		lastAccessed: time.Now()})
+	h.cache.add(co)
 	// file was created
-
-	fmt.Println(h.cache.stat())
+	h.l.Debug(co)
+	h.l.Debug(h.cache)
+	h.l.Debug(h.cache.stat())
 	return cachePath, nil
 }
 

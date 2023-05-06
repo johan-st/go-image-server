@@ -7,10 +7,9 @@ import (
 )
 
 func Test_cache(t *testing.T) {
-
 	// arrange
 	// creating a new cache
-	c := cache{}
+	c := newCache(4)
 
 	deleted := []cacheObject{}
 	added := []cacheObject{
@@ -23,31 +22,26 @@ func Test_cache(t *testing.T) {
 	// act
 	for i, co := range added {
 		c.add(co)
-		fmt.Printf("add %d\n", i)
-		fmt.Println(c.stat())
+		fmt.Printf("add %d\n", i+1)
 
 	}
 
 	if !assert(added, deleted, c) {
-		fmt.Println("fail assert", c.stat())
+		fmt.Println("fail assert", c)
 		t.Fatal("state was inconsistent")
 	}
 
 	toDel := &added[len(added)-1]
-	fmt.Println("pre del of "+toDel.path, c.stat())
+	fmt.Println("pre del of "+toDel.path, c)
 	c.del(toDel.path)
 	deleted = append(deleted, *toDel)
 	toDel.path = ""
-	fmt.Println("post del of "+toDel.path, c.stat())
+	fmt.Println("post del of "+toDel.path, c)
 
 	if !assert(added, deleted, c) {
-		fmt.Println("fail assert 2", c.stat())
+		fmt.Println("fail assert 2", c)
 		t.Fatal("state was inconsistent")
 	}
-
-	cs := c.stat()
-	fmt.Println("end", cs.String())
-	t.FailNow()
 
 }
 
