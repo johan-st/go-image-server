@@ -13,10 +13,11 @@ import (
 // ImageHandler will try to keep the cache within these limits but does not guarantee it.
 //
 // note: Use 0 (zero) to explicitly set default.
-
+// TODO: default cache rules are never clearing any cache
 type CacheRules struct {
 	MaxTimeSinceUse time.Duration // Max age in seconds		(default: 0, unlimited)
-	MaxSize         Size          // Max cache size in bytes	(default: 1 Gigabyte)
+	MaxSize         Size          // Max cache size in bytes	(default: 0 unlimited)
+	MaxNum          int           // Max number of images	(default: 0, unlimited)
 }
 
 type cache struct {
@@ -85,6 +86,10 @@ func (c *cache) del(path string) {
 			return
 		}
 	}
+}
+
+func (c *cache) delLRU() {
+	return
 }
 
 type cacheStat struct {
