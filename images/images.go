@@ -93,23 +93,6 @@ const (
 	Gif                // num colors 1-256
 )
 
-// Represents file sizes:
-//   - Infinite = 0
-//   - 1 Kilobyte = 1024 bytes
-//   - 1 Megabyte = 1024 Kilobytes
-//   - 1 Gigabyte = 1024 Megabytes
-//   - 1 Terabyte = 1024 Gigabytes
-//   - 1 Petabyte = 1024 Terabytes
-type Size uint64
-
-const (
-	Kilobyte = 1024            // 1 Kilobyte = 1024 bytes
-	Megabyte = 1024 * Kilobyte // 1 Megabyte = 1024 Kilobytes
-	Gigabyte = 1024 * Megabyte // 1 Gigabyte = 1024 Megabytes
-	Terabyte = 1024 * Gigabyte // 1 Terabyte = 1024 Gigabytes
-	Petabyte = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
-)
-
 type ErrIdNotFound struct {
 	IdGiven ImageId
 	Err     error
@@ -129,6 +112,7 @@ func (e ErrIdNotFound) Is(err error) bool {
 // Preferably when the server is not under heavy load.
 //
 // TODO: should take a list of parameters to create for all images
+// DEBUG: TODO: MUST create a cache based on files in cache folder on startup
 func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 	err := checkDirs(conf)
 	if err != nil {
@@ -258,7 +242,7 @@ func (h *ImageHandler) Remove(id ImageId) error {
 //  TODO: decide which of these should even exist
 
 // clear all cache
-func (h *ImageHandler) CacheClear() (int, error) {
+func (h *ImageHandler) CacheClear() (Size, error) {
 	h.l.Debug("CacheClear")
 	// cachefoldersize
 	dir, err := os.Open(h.conf.CacheDir)
@@ -289,7 +273,7 @@ func (h *ImageHandler) CacheClear() (int, error) {
 		}
 	}
 	h.l.Info("Cached cleared", "freed Bytes", totalBytes)
-	return totalBytes, nil
+	return Size(totalBytes), nil
 }
 
 func (h *ImageHandler) CacheClearFor(id ImageId) (int, error) {
@@ -381,6 +365,10 @@ func (h *ImageHandler) CacheHouseKeeping() (int, error) {
 
 	h.l.Error("CacheHouseKeeping is not yet implementes")
 	return 0, fmt.Errorf("not implemented")
+}
+
+func (h *ImageHandler) Info() string {
+	return h.cache.String() + h.cache.stat().String()
 }
 
 func (h *ImageHandler) findLatestId() (ImageId, error) {
@@ -567,11 +555,28 @@ func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
 	}
 }
 
+// Represents file sizes:
+//   - Infinite = 0
+//   - 1 Kilobyte = 1024 bytes
+//   - 1 Megabyte = 1024 Kilobytes
+//   - 1 Gigabyte = 1024 Megabytes
+//   - 1 Terabyte = 1024 Gigabytes
+//   - 1 Petabyte = 1024 Terabytes
+type Size uint64
+
+const (
+	Kilobyte = 1024            // 1 Kilobyte = 1024 bytes
+	Megabyte = 1024 * Kilobyte // 1 Megabyte = 1024 Kilobytes
+	Gigabyte = 1024 * Megabyte // 1 Gigabyte = 1024 Megabytes
+	Terabyte = 1024 * Gigabyte // 1 Terabyte = 1024 Gigabytes
+	Petabyte = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
+)
+
 // TODO: Break out size into a units package
 // Size.String()
 func (s Size) String() string {
 	if s == 0 {
-		return "0"
+		return "0 B"
 	}
 	if s >= Petabyte {
 		return sizeStringHelper(Petabyte, Terabyte, s, " PB")

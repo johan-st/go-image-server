@@ -27,6 +27,7 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/", srv.handleDocs())
 	srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
 	srv.router.HandleFunc("GET", "/clearcache", srv.handleClearCache())
+	srv.router.HandleFunc("GET", "/info", srv.handleInfo())
 	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
 	srv.router.HandleFunc("GET", "/:id/:filename", srv.handleImg())
 
@@ -93,7 +94,6 @@ func (srv *server) handleImg() http.HandlerFunc {
 		}
 		path, err := srv.ih.Get(imgPar, iid)
 		if err != nil {
-			l.Debug("err is test", "err", err, "is", errors.Is(err, images.ErrIdNotFound{}))
 			if errors.Is(err, images.ErrIdNotFound{}) {
 				l.Warn("image not found", "id", id, "ImageParameters", imgPar, "err", err)
 				srv.respondError(w, r, err.Error(), http.StatusNotFound)
@@ -135,7 +135,20 @@ func (srv *server) handleClearCache() http.HandlerFunc {
 
 		l.Warn("cache cleared by manual request", "bytes released", bytes)
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "cache cleared\n%d bytes released", bytes)
+		fmt.Fprintf(w, "cache cleared\n%s bytes released", bytes)
+	}
+}
+
+func (srv *server) handleInfo() http.HandlerFunc {
+	// setup
+	l := srv.l.With("handler", "handleInfo")
+	return func(w http.ResponseWriter, r *http.Request) {
+		// handler
+		stat := srv.ih.Info()
+
+		l.Debug(stat)
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "%s", stat)
 	}
 }
 
@@ -143,7 +156,6 @@ func (srv *server) handleClearCache() http.HandlerFunc {
 
 // respondError sends out a respons containing an error. This helper function is meant to be generic enough to serve most needs to communicate errors to the users
 func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
-	srv.l.Error("error", "code", statusCode, "message", msg)
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }

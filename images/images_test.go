@@ -10,7 +10,7 @@ func TestSize_String(t *testing.T) {
 		s    Size
 		want string
 	}{
-		{"0", Size(0), "0"},
+		{"0", Size(0), "0 B"},
 		{"7 B", Size(7), "7 B"},
 		{"7.78 KB", Size(7*Kilobyte + 777), "7.78 KB"},
 		{"7.00 MB", Size(7*Megabyte + 77), "7.00 MB"},
