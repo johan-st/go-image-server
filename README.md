@@ -38,8 +38,8 @@ _(#backatit)_
 - [X] Fix tests
 - [X] asking for a non-exsistant id should give 404 (not 500)
   - was already fixed in previous sprint
-- [ ] Paths should be configurable
-- [ ] Refactor tests to work on the image modules API (not as part of the module)  
+- [X] Paths should be configurable
+- [X] Refactor tests to work on the image modules API (not as part of the module)  
 - [ ] decide on benchmark-method for single images
 - [ ] add usage log 
 - [ ] add simple cache retention and reclaimation
@@ -49,7 +49,7 @@ _(#backatit)_
   - [ ] win
   - [ ] linux
 - [ ] tests need to be able to run with no setup after clone (include sane default conf in repo)
-- [ ] app need to be able to run with no setup after clone (include sane default conf in repo)
+- [ ] app need to be able to run as binary with no setup (maybe sane default conf is created?)
 - [ ] support webp
 
 
@@ -65,6 +65,7 @@ _(#backatit)_
 - 2023-05-04: use charm.io log. continue refatoring...  
 - 2023-05-05: implement "not implemented yet" func. there are a few left for work with caching  
 - 2023-05-05: start implementing a cache backed by a slice. This was the simplest way I could think of while working on the cache API
+- 2023-05-06: play with caching and trying to figure out what I want and need.
 
 ## Februari 2022
 
@@ -145,8 +146,16 @@ _(#backatit)_
   - middle ground?
 - Should I handle alt-texts?
 
+## Caching
+- after thinking and trying things out for a bit I am leennig towards using the filesystem as a cache. Maybe save some metadata in a datastructure of some kind.
+- misses are very disruptive since we go from ~400us processing to ~400ms. About a 1000 times slower. 400ms impacts UX.
+  - I will allways know the path a certain id + parameter combo will have by naming the files according approprtly.
+  - on hits I will want to read from disk regardless so I might as well try to open the path
+  - on miss it will not be a noticeble cost 
+
 # thoughts
 - if used as a cdn a simple rsync could keep all cahces in sync and restore cache from master or other source on boot. Possibly even clone cache from all peers.
 - set default return per image?
 - should be able to use aritrary folders for images (linked by cache)
+- 
 
