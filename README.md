@@ -160,3 +160,6 @@ _(#backatit)_
 - should be able to use aritrary folders for images (linked by cache)
 - 
 
+# Known issues
+- imagecache is not persisted between starts
+- format bug: if you request a png and then a jpg of with the same parameter png will be served
