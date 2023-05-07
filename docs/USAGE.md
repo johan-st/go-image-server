@@ -48,3 +48,16 @@ Describing the image you want is done through query parameters added to the url.
   - `png`: Can not be compressed and will always be full quality (TODO: source)
   - `gif`: Quality is determined by the number of colors in the image. Accepts values between 1 and 256 (inclusive).
 
+
+
+## examples
+
+### /1/linked_image.jpeg?w=100
+![linked image example](/1/linked_image.jpeg?w=200)
+
+
+### /2/linked_image.jpeg?f=png&w=25&h=25
+![linked image example](/2/linked_image.jpeg?f=png&w=250&h=250)
+
+### /3?f=gif&q=4&w=700&h=100
+![linked image example](/3?f=gif&q=4&w=700&h=100)
