@@ -18,7 +18,7 @@ import (
 
 const (
 	testFsDir          = "test-fs"
-	test_import_source = testFsDir + "/originals"
+	test_import_source = "test-images"
 )
 
 func Test_HandleDocs(t *testing.T) {
@@ -32,7 +32,7 @@ func Test_HandleDocs(t *testing.T) {
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
 	is.Equal(w.Code, http.StatusOK)
-	if !strings.Contains(w.Body.String(), "<h1>jst_ImageServer</h1>") {
+	if !strings.Contains(w.Body.String(), "jst_ImageServer") {
 		is.Fail()
 	}
 }

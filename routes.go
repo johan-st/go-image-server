@@ -40,18 +40,22 @@ func (srv *server) routes() {
 func (srv *server) handleDocs() http.HandlerFunc {
 	// setup
 	l := srv.l.With("handler", "handleDocs")
+	t := time.Now
+
 	md := markdown.New(markdown.XHTMLOutput(true))
 
-	f, err := os.ReadFile("assets/USAGE.md")
-	docs := md.RenderToString(f)
+	f, err := os.ReadFile("docs/USAGE.md")
 	if err != nil {
 		l.Fatalf("Could not read docs\n%s", err)
 	}
-	style, err := os.ReadFile("assets/dark.css")
+	docs := md.RenderToString(f)
+
+	style, err := os.ReadFile("docs/dark.css")
 	if err != nil {
-		srv.l.Fatalf("Could not read assets/dark.css\n%s", err)
+		srv.l.Fatalf("Could not read docs/dark.css\n%s", err)
 	}
 
+	l.Debug("docs rendered", "time", time.Since(t()))
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Info("handling request", "method", r.Method, "path", r.URL.Path)
@@ -61,7 +65,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 		}
 		w.Header().Add("content-type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "<html><head><title>jst_ImageServer</title></head><body><style>%s</style>%s</body></html>", style, docs)
+		fmt.Fprintf(w, "<html><head><title>img.jst.dev | no hassle image hosting</title></head><body><style>%s</style>%s</body></html>", style, docs)
 	}
 }
 

@@ -57,7 +57,7 @@ func run(l *log.Logger) error {
 
 	// DEBUG: add some images
 	for _, img := range []string{"one.jpg", "two.jpg", "three.jpg", "four.jpg", "five.jpg", "six.png"} {
-		_, err := ih.Add("test-fs/originals/" + img)
+		_, err := ih.Add("test-images/" + img)
 		if err != nil {
 			srv.l.Warn("could not add image", "error", err)
 		}
@@ -131,7 +131,7 @@ func envLogLevel() log.Level {
 }
 
 func funcCallerFormater(file string, line int, funcName string) string {
-	return fmt.Sprintf("%s:%d %s", trimCaller(file, 1, '/'), line, trimCaller(funcName, 1, '.'))
+	return fmt.Sprintf(" %s:%d %s ", trimCaller(file, 1, '/'), line, trimCaller(funcName, 1, '.'))
 }
 
 // Cleanup a path by returning the last n segments of the path only.
