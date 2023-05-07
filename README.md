@@ -45,7 +45,7 @@ _(#backatit)_
 - [ ] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
-- [ ] handle folder creation and permissions
+- [X] handle folder creation and permissions
   - [ ] win
   - [ ] linux
 - [ ] tests need to be able to run with no setup after clone (include sane default conf in repo)
@@ -66,6 +66,7 @@ _(#backatit)_
 - 2023-05-05: implement "not implemented yet" func. there are a few left for work with caching  
 - 2023-05-05: start implementing a cache backed by a slice. This was the simplest way I could think of while working on the cache API
 - 2023-05-06: play with caching and trying to figure out what I want and need.
+- 2023-05-07: update docs (USAGE.md) and restructure repo
 
 ## Februari 2022
 
