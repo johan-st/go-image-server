@@ -11,6 +11,7 @@ import (
 const (
 	testFsDir          = "test-fs"
 	test_import_source = testFsDir + "/originals"
+	commonExt          = ".jstimg" // this needs to be  the same as in images.go
 )
 
 func Test_Add(t *testing.T) {
@@ -45,7 +46,7 @@ func Test_Add(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = os.Stat(originalsDir + "/" + id.String() + ".jpg")
+	_, err = os.Stat(originalsDir + "/" + id.String() + commonExt)
 	if err != nil {
 		t.Fatal(err)
 	}

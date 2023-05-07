@@ -42,7 +42,7 @@ import (
 const (
 	DefaultOriginalsDir = "img/originals"
 	DefaultCacheDir     = "img/cache"
-	commonExt           = ".jpg" //somewhat of a hack. all files are saved as '*.jpg' TODO: clean up
+	commonExt           = ".jstimg" //somewhat of a hack. all files are saved and retrieved with this extention TODO: find a better way?
 )
 
 // ImageHandler is the main type of this package.
@@ -209,7 +209,7 @@ func (h *ImageHandler) Add(path string) (ImageId, error) {
 	h.latestId = nextId
 
 	// determine destination path (TODO: should extention be changed?)
-	dst := h.conf.OriginalsDir + "/" + nextId.String() + ".jpg"
+	dst := h.conf.OriginalsDir + "/" + nextId.String() + commonExt
 
 	// copy file to originals
 	dstf, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
@@ -513,8 +513,6 @@ func checkExists(paths []string, createDirs bool) error {
 }
 
 // check that the images directory exists and is writable. If not, set up needed permissions.
-// TODO: folders should be configurable
-// TODO: check perm bool
 func checkFilePermissions(paths []string, setPerms bool) error {
 	for _, path := range paths {
 		err := filepath.WalkDir(path, permAtLeast(0700, 0600))
