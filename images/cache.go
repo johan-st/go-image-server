@@ -15,13 +15,13 @@ import (
 // note: Use 0 (zero) to explicitly set default.
 // TODO: default cache rules are never clearing any cache
 type CacheRules struct {
-	MaxTimeSinceUse time.Duration // Max age in seconds		(default: 0, unlimited)
-	MaxSize         Size          // Max cache size in bytes	(default: 0 unlimited)
-	MaxNum          int           // Max number of images	(default: 0, unlimited)
+	MaxTimeSinceUse   time.Duration // Max age in seconds		(default: 0, unlimited)
+	MaxTotalCacheSize Size          // Max cache size in bytes	(default: 0 unlimited)
+	MaxNum            int           // Max number of images	(default: 0, unlimited)
 }
 
 type cache struct {
-	totalSize       Size
+	size            Size
 	numberOfObjects int
 	cap             int
 	objects         []cacheObject
@@ -33,7 +33,7 @@ func (c cache) String() string {
 	numberOfObjects %d
 	cap             %d
 	objects         %d
-`, c.totalSize, c.numberOfObjects, c.cap, len(c.objects))
+`, c.size, c.numberOfObjects, c.cap, len(c.objects))
 }
 
 type cacheObject struct {
@@ -55,7 +55,7 @@ func (co cacheObject) String() string {
 
 func newCache(capacity int) cache {
 	return cache{
-		totalSize:       0,
+		size:            0,
 		numberOfObjects: 0,
 		cap:             capacity,
 		objects:         make([]cacheObject, 0, capacity),
@@ -64,6 +64,8 @@ func newCache(capacity int) cache {
 
 func (c *cache) add(co cacheObject) {
 	c.objects = append(c.objects, co)
+	c.size += co.size
+	c.numberOfObjects++
 }
 
 func (c *cache) get(path string) (cacheObject, error) {
@@ -88,8 +90,31 @@ func (c *cache) del(path string) {
 	}
 }
 
-func (c *cache) delLRU() {
-	return
+// TODO: clean uo this api. Somewhat confusing to return an empty cacheObject?
+func (c *cache) delLRU() cacheObject {
+	if c.size == 0 {
+		return cacheObject{}
+	}
+
+	lru := time.Now()
+	lruI := -1
+	for i, co := range c.objects {
+		if co.path == "" {
+			continue
+		}
+		if co.lastAccessed.Before(lru) {
+			lru = co.lastAccessed
+			lruI = i
+		}
+	}
+	if lruI == -1 {
+		return cacheObject{}
+	}
+	co := c.objects[lruI]
+	c.objects[lruI].path = ""
+	c.numberOfObjects = 99
+	c.size -= co.size
+	return co
 }
 
 type cacheStat struct {
@@ -151,4 +176,42 @@ func (c *cache) stat() cacheStat {
 		leastRUPath: lruP,
 	}
 	return cs
+}
+
+func (c *cache) clear() {
+	for i := range c.objects {
+		c.objects[i].path = ""
+	}
+}
+
+func (c *cache) cacheByRules(r CacheRules) []string {
+	paths := []string{}
+
+	// p := c.clearBySize(r)
+	// paths = append(paths, p...)
+
+	p := c.clearByTime(r)
+	paths = append(paths, p...)
+
+	return paths
+}
+
+func (c *cache) clearBySize(r CacheRules) []string {
+	paths := []string{}
+	for c.size > r.MaxTotalCacheSize {
+		co := c.delLRU()
+		paths = append(paths, co.path)
+	}
+	return paths
+}
+
+func (c *cache) clearByTime(r CacheRules) []string {
+	paths := []string{}
+	for _, co := range c.objects {
+		if co.lastAccessed.Before(time.Now().Add(-r.MaxTimeSinceUse)) {
+			paths = append(paths, co.path)
+			co.path = ""
+		}
+	}
+	return paths
 }

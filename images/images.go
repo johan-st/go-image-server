@@ -42,7 +42,7 @@ import (
 const (
 	DefaultOriginalsDir = "img/originals"
 	DefaultCacheDir     = "img/cache"
-	commonExt           = ".jstimg" //somewhat of a hack. all files are saved and retrieved with this extention TODO: find a better way?
+	originalsExt        = ".jpg" //somewhat of a hack. all originals are saved and retrieved with this extention TODO: find a better way?
 )
 
 // ImageHandler is the main type of this package.
@@ -75,7 +75,7 @@ type ImageParameters struct {
 }
 
 func (ip *ImageParameters) String() string {
-	return fmt.Sprintf("%dx%d_q%d_%d", ip.Width, ip.Height, ip.Quality, ip.MaxSize)
+	return fmt.Sprintf("%dx%d_q%d_%d.%s", ip.Width, ip.Height, ip.Quality, ip.MaxSize, ip.Format)
 }
 
 type ImageId int
@@ -85,13 +85,17 @@ func (id ImageId) String() string {
 }
 
 // Format represents image formats.
-type Format int
+type Format string
 
 const (
-	Jpeg Format = iota // quality 1-100
-	Png                // always lossless
-	Gif                // num colors 1-256
+	Jpeg Format = "jpeg" // quality 1-100
+	Png  Format = "png"  // always lossless
+	Gif  Format = "gif"  // num colors 1-256
 )
+
+func (f Format) String() string {
+	return string(f)
+}
 
 type ErrIdNotFound struct {
 	IdGiven ImageId
@@ -209,7 +213,7 @@ func (h *ImageHandler) Add(path string) (ImageId, error) {
 	h.latestId = nextId
 
 	// determine destination path (TODO: should extention be changed?)
-	dst := h.conf.OriginalsDir + "/" + nextId.String() + commonExt
+	dst := h.conf.OriginalsDir + "/" + nextId.String() + originalsExt
 
 	// copy file to originals
 	dstf, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
@@ -244,6 +248,7 @@ func (h *ImageHandler) Remove(id ImageId) error {
 // clear all cache
 func (h *ImageHandler) CacheClear() (Size, error) {
 	h.l.Debug("CacheClear")
+	h.cache.clear()
 	// cachefoldersize
 	dir, err := os.Open(h.conf.CacheDir)
 	if err != nil {
@@ -276,7 +281,7 @@ func (h *ImageHandler) CacheClear() (Size, error) {
 	return Size(totalBytes), nil
 }
 
-func (h *ImageHandler) CacheClearFor(id ImageId) (int, error) {
+func (h *ImageHandler) CacheClearFor(id ImageId) (Size, error) {
 	h.l.Debug("id", id)
 
 	bytesFreed := 0
@@ -310,10 +315,10 @@ func (h *ImageHandler) CacheClearFor(id ImageId) (int, error) {
 		}
 	}
 	if len(errs) > 0 {
-		return bytesFreed, fmt.Errorf("errors while removing files. errors: %s", errs)
+		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
 	}
 
-	return bytesFreed, nil
+	return Size(bytesFreed), nil
 }
 
 // TODO: page and chunk as arguments for when we have thousands of ids
@@ -355,20 +360,68 @@ func (h *ImageHandler) ListIds() ([]ImageId, error) {
 }
 
 // TODO: should probably lock the cache while doing this
-func (h *ImageHandler) CacheHouseKeeping() (int, error) {
+func (h *ImageHandler) CacheHouseKeeping() (Size, error) {
 
-	// sort by last access time
-	// List files to remove
-	// lock cache
-	// remove files
-	// unlock cache
-
-	h.l.Error("CacheHouseKeeping is not yet implementes")
-	return 0, fmt.Errorf("not implemented")
+	paths := h.cache.cacheByRules(h.conf.CacheRules)
+	bytesFreed := int64(0)
+	var errs []error
+	for _, p := range paths {
+		h.l.Debug("CacheHouseKeeping", "removing", p)
+		fileStat, err := os.Stat(p)
+		if err != nil {
+			h.l.Error("CacheHouseKeeping", "error", err)
+			errs = append(errs, err)
+			continue
+		}
+		size := fileStat.Size()
+		if err != nil {
+			h.l.Error("CacheHouseKeeping", "error", err)
+			errs = append(errs, err)
+		}
+		bytesFreed += size
+	}
+	if len(errs) > 0 {
+		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
+	}
+	h.l.Info("CacheHouseKeeping", "freed Bytes", bytesFreed)
+	return Size(bytesFreed), nil
 }
 
-func (h *ImageHandler) Info() string {
-	return h.cache.String() + h.cache.stat().String()
+type ImageHandlerInfo struct {
+	NumOfOriginals int
+	NumOfCached    int
+	OriginalsSize  Size
+	CachedSize     Size
+}
+
+func (info ImageHandlerInfo) String() string {
+	return fmt.Sprintf(`
+ImageHandlerInfo
+	NumOfOriginals %d
+	NumOfCached    %d
+	OriginalsSize  %s
+	CachedSize     %s
+`,
+		info.NumOfOriginals,
+		info.NumOfCached,
+		info.OriginalsSize,
+		info.CachedSize)
+}
+
+func (h *ImageHandler) Info() ImageHandlerInfo {
+	oIds, err := h.ListIds()
+	numOrigs := len(oIds)
+	if err != nil {
+		h.l.Error("Info", "error", err)
+		numOrigs = -1
+	}
+
+	return ImageHandlerInfo{
+		NumOfOriginals: numOrigs,
+		NumOfCached:    h.cache.numberOfObjects,
+		OriginalsSize:  Size(0),
+		CachedSize:     h.cache.size,
+	}
 }
 
 func (h *ImageHandler) findLatestId() (ImageId, error) {
@@ -406,7 +459,7 @@ func (h *ImageHandler) createImage(params ImageParameters, id ImageId, cachePath
 	switch params.Format {
 	case Jpeg:
 		if params.Quality == 0 {
-			params.Quality = 90
+			params.Quality = 80
 		}
 		opt := &jpeg.Options{Quality: params.Quality}
 		err = jpeg.Encode(file, img, opt)
@@ -435,12 +488,13 @@ func (h *ImageHandler) createImage(params ImageParameters, id ImageId, cachePath
 	}
 	return Size(stat.Size()), nil
 }
+
 func (h *ImageHandler) originalPath(id ImageId) string {
-	return filepath.Join(h.conf.OriginalsDir, id.String()+commonExt)
+	return filepath.Join(h.conf.OriginalsDir, id.String()+originalsExt)
 }
 
 func (h *ImageHandler) cachePath(params ImageParameters, id ImageId) string {
-	return filepath.Join(h.conf.CacheDir, id.String()+"_"+params.String()+commonExt)
+	return filepath.Join(h.conf.CacheDir, id.String()+"_"+params.String())
 }
 
 // HELPER

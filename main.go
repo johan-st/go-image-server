@@ -34,6 +34,11 @@ func run(l *log.Logger) error {
 		CacheDir:     "img/cache",
 		CreateDirs:   true,
 		SetPerms:     true,
+		CacheRules: images.CacheRules{
+			MaxTotalCacheSize: 400 * images.Kilobyte,
+			MaxNum:            4,
+			MaxTimeSinceUse:   1 * time.Minute,
+		},
 	}, ihLogger)
 	if err != nil {
 		return err

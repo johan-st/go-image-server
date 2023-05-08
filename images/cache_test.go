@@ -2,6 +2,7 @@ package images
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 )
@@ -97,5 +98,90 @@ func matchingCacheObjects(o1, o2 cacheObject) bool {
 	// }
 
 	return true
+
+}
+
+func Test_cache_cacheByRules(t *testing.T) {
+
+	// files := []string{"test-1", "test-2", "test-3", "test-0"}
+	// arrange
+	cache := newCache(4)
+	cache.add(cacheObject{"test-1", 100, time.Now().AddDate(-1, 0, 0)})
+	cache.add(cacheObject{"test-2", 200, time.Now().AddDate(0, -1, 0)})
+	cache.add(cacheObject{"test-3", 400, time.Now().AddDate(0, 0, -1)})
+	cache.add(cacheObject{"test-0", 800, time.Now()})
+
+	// act
+	crNoEvict := CacheRules{
+		MaxTotalCacheSize: 0,
+		MaxTimeSinceUse:   366 * 24 * time.Hour,
+	}
+	crEvictSize := CacheRules{
+		MaxTotalCacheSize: 400,
+		MaxTimeSinceUse:   0,
+	}
+	crEvictTime := CacheRules{
+		MaxTotalCacheSize: 0,
+		MaxTimeSinceUse:   25 * time.Hour,
+	}
+	// assert
+	paths := cache.cacheByRules(crNoEvict)
+	if len(paths) != 0 {
+		t.Fatal("no eviction should have occured")
+	}
+
+	paths = cache.cacheByRules(crEvictSize)
+	if len(paths) != 2 {
+		for _, p := range paths {
+			fmt.Println("evicted", p)
+			fmt.Println(cache.stat())
+		}
+		t.Fatal("2 evictions should have occured")
+	}
+	for _, p := range paths {
+		fmt.Println(p)
+	}
+
+	paths = cache.cacheByRules(crEvictTime)
+	if len(paths) != 2 {
+		t.Fatal("2 evictions should have occured")
+	}
+	for _, p := range paths {
+		if p != "test-1" && p != "test-2" {
+			t.Fatal("wrong files were evicted")
+		}
+	}
+	for _, p := range paths {
+		fmt.Println(p)
+	}
+
+}
+
+func Test_cache_delLRU(t *testing.T) {
+	// arrange
+	cache := newCache(4)
+	cos := []cacheObject{
+		{"test-0", 800, time.Now()},
+		{"test-1", 100, time.Now().AddDate(-1, 0, 0)},
+		{"test-2", 200, time.Now().AddDate(0, -1, 0)},
+		{"test-3", 400, time.Now().AddDate(0, 0, -1)},
+	}
+
+	for _, co := range cos {
+		cache.add(co)
+	}
+
+	sort.Slice(cos, func(i, j int) bool {
+		return cos[i].lastAccessed.Before(cos[j].lastAccessed)
+	})
+
+	// act
+	// assert
+	for _, coRef := range cos {
+		co := cache.delLRU()
+		if co.path != coRef.path {
+			t.Fatalf("correct LRU not deleted, wanted %s, got %s", coRef.path, co.path)
+		}
+	}
 
 }

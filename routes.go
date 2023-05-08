@@ -28,6 +28,7 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
 	srv.router.HandleFunc("GET", "/clearcache", srv.handleClearCache())
 	srv.router.HandleFunc("GET", "/info", srv.handleInfo())
+	srv.router.HandleFunc("GET", "/housekeeping", srv.handleHousekeeping())
 	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
 	srv.router.HandleFunc("GET", "/:id/:filename", srv.handleImg())
 
@@ -153,6 +154,26 @@ func (srv *server) handleInfo() http.HandlerFunc {
 		l.Debug(stat)
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%s", stat)
+	}
+}
+
+// TODO: implement this properly. Is buggy
+func (srv *server) handleHousekeeping() http.HandlerFunc {
+	// setup
+	l := srv.l.With("handler", "handleHousekeeping")
+	return func(w http.ResponseWriter, r *http.Request) {
+		t := time.Now()
+		// handler
+		bytesFreed, err := srv.ih.CacheHouseKeeping()
+		if err != nil {
+			l.Error("could not run housekeeping", "err", err)
+			srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		l.Info("housekeeping done", "bytes freed", bytesFreed, "new size", srv.ih.Info().CachedSize, "duration", time.Since(t))
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "%s", srv.ih.Info()) //TODO: implement
 	}
 }
 

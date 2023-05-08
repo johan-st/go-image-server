@@ -51,6 +51,8 @@ _(#backatit)_
 - [ ] tests need to be able to run with no setup after clone (include sane default conf in repo)
 - [ ] app need to be able to run as binary with no setup (maybe sane default conf is created?)
 - [ ] support webp
+- [ ] safe concurrency
+- [ ] switch to disable docs
 
 
 ### log
@@ -159,6 +161,80 @@ _(#backatit)_
 - set default return per image?
 - should be able to use aritrary folders for images (linked by cache)
 - 
+## images package API (DRAFT)
+
+
+```go
+
+// BASIC INTERACTIONS
+
+// set up image handler with config
+ih, err := images.New(images.Config{
+  OriginalsDir: "img/originals",
+  CacheDir:     "img/cache",
+}, ihLogger)
+if err != nil {
+  // handle error
+}
+
+// add new original
+id, err := ih.Add("imagesource/imagename.jpg")
+if err != nil {
+  // handle error
+}
+
+
+
+// delete original and all associated cached images
+err := ih.Remove(id)
+if err != nil {
+  // handle error
+}
+
+// get image with defined parameters
+imagePath, err := ih.Get(id, images.Params{
+  Width:  100,
+  Height: 100,
+  Quality: 80,
+  Format: Jpeg,
+})
+if err != nil {
+  // handle error
+}
+
+// CACHE INTERACTIONS
+
+// remove cache for image with defined parameters
+freedBytes, err := ih.CacheClearFor(id, images.Params{
+  Width:  100,
+  Height: 75,
+  Quality: 256,
+  Format: Gif,
+})
+if err != nil {
+  // handle error
+}
+
+// Clear cache for all images with matching CacheRules set up in imagehandler. 
+freedBytes, err := ih.CacheHouseKeeping()
+if err != nil {
+  // handle error
+}
+
+// Clear all cache
+freedBytes, err := ih.CacheClear()
+if err != nil {
+  // handle error
+}
+
+
+
+
+// 
+
+
+
+```
 
 # Known issues
 - imagecache is not persisted between starts
