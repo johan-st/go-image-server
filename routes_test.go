@@ -61,6 +61,7 @@ func Test_HandleImg(t *testing.T) {
 
 	id, err := ih.Add(test_import_source + "/one.jpg")
 	is.NoErr(err)
+	t.Log(id)
 
 	srv := server{
 		l:      log.Default(),
@@ -72,6 +73,7 @@ func Test_HandleImg(t *testing.T) {
 
 	// act
 	srv.ServeHTTP(w, httptest.NewRequest("GET", "/"+id.String(), nil))
+	t.Log(w.Result())
 
 	// assert
 	is.Equal(w.Result().StatusCode, http.StatusOK)

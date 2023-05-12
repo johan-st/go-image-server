@@ -75,6 +75,9 @@ type ImageParameters struct {
 }
 
 func (ip *ImageParameters) String() string {
+	if ip.Format == "" {
+		ip.Format = Jpeg
+	}
 	return fmt.Sprintf("%dx%d_q%d_%d.%s", ip.Width, ip.Height, ip.Quality, ip.MaxSize, ip.Format)
 }
 

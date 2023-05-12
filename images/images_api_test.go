@@ -2,7 +2,6 @@ package images_test
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"testing"
 
@@ -47,9 +46,16 @@ func Test_Add(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = os.Stat(originalsDir + "/" + id.String() + commonExt)
+	path := originalsDir + "/" + id.String() + commonExt
+	stat, err := os.Stat(originalsDir + "/" + id.String() + commonExt)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if stat.Size() == 0 {
+		t.Log("path\t", path)
+		t.Log("size\t\t", img.Size(stat.Size()))
+		t.Log("msg\t\t", "file is empty")
+		t.Fail()
 	}
 
 	dir, err := os.ReadDir(originalsDir)
@@ -87,13 +93,15 @@ func Test_Get(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := ih.Add(test_import_source + "/two.jpg")
+	id, err := ih.Add(test_import_source + "/one.jpg")
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log("added id\t", id)
 
 	// act
 	path, err := ih.Get(img.ImageParameters{}, id)
+	t.Log("got path\t", path)
 
 	// assert
 	if err != nil {
@@ -104,10 +112,7 @@ func Test_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 	if stat.Size() == 0 {
-		fmt.Println("path\t", path)
-		fmt.Println("id\t\t", id)
-		fmt.Println("msg\t\t", "file is empty")
-		fmt.Printf("stat\n%#v", stat)
+		t.Log("err\t\t file is empty")
 		t.Fail()
 	}
 	file, err := os.Open(path)
