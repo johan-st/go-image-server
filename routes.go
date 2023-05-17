@@ -322,6 +322,6 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"url", r.Host+r.URL.String(),
 		"remote", r.RemoteAddr,
 		"user-agent", r.UserAgent(),
-		"duration", time.Since(s),
+		"time elapsed", time.Since(s),
 	)
 }
