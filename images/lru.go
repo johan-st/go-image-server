@@ -1,19 +1,31 @@
 package images
 
-import "sync"
+import (
+	"sync"
+)
 
+// TimeSource is an interface to facilitate test
 // type TimeSource interface {
 // 	Now() time.Time
 // 	Since(time.Time) time.Duration
 // }
 
-// Lru is a least recently used cache
-// it is thread safe
-// it is a stripped down version of a regular LRU since we only need to keep track of filepaths and the order they were accessed in
+// CacheObject represents a cached image.
+// type CacheObject struct {
+// 	Path            string
+// 	ImageParameters ImageParameters
+// 	Size            Size
+// 	LastAccessed    time.Time
+// }
+
+// LRU is a bespoke Least Recently Used cache. It is used to keep track of
+// image files does therefor not store any data. What is of interest is
+// knowing wether a certain file is generated and the order in which the
+// files are accessed. LRU is thread safe.
 type Lru struct {
 	// timeSource    TimeSource
 	cap           int
-	Len           int
+	len           int
 	head          *node
 	tail          *node
 	lookup        map[string]*node
@@ -23,6 +35,11 @@ type Lru struct {
 	rlMutex       sync.RWMutex
 }
 
+// NewLru creates a new Lru cache with the given capacity and trimedPathsChan.
+// The capacity is the maximum number of paths that can be stored in the
+// cache.
+//
+// The trimedPathsChan is used to communicate which paths are trimmed from the cache. When a path is removed from the cache it will be sent to the trimedPathsChan. The caller is responsible for handling removal of cache-filesbased on the trimedPathsChan messages and aöso for closing the channel. The channel should have a buffer size of at least 1 but larger is higky recommended.The channel length should be monitored and if it is close to full a warning should be issued.
 func NewLru(cap int, trimedPathsChan chan<- string) *Lru {
 	return &Lru{
 		cap:           cap,
@@ -69,7 +86,7 @@ func (l *Lru) Access(filepath string) bool {
 // }
 
 func (l *Lru) trim() {
-	for l.Len > l.cap {
+	for l.len > l.cap {
 		node := l.tail
 		key, _ := l.lookupPath(node)
 
@@ -84,16 +101,16 @@ func (l *Lru) trim() {
 // List operations
 
 func (l *Lru) addToFront(n *node) {
-	if l.Len == 0 {
+	if l.len == 0 {
 		l.head = n
 		l.tail = n
-		l.Len++
+		l.len++
 		return
 	}
 	n.next = l.head
 	l.head.prev = n
 	l.head = n
-	l.Len++
+	l.len++
 
 }
 
@@ -137,7 +154,7 @@ func (l *Lru) detatchTail() {
 	n.prev = nil
 
 	// decrement len
-	l.Len--
+	l.len--
 }
 
 // Lookup operations

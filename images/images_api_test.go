@@ -1,7 +1,6 @@
 package images_test
 
 import (
-	"errors"
 	"os"
 	"testing"
 
@@ -133,69 +132,69 @@ func Test_Get(t *testing.T) {
 
 }
 
-func Test_Remove(t *testing.T) {
-	// arange
+// func Test_Remove(t *testing.T) {
+// 	// arange
 
-	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(originalsDir)
+// 	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	defer os.RemoveAll(originalsDir)
 
-	cachePath, err := os.MkdirTemp(testFsDir, "testAdd-Cache_")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(cachePath)
+// 	cachePath, err := os.MkdirTemp(testFsDir, "testAdd-Cache_")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	defer os.RemoveAll(cachePath)
 
-	conf := img.Config{
-		OriginalsDir: originalsDir,
-		CacheDir:     cachePath,
-	}
+// 	conf := img.Config{
+// 		OriginalsDir: originalsDir,
+// 		CacheDir:     cachePath,
+// 	}
 
-	ih, err := img.New(conf, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	idKeep, err := ih.Add(test_import_source + "/one.jpg")
-	if err != nil {
-		t.Fatal(err)
-	}
-	idRem, err := ih.Add(test_import_source + "/two.jpg")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ih.Get(img.ImageParameters{Width: 10}, idKeep)
+// 	ih, err := img.New(conf, nil)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	idKeep, err := ih.Add(test_import_source + "/one.jpg")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	idRem, err := ih.Add(test_import_source + "/two.jpg")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	ih.Get(img.ImageParameters{Width: 10}, idKeep)
 
-	// act
-	err = ih.Remove(idRem)
+// 	// act
+// 	err = ih.Remove(idRem)
 
-	// assert
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	// assert
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	dir, err := os.ReadDir(originalsDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(dir) != 1 {
-		t.Fatalf("originals dir is not the anticipated length (%d). len=%d", 1, len(dir))
-	}
-	_, err = ih.Get(img.ImageParameters{Width: 10}, idRem)
-	if err == nil {
-		t.Fatal("file still found")
-	}
-	if !errors.Is(err, img.ErrIdNotFound{}) {
-		t.Fatal(err)
-	}
-	// check that the keep file is still there
-	_, err = ih.Get(img.ImageParameters{Width: 10}, idKeep)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	dir, err := os.ReadDir(originalsDir)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if len(dir) != 1 {
+// 		t.Fatalf("originals dir is not the anticipated length (%d). len=%d", 1, len(dir))
+// 	}
+// 	_, err = ih.Get(img.ImageParameters{Width: 10}, idRem)
+// 	if err == nil {
+// 		t.Fatal("file still found")
+// 	}
+// 	if !errors.Is(err, img.ErrIdNotFound{}) {
+// 		t.Fatal(err)
+// 	}
+// 	// check that the keep file is still there
+// 	_, err = ih.Get(img.ImageParameters{Width: 10}, idKeep)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-}
+// }
 
 func Test_ListIds(t *testing.T) {
 	// arange

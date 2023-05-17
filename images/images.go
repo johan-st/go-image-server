@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/log"
 
@@ -39,6 +38,15 @@ import (
 //  With
 // }
 
+// cache is expected to be thread-safe. It should return true if the path is in cache and false otherwise.
+//
+// It should add the path to cache if it is not already there.
+//
+// Cach should send evicted paths to the image handler to be deleted from disk.
+type cache interface {
+	Access(path string) bool
+}
+
 const (
 	DefaultOriginalsDir = "img/originals"
 	DefaultCacheDir     = "img/cache"
@@ -51,17 +59,18 @@ type ImageHandler struct {
 	latestId ImageId // TODO: this can be accessed by multiple goroutines. Make thread-safe.
 	l        *log.Logger
 	cache    cache //TODO: slice as initial prototype
+	evicted  <-chan string
+	// TODO: might need a map to keep track of ids are in use after implementing "delete"
 }
 
 // Config represents the configuration of an ImageHandler.
 // unset (0/"") parameters will be considered as "use default".
 type Config struct {
-	OriginalsDir  string          // path to originals			(default: "img/originals")
-	CacheDir      string          // path to cache			(default: "img/cache")
-	DefaultParams ImageParameters // default image parameters		(default: see ImageParameters)
-	CacheRules    CacheRules      // cache rules			(default: see CacheRules)
-	CreateDirs    bool            // create directories if needed	(default: false)
-	SetPerms      bool            // set permissions if needed		(default: false)
+	OriginalsDir  string          // path to originals (default: "img/originals")
+	CacheDir      string          // path to cache (default: "img/cache")
+	DefaultParams ImageParameters // default image parameters (default: see ImageParameters)
+	CreateDirs    bool            // create directories if needed (default: false)
+	SetPerms      bool            // set permissions if needed (default: false)
 }
 
 // ImageParameters represents how an image should be pressented.
@@ -115,8 +124,6 @@ func (e ErrIdNotFound) Is(err error) bool {
 }
 
 // New creates a new Imageandler with the given configuration.
-// Caller is responsible for running CacheHousekeeping() periodically to trigger cache cleanup.
-// Preferably when the server is not under heavy load.
 //
 // TODO: should take a list of parameters to create for all images
 // DEBUG: TODO: MUST create a cache based on files in cache folder on startup
@@ -131,12 +138,14 @@ func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 		l.Info("Using default logger")
 	}
 
+	evitedChan := make(chan string, 10)
+
 	l.Debug("Creating new ImageHandler", "Config", conf)
 	ih := ImageHandler{
 		conf:     conf,
 		latestId: ImageId(0),
 		l:        l,
-		cache:    newCache(4),
+		cache:    NewLru(10, evitedChan),
 	}
 
 	ih.latestId, err = ih.findLatestId()
@@ -144,7 +153,6 @@ func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 		ih.l.Fatal("could not get latest id during setup.", "error", err)
 		return nil, err
 	}
-	ih.l.Debug(func() string { return ih.cache.stat().String() })
 	return &ih, nil
 }
 
@@ -154,11 +162,8 @@ func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
 	h.l.Info("Get", "ImageId", id, "ImageParameters", params, "cachePath", cachePath)
 
 	// Look for the image in the cache, return it if it does
-	co, err := h.cache.get(cachePath)
-	if err == nil {
-		// TODO: check error type here to make sure it represents a cache
-		// miss and not any other error
-		return co.path, nil
+	if inCache := h.cache.Access(cachePath); inCache {
+		return cachePath, nil
 	}
 
 	// file does not exist
@@ -170,22 +175,8 @@ func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
 		return "", err
 	}
 
-	co = cacheObject{
-		path:         cachePath,
-		size:         size,
-		lastAccessed: time.Now()}
-
-	// TODO: we might benefit from running add as a go rutine.
-	// That way we can decouple it's runtime from the response
-	//
-	// On the other hand, creating an image takes a significant
-	// amount of time so this step will not noticably effect
-	// the responsetime
-	h.cache.add(co)
 	// file was created
-	h.l.Debug(co)
-	h.l.Debug(h.cache)
-	h.l.Debug(h.cache.stat())
+	h.l.Debug("Cachefile Created", "path", cachePath, "size", size)
 	return cachePath, nil
 }
 
@@ -232,99 +223,99 @@ func (h *ImageHandler) Add(path string) (ImageId, error) {
 	return nextId, nil
 }
 
-func (h *ImageHandler) Remove(id ImageId) error {
-	h.l.Info("Remove", "id", id)
-	// remove from cache
-	h.CacheClearFor(id)
-	// remove original
-	oPath := h.originalPath(id)
-	err := os.Remove(oPath)
-	if err != nil {
-		return err
-	}
+// func (h *ImageHandler) Remove(id ImageId) error {
+// 	h.l.Info("Remove", "id", id)
+// 	// remove from cache
+// 	h.CacheClearFor(id)
+// 	// remove original
+// 	oPath := h.originalPath(id)
+// 	err := os.Remove(oPath)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 //  TODO: decide which of these should even exist
 
-// clear all cache
-func (h *ImageHandler) CacheClear() (Size, error) {
-	h.l.Debug("CacheClear")
-	h.cache.clear()
-	// cachefoldersize
-	dir, err := os.Open(h.conf.CacheDir)
-	if err != nil {
-		h.l.Error("CacheClear", "error", err)
-		return 0, err
-	}
-	defer dir.Close()
+// // clear all cache
+// func (h *ImageHandler) CacheClear() (Size, error) {
+// 	h.l.Debug("CacheClear")
+// 	h.cache.clear()
+// 	// cachefoldersize
+// 	dir, err := os.Open(h.conf.CacheDir)
+// 	if err != nil {
+// 		h.l.Error("CacheClear", "error", err)
+// 		return 0, err
+// 	}
+// 	defer dir.Close()
 
-	// get list of files
-	files, err := dir.Readdir(0)
-	if err != nil {
-		h.l.Error("CacheClear", "error", err)
-		return 0, err
-	}
+// 	// get list of files
+// 	files, err := dir.Readdir(0)
+// 	if err != nil {
+// 		h.l.Error("CacheClear", "error", err)
+// 		return 0, err
+// 	}
 
-	totalBytes := 0
-	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-		totalBytes += int(f.Size())
-		// remove files
-		err = os.Remove(h.conf.CacheDir + "/" + f.Name())
-		if err != nil {
-			h.l.Error("CacheClear", "error", err)
-			return 0, err
-		}
-	}
-	h.l.Info("Cached cleared", "freed Bytes", totalBytes)
-	return Size(totalBytes), nil
-}
+// 	totalBytes := 0
+// 	for _, f := range files {
+// 		if f.IsDir() {
+// 			continue
+// 		}
+// 		totalBytes += int(f.Size())
+// 		// remove files
+// 		err = os.Remove(h.conf.CacheDir + "/" + f.Name())
+// 		if err != nil {
+// 			h.l.Error("CacheClear", "error", err)
+// 			return 0, err
+// 		}
+// 	}
+// 	h.l.Info("Cached cleared", "freed Bytes", totalBytes)
+// 	return Size(totalBytes), nil
+// }
 
-func (h *ImageHandler) CacheClearFor(id ImageId) (Size, error) {
-	h.l.Debug("id", id)
+// func (h *ImageHandler) CacheClearFor(id ImageId) (Size, error) {
+// 	h.l.Debug("id", id)
 
-	bytesFreed := 0
-	dir, err := os.Open(h.conf.CacheDir)
-	if err != nil {
-		h.l.Error("CacheClearFor", "error", err)
-		return 0, err
-	}
-	defer dir.Close()
+// 	bytesFreed := 0
+// 	dir, err := os.Open(h.conf.CacheDir)
+// 	if err != nil {
+// 		h.l.Error("CacheClearFor", "error", err)
+// 		return 0, err
+// 	}
+// 	defer dir.Close()
 
-	// get list of files
-	files, err := dir.Readdir(0)
-	if err != nil {
-		h.l.Error("CacheClearFor", "error", err)
-		return 0, err
-	}
+// 	// get list of files
+// 	files, err := dir.Readdir(0)
+// 	if err != nil {
+// 		h.l.Error("CacheClearFor", "error", err)
+// 		return 0, err
+// 	}
 
-	errs := []error{}
-	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-		// remove files
-		if strings.HasPrefix(f.Name(), id.String()) {
-			bytesFreed += int(f.Size())
-			err = os.Remove(h.conf.CacheDir + "/" + f.Name())
-			if err != nil {
-				h.l.Error("CacheClearFor", "error", err)
-				errs = append(errs, err)
-			}
-		}
-	}
-	if len(errs) > 0 {
-		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
-	}
+// 	errs := []error{}
+// 	for _, f := range files {
+// 		if f.IsDir() {
+// 			continue
+// 		}
+// 		// remove files
+// 		if strings.HasPrefix(f.Name(), id.String()) {
+// 			bytesFreed += int(f.Size())
+// 			err = os.Remove(h.conf.CacheDir + "/" + f.Name())
+// 			if err != nil {
+// 				h.l.Error("CacheClearFor", "error", err)
+// 				errs = append(errs, err)
+// 			}
+// 		}
+// 	}
+// 	if len(errs) > 0 {
+// 		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
+// 	}
 
-	return Size(bytesFreed), nil
-}
+// 	return Size(bytesFreed), nil
+// }
 
-// TODO: page and chunk as arguments for when we have thousands of ids
+// TODO: page and chunk as arguments for when we have thousands of ids?
 func (h *ImageHandler) ListIds() ([]ImageId, error) {
 	h.l.Debug("ListIds")
 
@@ -363,69 +354,69 @@ func (h *ImageHandler) ListIds() ([]ImageId, error) {
 }
 
 // TODO: should probably lock the cache while doing this
-func (h *ImageHandler) CacheHouseKeeping() (Size, error) {
+// func (h *ImageHandler) CacheHouseKeeping() (Size, error) {
 
-	paths := h.cache.cacheByRules(h.conf.CacheRules)
-	bytesFreed := int64(0)
-	var errs []error
-	for _, p := range paths {
-		h.l.Debug("CacheHouseKeeping", "removing", p)
-		fileStat, err := os.Stat(p)
-		if err != nil {
-			h.l.Error("CacheHouseKeeping", "error", err)
-			errs = append(errs, err)
-			continue
-		}
-		size := fileStat.Size()
-		if err != nil {
-			h.l.Error("CacheHouseKeeping", "error", err)
-			errs = append(errs, err)
-		}
-		bytesFreed += size
-	}
-	if len(errs) > 0 {
-		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
-	}
-	h.l.Info("CacheHouseKeeping", "freed Bytes", bytesFreed)
-	return Size(bytesFreed), nil
-}
+// 	paths := h.cache.cacheByRules(h.conf.CacheRules)
+// 	bytesFreed := int64(0)
+// 	var errs []error
+// 	for _, p := range paths {
+// 		h.l.Debug("CacheHouseKeeping", "removing", p)
+// 		fileStat, err := os.Stat(p)
+// 		if err != nil {
+// 			h.l.Error("CacheHouseKeeping", "error", err)
+// 			errs = append(errs, err)
+// 			continue
+// 		}
+// 		size := fileStat.Size()
+// 		if err != nil {
+// 			h.l.Error("CacheHouseKeeping", "error", err)
+// 			errs = append(errs, err)
+// 		}
+// 		bytesFreed += size
+// 	}
+// 	if len(errs) > 0 {
+// 		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
+// 	}
+// 	h.l.Info("CacheHouseKeeping", "freed Bytes", bytesFreed)
+// 	return Size(bytesFreed), nil
+// }
 
-type ImageHandlerInfo struct {
-	NumOfOriginals int
-	NumOfCached    int
-	OriginalsSize  Size
-	CachedSize     Size
-}
+// type ImageHandlerInfo struct {
+// 	NumOfOriginals int
+// 	NumOfCached    int
+// 	OriginalsSize  Size
+// 	CachedSize     Size
+// }
 
-func (info ImageHandlerInfo) String() string {
-	return fmt.Sprintf(`
-ImageHandlerInfo
-	NumOfOriginals %d
-	NumOfCached    %d
-	OriginalsSize  %s
-	CachedSize     %s
-`,
-		info.NumOfOriginals,
-		info.NumOfCached,
-		info.OriginalsSize,
-		info.CachedSize)
-}
+// func (info ImageHandlerInfo) String() string {
+// 	return fmt.Sprintf(`
+// ImageHandlerInfo
+// 	NumOfOriginals %d
+// 	NumOfCached    %d
+// 	OriginalsSize  %s
+// 	CachedSize     %s
+// `,
+// 		info.NumOfOriginals,
+// 		info.NumOfCached,
+// 		info.OriginalsSize,
+// 		info.CachedSize)
+// }
 
-func (h *ImageHandler) Info() ImageHandlerInfo {
-	oIds, err := h.ListIds()
-	numOrigs := len(oIds)
-	if err != nil {
-		h.l.Error("Info", "error", err)
-		numOrigs = -1
-	}
+// func (h *ImageHandler) Info() ImageHandlerInfo {
+// 	oIds, err := h.ListIds()
+// 	numOrigs := len(oIds)
+// 	if err != nil {
+// 		h.l.Error("Info", "error", err)
+// 		numOrigs = -1
+// 	}
 
-	return ImageHandlerInfo{
-		NumOfOriginals: numOrigs,
-		NumOfCached:    h.cache.numberOfObjects,
-		OriginalsSize:  Size(0),
-		CachedSize:     h.cache.size,
-	}
-}
+// 	return ImageHandlerInfo{
+// 		NumOfOriginals: numOrigs,
+// 		NumOfCached:    h.cache.numberOfObjects,
+// 		OriginalsSize:  Size(0),
+// 		CachedSize:     h.cache.size,
+// 	}
+// }
 
 func (h *ImageHandler) findLatestId() (ImageId, error) {
 	ids, err := h.ListIds()

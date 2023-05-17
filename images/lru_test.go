@@ -1,13 +1,13 @@
 package images_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/johan-st/go-image-server/images"
 )
 
 func TestLru(t *testing.T) {
+	t.Parallel()
 
 	trimChan := make(chan string, 100)
 	lru := images.NewLru(3, trimChan)
@@ -54,7 +54,7 @@ func (l *lruT) miss(s string) {
 	if l.lru.Access(s) {
 		l.t.Errorf("Access(\"%s\") expected miss", s)
 	}
-	fmt.Println("miss: ", s)
+	l.t.Log("miss: ", s)
 }
 
 func (l *lruT) hit(s string) {
@@ -62,7 +62,7 @@ func (l *lruT) hit(s string) {
 	if !l.lru.Access(s) {
 		l.t.Errorf("Access(\"%s\") expected hit", s)
 	}
-	fmt.Println("hit:  ", s)
+	l.t.Log("hit:  ", s)
 }
 
 func (l *lruT) trimed(s string) {
@@ -71,7 +71,7 @@ func (l *lruT) trimed(s string) {
 	if trim != s {
 		l.t.Errorf("trim expected %s got %s", s, trim)
 	}
-	fmt.Println("trim: ", trim)
+	l.t.Log("trim: ", trim)
 
 }
 

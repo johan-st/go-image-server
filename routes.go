@@ -42,6 +42,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 	// setup
 	l := srv.l.With("handler", "handleDocs")
 	t := time.Now
+	defer l.Debug("docs rendered", "time", time.Since(t()))
 
 	md := markdown.New(markdown.XHTMLOutput(true))
 
@@ -56,7 +57,6 @@ func (srv *server) handleDocs() http.HandlerFunc {
 		srv.l.Fatalf("Could not read docs/dark.css\n%s", err)
 	}
 
-	l.Debug("docs rendered", "time", time.Since(t()))
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Info("handling request", "method", r.Method, "path", r.URL.Path)
@@ -131,16 +131,8 @@ func (srv *server) handleClearCache() http.HandlerFunc {
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		bytes, err := srv.ih.CacheClear()
-		if err != nil {
-			l.Error("could not clear cache", "err", err)
-			srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		l.Warn("cache cleared by manual request", "bytes released", bytes)
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "cache cleared\n%s bytes released", bytes)
+		l.Error("not implemented")
+		srv.respondError(w, r, "not implemented", http.StatusNotImplemented)
 	}
 }
 
@@ -149,11 +141,8 @@ func (srv *server) handleInfo() http.HandlerFunc {
 	l := srv.l.With("handler", "handleInfo")
 	return func(w http.ResponseWriter, r *http.Request) {
 		// handler
-		stat := srv.ih.Info()
-
-		l.Debug(stat)
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "%s", stat)
+		l.Error("not implemented")
+		srv.respondError(w, r, "not implemented", http.StatusNotImplemented)
 	}
 }
 
@@ -162,18 +151,8 @@ func (srv *server) handleHousekeeping() http.HandlerFunc {
 	// setup
 	l := srv.l.With("handler", "handleHousekeeping")
 	return func(w http.ResponseWriter, r *http.Request) {
-		t := time.Now()
-		// handler
-		bytesFreed, err := srv.ih.CacheHouseKeeping()
-		if err != nil {
-			l.Error("could not run housekeeping", "err", err)
-			srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		l.Info("housekeeping done", "bytes freed", bytesFreed, "new size", srv.ih.Info().CachedSize, "duration", time.Since(t))
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "%s", srv.ih.Info()) //TODO: implement
+		l.Error("not implemented")
+		srv.respondError(w, r, "not implemented", http.StatusNotImplemented)
 	}
 }
 
@@ -182,6 +161,7 @@ func (srv *server) handleHousekeeping() http.HandlerFunc {
 // respondError sends out a respons containing an error. This helper function is meant to be generic enough to serve most needs to communicate errors to the users
 func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
 	w.WriteHeader(statusCode)
+	srv.l.Warn("responding with error", "status", statusCode, "message", msg)
 	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }
 
