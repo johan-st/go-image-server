@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -73,16 +74,9 @@ func run(l *log.Logger) error {
 	if err != nil {
 		srv.l.Error("could not list images", "error", err)
 	}
-	idsStr := ""
-	for i, id := range ids {
-		if i > 0 {
-			idsStr += ", "
-		}
+	sort.IntSlice(ids).Sort()
 
-		idsStr += id.String()
-	}
-
-	srv.l.Info("available images:", "images", idsStr)
+	srv.l.Debugf("available images: %v", ids)
 	// DEBUG:end
 
 	srv.l.Infof("server is up and listening on port %s", port)

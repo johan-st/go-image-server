@@ -2,6 +2,7 @@ package images_test
 
 import (
 	"os"
+	"strconv"
 	"testing"
 
 	img "github.com/johan-st/go-image-server/images"
@@ -44,9 +45,10 @@ func Test_Add(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	idStr := strconv.Itoa(id)
 
-	path := originalsDir + "/" + id.String() + commonExt
-	stat, err := os.Stat(originalsDir + "/" + id.String() + commonExt)
+	path := originalsDir + "/" + idStr + commonExt
+	stat, err := os.Stat(originalsDir + "/" + idStr + commonExt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +212,7 @@ func Test_ListIds(t *testing.T) {
 			CacheDir:     cachePath,
 		}, nil)
 
-	ids := []img.ImageId{}
+	ids := []int{}
 	id, _ := ih.Add(test_import_source + "/one.jpg")
 	ids = append(ids, id)
 	id, _ = ih.Add(test_import_source + "/two.jpg")
@@ -236,7 +238,7 @@ func Test_ListIds(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Fatalf("id %s not found", id)
+			t.Fatalf("id %d not found", id)
 		}
 	}
 }

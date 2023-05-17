@@ -55,11 +55,10 @@ const (
 
 // ImageHandler is the main type of this package.
 type ImageHandler struct {
-	conf     Config  // TODO: Read-only?
-	latestId ImageId // TODO: this can be accessed by multiple goroutines. Make thread-safe.
+	conf     Config // TODO: Read-only?
+	latestId int    // TODO: this can be accessed by multiple goroutines. Make thread-safe.
 	l        *log.Logger
 	cache    cache //TODO: slice as initial prototype
-	evicted  <-chan string
 	// TODO: might need a map to keep track of ids are in use after implementing "delete"
 }
 
@@ -75,12 +74,14 @@ type Config struct {
 
 // ImageParameters represents how an image should be pressented.
 // note: Use 0 (zero) to explicitly set default.
+//
+// Default values are set when ImageHandler is created.
 type ImageParameters struct {
-	Format  Format // Jpeg, Png, Gif		(default: Jpeg)
-	Width   uint   // width in pixels 		(default: match original)
-	Height  uint   // height in pixels		(default: match original)
-	Quality int    // Jpeg:1-100, Gif:1-256	(default: jpeg: 80, gif: 256)
-	MaxSize Size   // Max file size in bytes	(default: Infinite)
+	Format  Format // Jpeg, Png, Gif
+	Width   uint   // width in pixels
+	Height  uint   // height in pixels
+	Quality int    // Jpeg:1-100, Gif:1-256
+	MaxSize Size   // Max file size in bytes
 }
 
 func (ip *ImageParameters) String() string {
@@ -90,10 +91,26 @@ func (ip *ImageParameters) String() string {
 	return fmt.Sprintf("%dx%d_q%d_%d.%s", ip.Width, ip.Height, ip.Quality, ip.MaxSize, ip.Format)
 }
 
-type ImageId int
-
-func (id ImageId) String() string {
-	return strconv.Itoa(int(id))
+func (ip *ImageParameters) withDefaults(def ImageParameters) ImageParameters {
+	if ip.Format == "" {
+		ip.Format = def.Format
+	}
+	if ip.Format == Jpeg && ip.Quality == 0 {
+		ip.Quality = def.Quality
+	}
+	if ip.Format == Gif && ip.Quality == 0 {
+		ip.Quality = 256
+	}
+	if ip.Width == 0 {
+		ip.Width = def.Width
+	}
+	if ip.Height == 0 {
+		ip.Height = def.Height
+	}
+	if ip.MaxSize == 0 {
+		ip.MaxSize = def.MaxSize
+	}
+	return *ip
 }
 
 // Format represents image formats.
@@ -110,7 +127,7 @@ func (f Format) String() string {
 }
 
 type ErrIdNotFound struct {
-	IdGiven ImageId
+	IdGiven int
 	Err     error
 }
 
@@ -139,11 +156,12 @@ func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 	}
 
 	evitedChan := make(chan string, 10)
+	go fileRemover(l, evitedChan)
 
 	l.Debug("Creating new ImageHandler", "Config", conf)
 	ih := ImageHandler{
 		conf:     conf,
-		latestId: ImageId(0),
+		latestId: 0,
 		l:        l,
 		cache:    NewLru(10, evitedChan),
 	}
@@ -157,7 +175,10 @@ func New(conf Config, l *log.Logger) (*ImageHandler, error) {
 }
 
 // returns the path to the processed image.
-func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
+func (h *ImageHandler) Get(params ImageParameters, id int) (string, error) {
+	// normalize parameters with defaults
+	params = params.withDefaults(h.conf.DefaultParams)
+
 	cachePath := h.cachePath(params, id)
 	h.l.Info("Get", "ImageId", id, "ImageParameters", params, "cachePath", cachePath)
 
@@ -180,7 +201,7 @@ func (h *ImageHandler) Get(params ImageParameters, id ImageId) (string, error) {
 	return cachePath, nil
 }
 
-func (h *ImageHandler) Add(path string) (ImageId, error) {
+func (h *ImageHandler) Add(path string) (int, error) {
 	h.l.Info("Add", "path", path)
 
 	// check if file exists
@@ -202,12 +223,11 @@ func (h *ImageHandler) Add(path string) (ImageId, error) {
 	// 	return 0, err
 	// }
 
-	// get next id
-	nextId := h.latestId + 1
-	h.latestId = nextId
+	// update latest id
+	h.latestId++
 
 	// determine destination path (TODO: should extention be changed?)
-	dst := h.conf.OriginalsDir + "/" + nextId.String() + originalsExt
+	dst := h.conf.OriginalsDir + "/" + strconv.Itoa(h.latestId) + originalsExt
 
 	// copy file to originals
 	dstf, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
@@ -220,7 +240,7 @@ func (h *ImageHandler) Add(path string) (ImageId, error) {
 		return 0, err
 	}
 	// return id
-	return nextId, nil
+	return h.latestId, nil
 }
 
 // func (h *ImageHandler) Remove(id ImageId) error {
@@ -316,7 +336,7 @@ func (h *ImageHandler) Add(path string) (ImageId, error) {
 // }
 
 // TODO: page and chunk as arguments for when we have thousands of ids?
-func (h *ImageHandler) ListIds() ([]ImageId, error) {
+func (h *ImageHandler) ListIds() ([]int, error) {
 	h.l.Debug("ListIds")
 
 	dir, err := os.Open(h.conf.OriginalsDir)
@@ -333,7 +353,7 @@ func (h *ImageHandler) ListIds() ([]ImageId, error) {
 		return nil, err
 	}
 
-	ids := []ImageId{}
+	ids := []int{}
 	for _, f := range files {
 		if f.IsDir() {
 			continue
@@ -345,7 +365,7 @@ func (h *ImageHandler) ListIds() ([]ImageId, error) {
 			h.l.Error("ListIds", "error", err)
 			return nil, err
 		}
-		id := ImageId(idInt)
+		id := idInt
 
 		h.l.Debug("ListIds got", "id", id, "from", f.Name())
 		ids = append(ids, id)
@@ -418,24 +438,24 @@ func (h *ImageHandler) ListIds() ([]ImageId, error) {
 // 	}
 // }
 
-func (h *ImageHandler) findLatestId() (ImageId, error) {
+func (h *ImageHandler) findLatestId() (int, error) {
 	ids, err := h.ListIds()
 	if err != nil {
-		return ImageId(0), err
+		return 0, err
 	}
 
-	max := ImageId(0)
+	max := 0
 	for _, id := range ids {
 		if id > max {
 			max = id
 		}
 	}
-	return ImageId(max), nil
+	return max, nil
 }
 
 // Create a new image with the given configuration and
 // returns the path to the cached image.
-func (h *ImageHandler) createImage(params ImageParameters, id ImageId, cachePath string) (Size, error) {
+func (h *ImageHandler) createImage(params ImageParameters, id int, cachePath string) (Size, error) {
 	oPath := h.originalPath(id)
 	oImg, err := loadImage(oPath)
 	if err != nil {
@@ -480,15 +500,22 @@ func (h *ImageHandler) createImage(params ImageParameters, id ImageId, cachePath
 	if err != nil {
 		return 0, err
 	}
-	return Size(stat.Size()), nil
+	size := Size(stat.Size())
+	if size == 0 {
+		h.l.Error("createImage", "error", "created image has size "+size.String(), "path", cachePath)
+		return 0, fmt.Errorf("created image has size 0")
+	}
+	return size, nil
 }
 
-func (h *ImageHandler) originalPath(id ImageId) string {
-	return filepath.Join(h.conf.OriginalsDir, id.String()+originalsExt)
+func (h *ImageHandler) originalPath(id int) string {
+	idStr := strconv.Itoa(id)
+	return filepath.Join(h.conf.OriginalsDir, idStr+originalsExt)
 }
 
-func (h *ImageHandler) cachePath(params ImageParameters, id ImageId) string {
-	return filepath.Join(h.conf.CacheDir, id.String()+"_"+params.String())
+func (h *ImageHandler) cachePath(params ImageParameters, id int) string {
+	idStr := strconv.Itoa(id)
+	return filepath.Join(h.conf.CacheDir, idStr+"_"+params.String())
 }
 
 // HELPER
@@ -667,4 +694,17 @@ func signi3(whole, remainder int) string {
 		remainder = remainder / 10
 	}
 	return fmt.Sprintf("%d.%d", whole, remainder)
+}
+
+func fileRemover(l *log.Logger, pathChan <-chan string) {
+	l = l.WithPrefix("[FileRemover]")
+	l.Debug("Starting file remover")
+	for path := range pathChan {
+		err := os.Remove(path)
+		if err != nil {
+			l.Error("Failed to remove file: ", err)
+		}
+		l.Debug("File removed", "path", path)
+	}
+	l.Error("File Remover stopped. Channel closed.")
 }

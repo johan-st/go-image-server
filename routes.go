@@ -88,7 +88,6 @@ func (srv *server) handleImg() http.HandlerFunc {
 			srv.respondError(w, r, fmt.Sprintf("Could not parse image id.\nGOT: %s\nID MUST BE AN INTEGER GREATER THAN ZERO", id_str), http.StatusBadRequest)
 			return
 		}
-		iid := images.ImageId(id)
 
 		q := r.URL.Query()
 		imgPar, err := parseImageParameters(q)
@@ -97,7 +96,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
-		path, err := srv.ih.Get(imgPar, iid)
+		path, err := srv.ih.Get(imgPar, id)
 		if err != nil {
 			if errors.Is(err, images.ErrIdNotFound{}) {
 				l.Warn("image not found", "id", id, "ImageParameters", imgPar, "err", err)

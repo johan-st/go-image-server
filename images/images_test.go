@@ -56,12 +56,12 @@ func TestImageHandler_originalPath(t *testing.T) {
 	conf := Config{OriginalsDir: "originals"}
 	type fields struct {
 		conf     Config
-		latestId ImageId
+		latestId int
 		l        *log.Logger
 		cache    cache
 	}
 	type args struct {
-		id ImageId
+		id int
 	}
 	tests := []struct {
 		name   string
@@ -69,8 +69,8 @@ func TestImageHandler_originalPath(t *testing.T) {
 		args   args
 		want   string
 	}{
-		{"originals/1.jpg", fields{conf: conf}, args{ImageId(1)}, "originals/1.jpg"},
-		{"originals/1.jpg", fields{conf: conf}, args{ImageId(10)}, "originals/10.jpg"},
+		{"originals/1.jpg", fields{conf: conf}, args{1}, "originals/1.jpg"},
+		{"originals/1.jpg", fields{conf: conf}, args{10}, "originals/10.jpg"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -92,13 +92,13 @@ func TestImageHandler_cachePath(t *testing.T) {
 
 	type fields struct {
 		conf     Config
-		latestId ImageId
+		latestId int
 		l        *log.Logger
 		cache    cache
 	}
 	type args struct {
 		params ImageParameters
-		id     ImageId
+		id     int
 	}
 	tests := []struct {
 		name   string
@@ -106,10 +106,10 @@ func TestImageHandler_cachePath(t *testing.T) {
 		args   args
 		want   string
 	}{
-		{"id 1, jpeg, 100x100", fields{conf: conf}, args{ImageParameters{Format: Jpeg, Width: 100, Height: 100}, ImageId(1)}, "1_100x100_q0_0.jpeg"},
-		{"id 1", fields{conf: conf}, args{ImageParameters{}, ImageId(1)}, "1_0x0_q0_0.jpeg"},
-		{"id 10, 500 KB", fields{conf: conf}, args{ImageParameters{MaxSize: 500 * Kilobyte}, ImageId(10)}, "10_0x0_q0_512000.jpeg"},
-		{"id 3, q=254, gif, 150x75", fields{conf: conf}, args{ImageParameters{MaxSize: 1 * Megabyte, Format: Gif, Quality: 254, Width: 150, Height: 75}, ImageId(3)}, "3_150x75_q254_1048576.gif"},
+		{"id 1, jpeg, 100x100", fields{conf: conf}, args{ImageParameters{Format: Jpeg, Width: 100, Height: 100}, 1}, "1_100x100_q0_0.jpeg"},
+		{"id 1", fields{conf: conf}, args{ImageParameters{}, 1}, "1_0x0_q0_0.jpeg"},
+		{"id 10, 500 KB", fields{conf: conf}, args{ImageParameters{MaxSize: 500 * Kilobyte}, 10}, "10_0x0_q0_512000.jpeg"},
+		{"id 3, q=254, gif, 150x75", fields{conf: conf}, args{ImageParameters{MaxSize: 1 * Megabyte, Format: Gif, Quality: 254, Width: 150, Height: 75}, 3}, "3_150x75_q254_1048576.gif"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

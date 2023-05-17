@@ -72,14 +72,15 @@ func Test_HandleImg(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// act
-	srv.ServeHTTP(w, httptest.NewRequest("GET", "/"+id.String(), nil))
+	idStr := strconv.Itoa(id)
+	srv.ServeHTTP(w, httptest.NewRequest("GET", "/"+idStr, nil))
 	t.Log(w.Result())
 
 	// assert
 	is.Equal(w.Result().StatusCode, http.StatusOK)
 	is.Equal(w.Result().Header["Content-Type"][0], "image/jpeg")
 	sizeRes := w.Result().Header["Content-Length"][0]
-	stat, err := os.Stat(originalsDir + "/" + id.String() + ".jpg")
+	stat, err := os.Stat(originalsDir + "/" + idStr + ".jpg")
 	is.NoErr(err)
 
 	imageSize := stat.Size()
