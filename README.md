@@ -73,6 +73,7 @@ _(#backatit)_
 - 2023-05-12: experimentation continues
 - 2023-05-17: hook in bespoke LRU (least recently used) cache
 - 2023-05-18: implement defaults for ImageHadler and ImageParameters
+- 2023-05-18: set up basics for yaml config. this will supercede the defaults when implemented
 
 ## Februari 2022
 
