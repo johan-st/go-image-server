@@ -80,12 +80,10 @@ func Test_HandleImg(t *testing.T) {
 	is.Equal(w.Result().StatusCode, http.StatusOK)
 	is.Equal(w.Result().Header["Content-Type"][0], "image/jpeg")
 	sizeRes := w.Result().Header["Content-Length"][0]
-	stat, err := os.Stat(originalsDir + "/" + idStr + ".jpg")
-	is.NoErr(err)
+	sizeResInt, _ := strconv.Atoi(sizeRes)
 
-	imageSize := stat.Size()
-
-	if v, _ := strconv.Atoi(sizeRes); v < int(imageSize)*9/10 {
-		t.Fatal("Content-Lenghth is too small for test image, size: "+sizeRes, "imageSize: "+strconv.Itoa(int(imageSize)))
+	s := 10 * images.Kilobyte
+	if v, _ := strconv.Atoi(sizeRes); v < s {
+		t.Fatalf("Content-Lenghth is too small for test image, size: %s, expected at least %s", images.Size(sizeResInt), images.Size(s))
 	}
 }

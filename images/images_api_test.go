@@ -73,6 +73,7 @@ func Test_Add(t *testing.T) {
 func Test_Get(t *testing.T) {
 
 	// arange
+	// filesystem
 	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
 	if err != nil {
 		t.Fatal(err)
@@ -84,16 +85,17 @@ func Test_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(cachePath)
-
+	// config
 	conf := img.Config{
 		OriginalsDir: originalsDir,
 		CacheDir:     cachePath,
 	}
-
+	// handler
 	ih, err := img.New(conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// add original
 	id, err := ih.Add(test_import_source + "/one.jpg")
 	if err != nil {
 		t.Fatal(err)
