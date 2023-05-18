@@ -48,9 +48,7 @@ type cache interface {
 }
 
 const (
-	DefaultOriginalsDir = "img/originals"
-	DefaultCacheDir     = "img/cache"
-	originalsExt        = ".jpg" //somewhat of a hack. all originals are saved and retrieved with this extention TODO: find a better way?
+	originalsExt = ".jpg" //somewhat of a hack. all originals are saved and retrieved with this extention TODO: find a better way?
 )
 
 // ImageHandler is the main type of this package.
@@ -64,24 +62,61 @@ type ImageHandler struct {
 
 // Config represents the configuration of an ImageHandler.
 // unset (0/"") parameters will be considered as "use default".
+//
+// Default values are:
+//
+//	OriginalsDir: "img/originals"
+//	CacheDir: "img/cache"
+//	DefaultParams: see ImageParameters
+//	CreateDirs: false
+//	SetPerms: false
 type Config struct {
-	OriginalsDir  string          // path to originals (default: "img/originals")
-	CacheDir      string          // path to cache (default: "img/cache")
-	DefaultParams ImageParameters // default image parameters (default: see ImageParameters)
-	CreateDirs    bool            // create directories if needed (default: false)
-	SetPerms      bool            // set permissions if needed (default: false)
+	OriginalsDir  string          // path to originals
+	CacheDir      string          // path to cache
+	DefaultParams ImageParameters // default image parameters
+	CreateDirs    bool            // create directories if needed
+	SetPerms      bool            // set permissions if needed
+}
+
+func (c *Config) withDefault() {
+	if c.OriginalsDir == "" {
+		c.OriginalsDir = "img/originals"
+	}
+	if c.CacheDir == "" {
+		c.CacheDir = "img/cache"
+	}
+	if c.DefaultParams.Format == "" {
+		c.DefaultParams.Format = Jpeg
+	}
+	if c.DefaultParams.Width == 0 && c.DefaultParams.Height == 0 {
+		c.DefaultParams.Width = 800
+	}
+	if c.DefaultParams.Quality == 0 && c.DefaultParams.Format == Jpeg {
+		c.DefaultParams.Quality = 80
+	}
+	if c.DefaultParams.Quality == 0 && c.DefaultParams.Format == Gif {
+		c.DefaultParams.Quality = 256
+	}
 }
 
 // ImageParameters represents how an image should be pressented.
 // note: Use 0 (zero) to explicitly set default.
 //
 // Default values are set when ImageHandler is created.
+//
+// Default values are:
+//
+//	Format: Jpeg
+//	Width: 800
+//	Height: 0 (keep aspect ratio)
+//	Quality: 80 (Jpeg), 256 (Gif)
+//	MaxSize: 0 (infinite)
 type ImageParameters struct {
-	Format  Format // Jpeg, Png, Gif
-	Width   uint   // width in pixels
-	Height  uint   // height in pixels
-	Quality int    // Jpeg:1-100, Gif:1-256
-	MaxSize Size   // Max file size in bytes
+	Format  Format // Jpeg, Png, Gif (default: Jpeg)
+	Width   uint   // width in pixels (default: 800)
+	Height  uint   // height in pixels (default: 0/keep aspect ratio)
+	Quality int    // Jpeg:1-100, Gif:1-256 (default: 80 for jpeh, 256 for gif)
+	MaxSize Size   // Max file size in bytes (default: 0/infinite)
 }
 
 func (ip *ImageParameters) String() string {
@@ -145,6 +180,8 @@ func (e ErrIdNotFound) Is(err error) bool {
 // TODO: should take a list of parameters to create for all images
 // DEBUG: TODO: MUST create a cache based on files in cache folder on startup
 func New(conf Config, l *log.Logger) (*ImageHandler, error) {
+	conf.withDefault()
+
 	err := checkDirs(conf)
 	if err != nil {
 		return &ImageHandler{}, err
