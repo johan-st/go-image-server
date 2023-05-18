@@ -150,4 +150,5 @@ func (c *Config) validate() error {
 	if len(errs) > 0 {
 		return fmt.Errorf("config validation failed: %v", errs)
 	}
+	return nil
 }
