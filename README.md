@@ -42,7 +42,7 @@ _(#backatit)_
 - [X] Refactor tests to work on the image modules API (not as part of the module)  
 - [ ] decide on benchmark-method for single images
 - [ ] add usage log 
-- [ ] add simple cache retention and reclaimation
+- [X] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
 - [X] handle folder creation and permissions
@@ -69,6 +69,10 @@ _(#backatit)_
 - 2023-05-05: start implementing a cache backed by a slice. This was the simplest way I could think of while working on the cache API
 - 2023-05-06: play with caching and trying to figure out what I want and need.
 - 2023-05-07: update docs (USAGE.md) and restructure repo
+- 2023-05-08: start caching experiments
+- 2023-05-12: experimentation continues
+- 2023-05-17: hook in bespoke LRU (least recently used) cache
+- 2023-05-18: implement defaults for ImageHadler and ImageParameters
 
 ## Februari 2022
 
@@ -155,6 +159,7 @@ _(#backatit)_
   - I will allways know the path a certain id + parameter combo will have by naming the files according approprtly.
   - on hits I will want to read from disk regardless so I might as well try to open the path
   - on miss it will not be a noticeble cost 
+- I decided to implement my own LRU cache. It should be thread safe but needs further verification.
 
 # thoughts
 - if used as a cdn a simple rsync could keep all cahces in sync and restore cache from master or other source on boot. Possibly even clone cache from all peers.
@@ -163,78 +168,6 @@ _(#backatit)_
 - 
 ## images package API (DRAFT)
 
-
-```go
-
-// BASIC INTERACTIONS
-
-// set up image handler with config
-ih, err := images.New(images.Config{
-  OriginalsDir: "img/originals",
-  CacheDir:     "img/cache",
-}, ihLogger)
-if err != nil {
-  // handle error
-}
-
-// add new original
-id, err := ih.Add("imagesource/imagename.jpg")
-if err != nil {
-  // handle error
-}
-
-
-
-// delete original and all associated cached images
-err := ih.Remove(id)
-if err != nil {
-  // handle error
-}
-
-// get image with defined parameters
-imagePath, err := ih.Get(id, images.Params{
-  Width:  100,
-  Height: 100,
-  Quality: 80,
-  Format: Jpeg,
-})
-if err != nil {
-  // handle error
-}
-
-// CACHE INTERACTIONS
-
-// remove cache for image with defined parameters
-freedBytes, err := ih.CacheClearFor(id, images.Params{
-  Width:  100,
-  Height: 75,
-  Quality: 256,
-  Format: Gif,
-})
-if err != nil {
-  // handle error
-}
-
-// Clear cache for all images with matching CacheRules set up in imagehandler. 
-freedBytes, err := ih.CacheHouseKeeping()
-if err != nil {
-  // handle error
-}
-
-// Clear all cache
-freedBytes, err := ih.CacheClear()
-if err != nil {
-  // handle error
-}
-
-
-
-
-// 
-
-
-
-```
 
 # Known issues
 - imagecache is not persisted between starts
