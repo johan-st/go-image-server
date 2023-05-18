@@ -17,18 +17,22 @@
 # 3. The default config file (this file)
 
 # SERVER CONFIGURATION
-server: 
+http: 
     port: 8080
-    host: '' # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
+    host:  # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
       
 # IMAGE HANDLER CONFIGURATION
-handler:
+files:
   # paths are relative. Image Handler will will load images from here on startup and save images here when they are added or cached 
   paths:
     # The path to the directory where the original images are stored after being added
     originals: 'img/originals'
     # The path to the directory where the cached images are stored
     cache: 'img/cache'
+    # set_perms: set to true to set the permissions of the originals and cache directories to 755
+    set_perms: true
+    # create_dirs: set to true to create the originals and cache directories if they do not exist
+    create_dirs: true
     
   cache:
     num: 5 # number of images to cache
@@ -37,11 +41,13 @@ handler:
     size: '1 MB'
 
 
-# NAMED IMAGE CONFIGURATIONS
+# NAMED IMAGE PRESETS
 # Default will be used if no parameters are specified in the URL
 # other sections can be added to provide named presets
 # e.g. 'thumbnail', 'small', 'medium', 'large', 'full', etc.
-# Values specified in the URL will always override these values
+# Values specified in the URL will override these values
+      
+# aliases can be used in the URL instead of the name (e.g. /img/thumbnail/... or /img/tn/...)    
 
 # Image Format: 
 # valid formats are 'jpeg', 'gif' and 'png'.
@@ -64,21 +70,31 @@ handler:
 # interpolation algorithm used when resizing the image
 # TODO: benchmark these and make a note of the performance impact in here
 # valid values are 'nearest', 'bilinear', 'bicubic', 'MitchellNetravali', 'lanczos2' and 'lanczos3'
+default_image_preset:
+  alias: ["default","def"]
+  format: 'jpeg'
+  quality_jpeg: 80
+  quality_gif: 256
+  width: 800
+  height: 0
+  max_size: '1 MB'
+  resize: 'lanczos3'
 
-image_configurations:
-  - default:
-      format: 'jpeg'
-      quality: 80
-      width: 800
-      height: 0
-      max_size: '1 MB'
-      resize: 'lanczos3'
-  - thumbnail:
-      alias: ['thumb', 'tn'] # aliases can be used in the URL instead of the name (e.g. /img/thumbnail/... or /img/tn/...)    
-      format: 'jpeg'
-      quality: 80
-      width: 100
-      height: 100
-      max_size: '10 KB'
-      resize: 'lanczos3'
-      
+image_presets:
+  - name: thumbnail
+    alias: ["thumb","th"]
+    format: 'jpeg'
+    quality: 80
+    width: 100
+    height: 100
+    max_size: '10 KB'
+    resize: 'lanczos3'
+  - name: small
+    alias: ["sm"]    
+    format: 'jpeg'
+    quality: 80
+    width: 400
+    height: 0
+    max_size: '30 KB'
+    resize: 'lanczos3'
+        
