@@ -1,0 +1,84 @@
+# NOTE!!! This file is not used yet. It is a placeholder for future functionality
+
+# Default configuration
+# Feel free to modify or copy the sections below into your own config file.
+# Any values specified in your config file will override the default values defined 
+# here in the source code
+
+
+# CONFIG FILE
+# The server will look for this file in the root of the project directory
+# If you want to use a different file, specify it with the -c flag
+# or set the CONFIG_FILE environment variable
+
+# The server will look for a config file in the following order:
+# 1. The file specified with the -c flag ((TODO: implement this)))
+# 2. The file specified in the environment variable CONFIG_FILE ((TODO: implement this)))
+# 3. The default config file (this file)
+
+# SERVER CONFIGURATION
+server: 
+    port: 8080
+    host: '' # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
+      
+# IMAGE HANDLER CONFIGURATION
+handler:
+  # paths are relative. Image Handler will will load images from here on startup and save images here when they are added or cached 
+  paths:
+    # The path to the directory where the original images are stored after being added
+    originals: 'img/originals'
+    # The path to the directory where the cached images are stored
+    cache: 'img/cache'
+    
+  cache:
+    num: 5 # number of images to cache
+    # total size of the cache in bytes, kilobytes, megabytes, gigabytes or terabytes
+    # valid values are positive integers followed by a unit of measurement (none for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
+    size: '1 MB'
+
+
+# NAMED IMAGE CONFIGURATIONS
+# Default will be used if no parameters are specified in the URL
+# other sections can be added to provide named presets
+# e.g. 'thumbnail', 'small', 'medium', 'large', 'full', etc.
+# Values specified in the URL will always override these values
+
+# Image Format: 
+# valid formats are 'jpeg', 'gif' and 'png'.
+
+# Image Quality: 
+# valid values are 1-100 for 'jpeg' and 1-256 for 'gif'. (inclusive)
+
+# Image Width and Height: 
+# positive integers only.
+# if only one of these is specified, the other will be calculated to maintain the aspect ratio.
+# if both are specified, the image will be cropped to the specified dimensions TODO: currently streatches the image
+# Note: startup will fail if both are specified and both are set to 0.
+
+# Image Size: 
+# defines a maximum size for the image in bytes, kilobytes, megabytes or gigabytes
+# if the image is larger than this, it will reduced in quality or scaled down to conform to this limit (itterative process that might be slow)
+# valid values are positive integers followed by a unit of measurement (none for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes)
+
+# Image Resize Interpolation Function: 
+# interpolation algorithm used when resizing the image
+# TODO: benchmark these and make a note of the performance impact in here
+# valid values are 'nearest', 'bilinear', 'bicubic', 'MitchellNetravali', 'lanczos2' and 'lanczos3'
+
+image_configurations:
+  - default:
+      format: 'jpeg'
+      quality: 80
+      width: 800
+      height: 0
+      max_size: '1 MB'
+      resize: 'lanczos3'
+  - thumbnail:
+      alias: ['thumb', 'tn'] # aliases can be used in the URL instead of the name (e.g. /img/thumbnail/... or /img/tn/...)    
+      format: 'jpeg'
+      quality: 80
+      width: 100
+      height: 100
+      max_size: '10 KB'
+      resize: 'lanczos3'
+      
