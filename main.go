@@ -27,6 +27,15 @@ func run(l *log.Logger) error {
 	// should return errors and let the caller decide how to handle and log them
 	ihLogger := l.WithPrefix("[ImageHandler]")
 	// ihLogger.SetLevel(log.DebugLevel)
+	conf, err := loadConfig("config.yaml")
+	if err != nil {
+		return err
+	}
+	err = conf.validate()
+	if err != nil {
+		return err
+	}
+
 	// DEBUG: clears cache folder on boot. Not intended behaviour
 	os.RemoveAll("img")
 
