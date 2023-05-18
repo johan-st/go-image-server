@@ -1,6 +1,6 @@
 module github.com/johan-st/go-image-server
 
-go 1.17
+go 1.18
 
 require (
 	github.com/matryer/is v1.4.0
@@ -19,6 +19,7 @@ require (
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
