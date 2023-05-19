@@ -67,7 +67,7 @@ func imgConf(c *Config) images.Config {
 		SetPerms:     c.Handler.Paths.SetPerms,
 		CreateDirs:   c.Handler.Paths.CreateDirs,
 		DefaultParams: images.ImageParameters{
-			Format:  images.MustFormatFromString(c.ImageParametersDefault.Format),
+			Format:  images.MustFormatParse(c.ImageParametersDefault.Format),
 			Width:   uint(c.ImageParametersDefault.Width),
 			Height:  uint(c.ImageParametersDefault.Height),
 			Quality: c.ImageParametersDefault.QualityJpeg,

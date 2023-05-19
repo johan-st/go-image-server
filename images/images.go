@@ -161,7 +161,7 @@ func (f Format) String() string {
 	return string(f)
 }
 
-func FormatFromString(s string) (Format, error) {
+func FormatParse(s string) (Format, error) {
 	switch s {
 	case "jpeg":
 		return Jpeg, nil
@@ -175,8 +175,8 @@ func FormatFromString(s string) (Format, error) {
 	return "", fmt.Errorf("invalid image-format: %s", s)
 }
 
-func MustFormatFromString(s string) Format {
-	f, err := FormatFromString(s)
+func MustFormatParse(s string) Format {
+	f, err := FormatParse(s)
 	if err != nil {
 		panic(err)
 	}
