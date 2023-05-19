@@ -1,7 +1,10 @@
+logging: debug
 http:
     port: 8080
     host: ""
 files:
+    clean_start: true
+    populate_from: test-fs/originals
     paths:
         originals: img/originals
         cache: img/cache

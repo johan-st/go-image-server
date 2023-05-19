@@ -10,6 +10,7 @@ import (
 
 // CONFIG STUFF
 type Config struct {
+	Logging                string                     `yaml:"logging"`
 	Server                 ConfServer                 `yaml:"http"`
 	Handler                ConfHandler                `yaml:"files"`
 	ImageParametersDefault ConfImageParametersDefault `yaml:"default_image_preset"`
@@ -22,8 +23,10 @@ type ConfServer struct {
 }
 
 type ConfHandler struct {
-	Paths ConfHandlerPaths `yaml:"paths"`
-	Cache ConfHandlerCache `yaml:"cache"`
+	CleanStart   bool             `yaml:"clean_start"`
+	PopulateFrom string           `yaml:"populate_from"`
+	Paths        ConfHandlerPaths `yaml:"paths"`
+	Cache        ConfHandlerCache `yaml:"cache"`
 }
 
 type ConfHandlerPaths struct {

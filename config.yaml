@@ -23,6 +23,9 @@ http:
       
 # IMAGE HANDLER CONFIGURATION
 files:
+  clean_start: true # set to true to delete all images from the cache and originals on startup
+  populate_from: 'test-fs/originals'  # set to the path of a directory containing images to add to the server on startup
+
   # paths are relative. Image Handler will will load images from here on startup and save images here when they are added or cached 
   paths:
     # The path to the directory where the original images are stored after being added
@@ -39,6 +42,10 @@ files:
     # total size of the cache in bytes, kilobytes, megabytes, gigabytes or terabytes
     # valid values are positive integers followed by a unit of measurement (none for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
     size: '1 MB'
+
+# LOGGING CONFIGURATION
+# valid values are "debug", "info", "warn", "error", "fatal"
+logging: "debug"
 
 
 # NAMED IMAGE PRESETS

@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
-	"sort"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -38,23 +39,19 @@ func run(l *log.Logger) error {
 
 	saveConfig(conf, "runningConfig.yaml")
 
-	// DEBUG: clears cache folder on boot. Not intended behaviour
-	os.RemoveAll("img")
-
 	ih, err := images.New(imgConf(&conf), ihLogger)
 	if err != nil {
 		return err
 	}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		l.Debug("enviornment variable PORT was not specified", "fallback", 8080)
-		port = "8080"
+	port := conf.Server.Port
+	if port == 0 {
+		l.Fatal("port not set in config")
 	}
 
 	srv := newServer(l.WithPrefix("[http]"), ih)
 	mainSrv := &http.Server{
-		Addr:              ":" + string(port),
+		Addr:              fmt.Sprintf("%s:%d", conf.Server.Host, port),
 		Handler:           srv,
 		ReadTimeout:       1 * time.Second,
 		ReadHeaderTimeout: 1 * time.Second,
@@ -62,23 +59,23 @@ func run(l *log.Logger) error {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	// DEBUG: add some images
-	for _, img := range []string{"one.jpg", "two.jpg", "three.jpg", "four.jpg", "five.jpg", "six.png"} {
-		_, err := ih.Add("test-images/" + img)
-		if err != nil {
-			srv.l.Warn("could not add image", "error", err)
+	// graceful shutdown
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		for sig := range signalChan {
+			l.Warn("shutting down server...", "signal", sig)
+			if l.GetLevel() == log.DebugLevel {
+				l.Debug("removing test images")
+				os.RemoveAll(conf.Handler.Paths.Originals)
+				os.RemoveAll(conf.Handler.Paths.Cache)
+			}
+			mainSrv.Shutdown(context.Background())
+
 		}
-	}
-	ids, err := ih.ListIds()
-	if err != nil {
-		srv.l.Error("could not list images", "error", err)
-	}
-	sort.IntSlice(ids).Sort()
+	}()
 
-	srv.l.Debugf("available images: %v", ids)
-	// DEBUG:end
-
-	srv.l.Infof("server is up and listening on port %s", port)
+	srv.l.Infof("server is up and listening on %s", mainSrv.Addr)
 	return mainSrv.ListenAndServe()
 }
 
