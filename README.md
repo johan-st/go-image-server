@@ -53,7 +53,10 @@ _(#backatit)_
 - [ ] support webp
 - [ ] safe concurrency
 - [ ] switch to disable docs
-
+- [ ] consider using OptFunc pattern for config. 
+  - e.g: `NewServer(withPort(8080), withCacheSize(1000), withImageDefaults(imgDef), withImagePreset(imgPresetSmall), withImagePreset(imgPresetThumb))` etc...
+  - https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
+  - Anthony GG video: https://www.youtube.com/watch?v=MDy7JQN5MN4
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
