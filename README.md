@@ -29,7 +29,7 @@ _(#backatit)_
   - [X] windows
 - [x] **SHOULD** error on startup if file permissions are wrong
   - Decided to have the server try to set the permissions for image and cache folder itself if they are not permissive enough. It will only extend permissions, never reduce them.
-- [ ] **SHOULD** be configurable by file or environment variables
+- [x] **SHOULD** be configurable by file or environment variables
 - [ ] **COULD** have a webpage for uploading images
 - [ ] **COULD** have a webpage for viewing and deleting images
 
@@ -77,6 +77,7 @@ _(#backatit)_
 - 2023-05-17: hook in bespoke LRU (least recently used) cache
 - 2023-05-18: implement defaults for ImageHadler and ImageParameters
 - 2023-05-18: set up basics for yaml config. this will supercede the defaults when implemented
+- 2023-05-19: hook in yaml config. All settings are not yet used.
 
 ## Februari 2022
 
