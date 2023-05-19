@@ -36,22 +36,12 @@ func run(l *log.Logger) error {
 		return err
 	}
 
+	saveConfig(conf, "runningConfig.yaml")
+
 	// DEBUG: clears cache folder on boot. Not intended behaviour
 	os.RemoveAll("img")
 
-	ih, err := images.New(images.Config{
-		OriginalsDir: "img/originals",
-		CacheDir:     "img/cache",
-		CreateDirs:   true,
-		SetPerms:     true,
-		DefaultParams: images.ImageParameters{
-			Format:  "jpeg",
-			Quality: 80,
-			Width:   800,
-			Height:  0,
-			MaxSize: 500 * images.Kilobyte,
-		},
-	}, ihLogger)
+	ih, err := images.New(imgConf(&conf), ihLogger)
 	if err != nil {
 		return err
 	}

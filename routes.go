@@ -226,13 +226,13 @@ func parseImageParameters(val url.Values) (images.ImageParameters, error) {
 	}
 
 	if val.Has("maxsize") {
-		if v, err := parseImageSize(val.Get("maxsize")); err == nil {
+		if v, err := images.SizeParse(val.Get("maxsize")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)
 		}
 	} else if val.Has("s") {
-		if v, err := parseImageSize(val.Get("s")); err == nil {
+		if v, err := images.SizeParse(val.Get("s")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)
@@ -257,48 +257,6 @@ func parseImageFormat(str string) (images.Format, error) {
 		return images.Gif, nil
 	default:
 		return images.Jpeg, fmt.Errorf("could not parse image format: %s\n(supported formats are: jpg (/jpeg), png and gif)", str)
-	}
-}
-
-// parseImageSize parses a string into an images.Size.
-// The string can be a number or a string with a optional unit.
-// Supported units are: B, KB, MB
-// no unit is interpreted as Kilobytes.
-func parseImageSize(str string) (images.Size, error) {
-	strUp := strings.ToUpper(str)
-	// check and trim suffixes
-	// try to parse as int
-	// return error if not possible
-	if strings.Contains(strUp, "MB") {
-		if v, err := strconv.Atoi(strings.TrimSuffix(strUp, "MB")); err == nil {
-			return images.Size(v * images.Megabyte), nil
-		} else {
-			return images.Size(0), fmt.Errorf("could not parse image size in Megabytes: %s\n(supported units are: B, KB and MB)", str)
-		}
-	}
-
-	if strings.Contains(strUp, "KB") {
-		if v, err := strconv.Atoi(strings.TrimSuffix(strUp, "KB")); err == nil {
-			return images.Size(v * images.Kilobyte), nil
-		} else {
-			return images.Size(0), fmt.Errorf("could not parse image size in Kilobytes: %s\n(supported units are: B, KB and MB)", str)
-		}
-	}
-
-	if strings.Contains(strUp, "B") {
-		if v, err := strconv.Atoi(strings.TrimSuffix(strUp, "B")); err == nil {
-			return images.Size(v), nil
-		} else {
-			return images.Size(0), fmt.Errorf("could not parse image size in Bytes: %s\n(supported units are: B, KB and MB)", str)
-		}
-
-	}
-
-	if v, err := strconv.Atoi(strUp); err == nil {
-		return images.Size(v * images.Kilobyte), nil
-	} else {
-		return images.Size(0), fmt.Errorf("could not parse image size: %s\n(supported units are: B, KB and MB)", str)
-
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/johan-st/go-image-server/images"
 	"gopkg.in/yaml.v3"
 )
 
@@ -59,6 +60,21 @@ type ConfImageParameters struct {
 	Resize  string   `yaml:"resize"`
 }
 
+func imgConf(c *Config) images.Config {
+	return images.Config{
+		OriginalsDir: c.Handler.Paths.Originals,
+		CacheDir:     c.Handler.Paths.Cache,
+		SetPerms:     c.Handler.Paths.SetPerms,
+		CreateDirs:   c.Handler.Paths.CreateDirs,
+		DefaultParams: images.ImageParameters{
+			Format:  images.MustFormatFromString(c.ImageParametersDefault.Format),
+			Width:   uint(c.ImageParametersDefault.Width),
+			Height:  uint(c.ImageParametersDefault.Height),
+			Quality: c.ImageParametersDefault.QualityJpeg,
+			MaxSize: images.MustSizeParse(c.ImageParametersDefault.MaxSize),
+		},
+	}
+}
 func saveConfig(c Config, filename string) error {
 	bytes, err := yaml.Marshal(c)
 	if err != nil {

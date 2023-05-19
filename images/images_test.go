@@ -198,3 +198,42 @@ func TestImageParameters_String(t *testing.T) {
 // 	}
 // 	// t.FailNow()
 // }
+
+func Test_SizeFromString(t *testing.T) {
+	type args struct {
+		str string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    Size
+		wantErr bool
+	}{
+		// Success
+		{"0", args{"0"}, Size(0), false},
+		{"50", args{"50"}, Size(50), false},
+		{"1 B", args{"1 B"}, Size(1), false},
+		{"5 KB", args{"5 KB"}, 5 * Kilobyte, false},
+		{"10 MB", args{"10 MB"}, 10 * Megabyte, false},
+		{"15GB", args{"15GB"}, 15 * Gigabyte, false},
+		{"20 TB", args{"20 TB"}, 20 * Terabyte, false},
+		{"25 PB", args{"25 PB"}, 25 * Petabyte, false},
+
+		// Failure
+		{"-1", args{"-1"}, 0, true},
+		{"1.5", args{"1.5"}, 0, true},
+		{"1.5 B", args{"1.5 B"}, 0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := SizeParse(tt.args.str)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Size.FromString() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Size.FromString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

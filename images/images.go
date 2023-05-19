@@ -161,6 +161,28 @@ func (f Format) String() string {
 	return string(f)
 }
 
+func FormatFromString(s string) (Format, error) {
+	switch s {
+	case "jpeg":
+		return Jpeg, nil
+	case "jpg":
+		return Jpeg, nil
+	case "png":
+		return Png, nil
+	case "gif":
+		return Gif, nil
+	}
+	return "", fmt.Errorf("invalid image-format: %s", s)
+}
+
+func MustFormatFromString(s string) Format {
+	f, err := FormatFromString(s)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
 type ErrIdNotFound struct {
 	IdGiven int
 	Err     error
@@ -666,7 +688,6 @@ func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
 }
 
 // Represents file sizes:
-//   - Infinite = 0
 //   - 1 Kilobyte = 1024 bytes
 //   - 1 Megabyte = 1024 Kilobytes
 //   - 1 Gigabyte = 1024 Megabytes
@@ -681,6 +702,55 @@ const (
 	Terabyte = 1024 * Gigabyte // 1 Terabyte = 1024 Gigabytes
 	Petabyte = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
 )
+
+func MustSizeParse(str string) Size {
+	s, err := SizeParse(str)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
+func SizeParse(str string) (Size, error) {
+	if s, ok := sizeParseHelper(str, "KB", Kilobyte); ok {
+		return s, nil
+	}
+	if s, ok := sizeParseHelper(str, "MB", Megabyte); ok {
+		return s, nil
+	}
+	if s, ok := sizeParseHelper(str, "GB", Gigabyte); ok {
+		return s, nil
+	}
+	if s, ok := sizeParseHelper(str, "TB", Terabyte); ok {
+		return s, nil
+	}
+	if s, ok := sizeParseHelper(str, "PB", Petabyte); ok {
+		return s, nil
+	}
+	if s, ok := sizeParseHelper(str, "B", 1); ok {
+		return s, nil
+	}
+
+	// no suffix, assume bytes
+	if intVal, err := strconv.Atoi(str); err == nil && intVal >= 0 {
+		return Size(intVal), nil
+	}
+
+	return Size(0), fmt.Errorf("could not parse size string '%s'", str)
+}
+
+func sizeParseHelper(str string, sufix string, size Size) (Size, bool) {
+	before, found := strings.CutSuffix(str, sufix)
+	if found {
+		before = strings.Trim(before, " ")
+		intVal, err := strconv.Atoi(before)
+		if err != nil || intVal < 0 {
+			return Size(0), false
+		}
+		return Size(intVal) * size, true
+	}
+	return Size(0), false
+}
 
 // TODO: Break out size into a units package
 // Size.String()

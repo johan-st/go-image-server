@@ -1,0 +1,43 @@
+http:
+    port: 8080
+    host: ""
+files:
+    paths:
+        originals: img/originals
+        cache: img/cache
+        set_perms: true
+        create_dirs: true
+    cache:
+        num: 5
+        size: 1 MB
+default_image_preset:
+    alias:
+        - default
+        - def
+    format: jpeg
+    quality_jpeg: 80
+    quality_gif: 256
+    width: 800
+    height: 0
+    max_size: 1 MB
+    resize: lanczos3
+image_presets:
+    - name: thumbnail
+      alias:
+        - thumb
+        - th
+      format: jpeg
+      quality: 80
+      width: 100
+      height: 100
+      max_size: 10 KB
+      resize: lanczos3
+    - name: small
+      alias:
+        - sm
+      format: jpeg
+      quality: 80
+      width: 400
+      height: 0
+      max_size: 30 KB
+      resize: lanczos3
