@@ -39,10 +39,17 @@ func run(l *log.Logger) error {
 
 	saveConfig(conf, "runningConfig.yaml")
 
-	ih, err := images.New(imgConf(&conf), ihLogger)
+	ih, err := images.New(
+		images.WithLogger(ihLogger),
+		images.WithCreateDirs,
+		images.WithSetPermissions,
+		images.WithLogLevel("debug"),
+	)
 	if err != nil {
 		return err
 	}
+
+	addFolder(ih, "test-images")
 
 	port := conf.Server.Port
 	if port == 0 {
@@ -85,7 +92,7 @@ func run(l *log.Logger) error {
 func newCustomLogger() *log.Logger {
 	opt := log.Options{
 		Prefix:          "[main]",
-		Level:           envLogLevel(),
+		Level:           log.InfoLevel,
 		ReportCaller:    false,
 		CallerFormatter: funcCallerFormater,
 		ReportTimestamp: true,
@@ -107,24 +114,6 @@ func newCustomLogger() *log.Logger {
 	// l.SetOutput(logfile)
 	// l.SetFormatter(log.JSONFormatter)
 	return l
-}
-
-// NOTE: is duplicated in imageHandler
-func envLogLevel() log.Level {
-
-	switch os.Getenv("LOG") {
-	case "DEBUG":
-		return log.DebugLevel
-	case "INFO":
-		return log.InfoLevel
-	case "WARN":
-		return log.WarnLevel
-	case "ERROR":
-		return log.ErrorLevel
-	case "FATAL":
-		return log.FatalLevel
-	}
-	return log.InfoLevel
 }
 
 func funcCallerFormater(file string, line int, funcName string) string {
@@ -165,4 +154,28 @@ func trimCaller(path string, n int, sep byte) string {
 	}
 
 	return path[idx+1:]
+}
+
+func addFolder(ih *images.ImageHandler, folder string) {
+	l := log.Default()
+	dir, err := os.Open(folder)
+	if err != nil {
+
+		l.Error("could not open folder", "error", err)
+		return
+	}
+	defer dir.Close()
+
+	files, err := dir.Readdir(0)
+	if err != nil {
+		l.Error("could not read folder", "error", err)
+		return
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		ih.Add(folder + "/" + file.Name())
+	}
 }

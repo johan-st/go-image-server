@@ -2,11 +2,10 @@ package images
 
 import (
 	"testing"
-
-	"github.com/charmbracelet/log"
 )
 
 func TestSize_String(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		s    Size
@@ -51,83 +50,10 @@ func TestFormat_String(t *testing.T) {
 	}
 }
 
-func TestImageHandler_originalPath(t *testing.T) {
-	// Config
-	conf := Config{OriginalsDir: "originals"}
-	type fields struct {
-		conf     Config
-		latestId int
-		l        *log.Logger
-		cache    cache
-	}
-	type args struct {
-		id int
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
-	}{
-		{"originals/1.jpg", fields{conf: conf}, args{1}, "originals/1.jpg"},
-		{"originals/1.jpg", fields{conf: conf}, args{10}, "originals/10.jpg"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := &ImageHandler{
-				conf:     tt.fields.conf,
-				latestId: tt.fields.latestId,
-				l:        tt.fields.l,
-				cache:    tt.fields.cache,
-			}
-			if got := h.originalPath(tt.args.id); got != tt.want {
-				t.Errorf("ImageHandler.originalPath() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestImageHandler_cachePath(t *testing.T) {
-	conf := Config{OriginalsDir: "originals"}
-
-	type fields struct {
-		conf     Config
-		latestId int
-		l        *log.Logger
-		cache    cache
-	}
-	type args struct {
-		params ImageParameters
-		id     int
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
-	}{
-		{"id 1, jpeg, 100x100", fields{conf: conf}, args{ImageParameters{Format: Jpeg, Width: 100, Height: 100}, 1}, "1_100x100_q0_0.jpeg"},
-		{"id 1", fields{conf: conf}, args{ImageParameters{}, 1}, "1_0x0_q0_0.jpeg"},
-		{"id 10, 500 KB", fields{conf: conf}, args{ImageParameters{MaxSize: 500 * Kilobyte}, 10}, "10_0x0_q0_512000.jpeg"},
-		{"id 3, q=254, gif, 150x75", fields{conf: conf}, args{ImageParameters{MaxSize: 1 * Megabyte, Format: Gif, Quality: 254, Width: 150, Height: 75}, 3}, "3_150x75_q254_1048576.gif"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := &ImageHandler{
-				conf:     tt.fields.conf,
-				latestId: tt.fields.latestId,
-				l:        tt.fields.l,
-				cache:    tt.fields.cache,
-			}
-			if got := h.cachePath(tt.args.params, tt.args.id); got != tt.want {
-				t.Errorf("ImageHandler.cachePath() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestImageParameters_String(t *testing.T) {
+	t.Parallel()
 	type fields struct {
+		Id      int
 		Format  Format
 		Width   uint
 		Height  uint
@@ -139,12 +65,13 @@ func TestImageParameters_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		{"jpeg 100x100", fields{Format: Jpeg, Width: 100, Height: 100}, "100x100_q0_0.jpeg"},
-		{"gif q256", fields{Format: Gif, Quality: 256}, "0x0_q256_0.gif"},
+		{"jpeg 100x100", fields{Id: 42, Format: Jpeg, Width: 100, Height: 100}, "42_100x100_q0_s0.jpeg"},
+		{"gif q256", fields{Id: 9, Format: Gif, Quality: 256}, "9_0x0_q256_s0.gif"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ip := &ImageParameters{
+				Id:      tt.fields.Id,
 				Format:  tt.fields.Format,
 				Width:   tt.fields.Width,
 				Height:  tt.fields.Height,
@@ -200,6 +127,8 @@ func TestImageParameters_String(t *testing.T) {
 // }
 
 func Test_SizeFromString(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		str string
 	}

@@ -23,9 +23,9 @@ default_image_preset:
     width: 800
     height: 0
     max_size: 1 MB
-    resize: lanczos3
+    resize: ""
 image_presets:
-    - name: thumbnail
+    - name: default thumbnail
       alias:
         - thumb
         - th
@@ -34,13 +34,15 @@ image_presets:
       width: 100
       height: 100
       max_size: 10 KB
-      resize: lanczos3
-    - name: small
+      resize: ""
+    - name: default small
       alias:
+        - small
         - sm
+        - s
       format: jpeg
       quality: 80
       width: 400
       height: 0
       max_size: 30 KB
-      resize: lanczos3
+      resize: ""

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/johan-st/go-image-server/images"
 	"gopkg.in/yaml.v3"
 )
 
@@ -12,7 +11,7 @@ import (
 type Config struct {
 	Logging                string                     `yaml:"logging"`
 	Server                 ConfServer                 `yaml:"http"`
-	Handler                ConfHandler                `yaml:"files"`
+	Handler                ConfFiles                  `yaml:"files"`
 	ImageParametersDefault ConfImageParametersDefault `yaml:"default_image_preset"`
 	ImageParameters        []ConfImageParameters      `yaml:"image_presets"`
 }
@@ -22,21 +21,21 @@ type ConfServer struct {
 	Host string `yaml:"host"`
 }
 
-type ConfHandler struct {
-	CleanStart   bool             `yaml:"clean_start"`
-	PopulateFrom string           `yaml:"populate_from"`
-	Paths        ConfHandlerPaths `yaml:"paths"`
-	Cache        ConfHandlerCache `yaml:"cache"`
+type ConfFiles struct {
+	CleanStart   bool           `yaml:"clean_start"`
+	PopulateFrom string         `yaml:"populate_from"`
+	Paths        ConfFilesPaths `yaml:"paths"`
+	Cache        ConfCache      `yaml:"cache"`
 }
 
-type ConfHandlerPaths struct {
+type ConfFilesPaths struct {
 	Originals  string `yaml:"originals"`
 	Cache      string `yaml:"cache"`
 	SetPerms   bool   `yaml:"set_perms"`
 	CreateDirs bool   `yaml:"create_dirs"`
 }
 
-type ConfHandlerCache struct {
+type ConfCache struct {
 	MaxNum  int    `yaml:"num"`
 	MaxSize string `yaml:"size"`
 }
@@ -63,21 +62,6 @@ type ConfImageParameters struct {
 	Resize  string   `yaml:"resize"`
 }
 
-func imgConf(c *Config) images.Config {
-	return images.Config{
-		OriginalsDir: c.Handler.Paths.Originals,
-		CacheDir:     c.Handler.Paths.Cache,
-		SetPerms:     c.Handler.Paths.SetPerms,
-		CreateDirs:   c.Handler.Paths.CreateDirs,
-		DefaultParams: images.ImageParameters{
-			Format:  images.MustFormatParse(c.ImageParametersDefault.Format),
-			Width:   uint(c.ImageParametersDefault.Width),
-			Height:  uint(c.ImageParametersDefault.Height),
-			Quality: c.ImageParametersDefault.QualityJpeg,
-			MaxSize: images.MustSizeParse(c.ImageParametersDefault.MaxSize),
-		},
-	}
-}
 func saveConfig(c Config, filename string) error {
 	bytes, err := yaml.Marshal(c)
 	if err != nil {

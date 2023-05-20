@@ -40,7 +40,8 @@ _(#backatit)_
   - was already fixed in previous sprint
 - [X] Paths should be configurable
 - [X] Refactor tests to work on the image modules API (not as part of the module)  
-- [ ] decide on benchmark-method for single images
+- [X] decide on benchmark-method for single images
+  - I will use the `go test -bench=. -benchmem` method
 - [ ] add usage log 
 - [X] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
@@ -173,7 +174,22 @@ _(#backatit)_
 - 
 ## images package API (DRAFT)
 
+## Performance
+example benchmark run on my laptop
+2023-05-19
+```bash
+goos: linux
+goarch: amd64
+pkg: github.com/johan-st/go-image-server
+cpu: Intel(R) Core(TM) i5-10310U CPU @ 1.70GHz
+Benchmark_HandleDocs-8                    354918              6096 ns/op           12613 B/op         13 allocs/op
+Benchmark_HandleImg_cached-8                5510            228708 ns/op          444841 B/op         42 allocs/op
+Benchmark_HandleImg_notCached-8                3         399386964 ns/op        100122525 B/op       427 allocs/op
+PASS
+ok      github.com/johan-st/go-image-server     16.047s
+```
 
 # Known issues
 - imagecache is not persisted between starts
 - format bug: if you request a png and then a jpg of with the same parameter png will be served
+- lru cache max size of 0 is not handled propperly

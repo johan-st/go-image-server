@@ -96,7 +96,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
-		path, err := srv.ih.Get(imgPar, id)
+		path, err := srv.ih.Get(imgPar)
 		if err != nil {
 			if errors.Is(err, images.ErrIdNotFound{}) {
 				l.Warn("image not found", "id", id, "ImageParameters", imgPar, "err", err)
