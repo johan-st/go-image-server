@@ -1,4 +1,4 @@
-build:
+build: test-race
 	@echo go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" . 
 	@go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" .
 
@@ -19,3 +19,4 @@ clean:
 	rm -rf bin
 	rm -rf coverage.out
 	rm -rf test-fs/*
+	rm runningConfig.yaml
