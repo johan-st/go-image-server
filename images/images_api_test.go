@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/charmbracelet/log"
 	"github.com/johan-st/go-image-server/images"
 )
 
@@ -34,6 +35,7 @@ func Test_Add(t *testing.T) {
 		images.WithCacheDir(cachePath),
 		images.WithSetPermissions,
 		images.WithCreateDirs,
+		images.WithLogger(log.New(os.Stdout).WithPrefix(t.Name())),
 		images.WithLogLevel("debug"),
 	)
 	if err != nil {
@@ -94,6 +96,7 @@ func Test_Get(t *testing.T) {
 		images.WithCacheDir(cachePath),
 		images.WithSetPermissions,
 		images.WithCreateDirs,
+		images.WithLogger(log.New(os.Stdout).WithPrefix(t.Name())),
 		images.WithLogLevel("debug"),
 	)
 
@@ -226,6 +229,8 @@ func Test_ListIds(t *testing.T) {
 		images.WithCacheDir(cachePath),
 		images.WithSetPermissions,
 		images.WithCreateDirs,
+		images.WithLogger(log.New(os.Stdout).WithPrefix(t.Name())),
+		images.WithLogLevel("debug"),
 	)
 
 	ids := []int{}
