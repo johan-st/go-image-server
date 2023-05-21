@@ -16,3 +16,7 @@
 # cache and build artifacts
 img
 bin
+
+# runtime files
+*.log
+runningConfig.yaml
