@@ -2,8 +2,11 @@ build:
 	@echo go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" . 
 	@go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" .
 
+run:
+	go run .
+
 test:
-	go test -v ./...
+	go test ./...
 
 test-race:
 	go test -race ./...
