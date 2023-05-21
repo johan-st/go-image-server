@@ -90,7 +90,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 		}
 
 		q := r.URL.Query()
-		imgPar, err := parseImageParameters(q)
+		imgPar, err := parseImageParameters(id, q)
 		if err != nil {
 			l.Warn("could not parse image parameters", "err", err, "query", q)
 			srv.respondError(w, r, err.Error(), http.StatusBadRequest)
@@ -164,8 +164,8 @@ func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg stri
 	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }
 
-func parseImageParameters(val url.Values) (images.ImageParameters, error) {
-	p := images.ImageParameters{}
+func parseImageParameters(id int, val url.Values) (images.ImageParameters, error) {
+	p := images.ImageParameters{Id: id}
 	errs := []error{}
 
 	if val.Has("width") {
@@ -244,6 +244,7 @@ func parseImageParameters(val url.Values) (images.ImageParameters, error) {
 }
 
 // parseImageFormat parses a string into an images.Format.
+// TODO: cam i return an "ok" bool here instead of an error?
 func parseImageFormat(str string) (images.Format, error) {
 	strUp := strings.ToUpper(str)
 	switch strUp {
