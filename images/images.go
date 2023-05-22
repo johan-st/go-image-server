@@ -689,7 +689,7 @@ func MustFormatParse(s string) Format {
 type Interpolation string
 
 const (
-	NearestNeighbor Interpolation = "nearest"
+	NearestNeighbor Interpolation = "nearestNeighbor"
 	Bilinear        Interpolation = "bilinear"
 	Bicubic         Interpolation = "bicubic"
 	MitchellNetrav  Interpolation = "MitchellNetravali"
@@ -703,7 +703,7 @@ func (r Interpolation) String() string {
 
 func ResizeInterpolationParse(s string) (Interpolation, error) {
 	switch s {
-	case "nearest":
+	case "nearestNeighbor":
 		return NearestNeighbor, nil
 	case "bilinear":
 		return Bilinear, nil
@@ -781,6 +781,23 @@ type options struct {
 	interpolation Interpolation
 }
 
+func (o *options) String() string {
+	strB := strings.Builder{}
+	strB.WriteString("Options:\n")
+	strB.WriteString(fmt.Sprintf("  logLevel: %s\n", o.logLevel))
+	strB.WriteString(fmt.Sprintf("  createDirs: %t\n", o.createDirs))
+	strB.WriteString(fmt.Sprintf("  setPermissions: %t\n", o.setPermissions))
+	strB.WriteString(fmt.Sprintf("  originalsDir: %s\n", o.originalsDir))
+	strB.WriteString(fmt.Sprintf("  cacheDir: %s\n", o.cacheDir))
+	strB.WriteString(fmt.Sprintf("  cacheMaxNum: %d\n", o.cacheMaxNum))
+	strB.WriteString(fmt.Sprintf("  cacheMaxSize: %s\n", o.cacheMaxSize))
+	strB.WriteString(fmt.Sprintf("  interpolation: %s\n", o.interpolation))
+	strB.WriteString(fmt.Sprintf("  imageDefaults: %s\n", o.imageDefaults))
+	strB.WriteString(fmt.Sprintf("  imagePresets: %s\n", o.imagePresets))
+	return strB.String()
+
+}
+
 type ImageDefaults struct {
 	format      Format
 	qualityJpeg int
@@ -788,6 +805,19 @@ type ImageDefaults struct {
 	width       int
 	height      int
 	maxSize     Size
+}
+
+func (id ImageDefaults) String() string {
+	strB := strings.Builder{}
+	strB.WriteString("\n")
+	strB.WriteString(fmt.Sprintf("    format: %s\n", id.format))
+	strB.WriteString(fmt.Sprintf("    qualityJpeg: %d\n", id.qualityJpeg))
+	strB.WriteString(fmt.Sprintf("    qualityGif: %d\n", id.qualityGif))
+	strB.WriteString(fmt.Sprintf("    width: %d\n", id.width))
+	strB.WriteString(fmt.Sprintf("    height: %d\n", id.height))
+	strB.WriteString(fmt.Sprintf("    maxSize: %s", id.maxSize))
+	return strB.String()
+
 }
 
 type ImagePreset struct {
@@ -798,6 +828,19 @@ type ImagePreset struct {
 	Width   int
 	Height  int
 	MaxSize Size
+}
+
+func (ip ImagePreset) String() string {
+	strB := strings.Builder{}
+	strB.WriteString("\n")
+	strB.WriteString(fmt.Sprintf("    %s:\n", ip.Name))
+	strB.WriteString(fmt.Sprintf("      alias: %s\n", ip.Alias))
+	strB.WriteString(fmt.Sprintf("      format: %s\n", ip.Format))
+	strB.WriteString(fmt.Sprintf("      quality: %d\n", ip.Quality))
+	strB.WriteString(fmt.Sprintf("      width: %d\n", ip.Width))
+	strB.WriteString(fmt.Sprintf("      height: %d\n", ip.Height))
+	strB.WriteString(fmt.Sprintf("      maxSize: %s", ip.MaxSize))
+	return strB.String()
 }
 
 func optionsDefault() *options {
@@ -823,7 +866,13 @@ func optionsDefault() *options {
 			maxSize:     10 * Megabyte,
 		},
 
-		imagePresets: []ImagePreset{},
+		imagePresets: []ImagePreset{
+			{Name: "thumb", Alias: []string{"t", "th", "thumb"}, Format: Jpeg, Quality: 80, Width: 0, Height: 200, MaxSize: 1 * Megabyte},
+			{Name: "small", Alias: []string{"s", "small"}, Format: Jpeg, Quality: 80, Width: 0, Height: 400, MaxSize: 2 * Megabyte},
+			{Name: "medium", Alias: []string{"m", "medium"}, Format: Jpeg, Quality: 80, Width: 0, Height: 800, MaxSize: 4 * Megabyte},
+			{Name: "large", Alias: []string{"l", "large"}, Format: Jpeg, Quality: 80, Width: 0, Height: 1600, MaxSize: 8 * Megabyte},
+			{Name: "hero", Alias: []string{"xl", "hero"}, Format: Jpeg, Quality: 80, Width: 0, Height: 3200, MaxSize: 16 * Megabyte},
+		},
 
 		interpolation: NearestNeighbor,
 	}
