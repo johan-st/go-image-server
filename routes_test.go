@@ -182,6 +182,7 @@ func Benchmark_HandleImg_notCached(b *testing.B) {
 		images.WithCacheDir(cachePath),
 		images.WithSetPermissions,
 		images.WithCreateDirs,
+		images.WithCacheMaxNum(1),
 	)
 
 	if err != nil {
