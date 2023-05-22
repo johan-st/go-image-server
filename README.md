@@ -30,6 +30,7 @@ _(#backatit)_
 - [x] **SHOULD** error on startup if file permissions are wrong
   - Decided to have the server try to set the permissions for image and cache folder itself if they are not permissive enough. It will only extend permissions, never reduce them.
 - [x] **SHOULD** be configurable by file or environment variables
+  - [ ] **SHOULD** be propperly integrated and tested
 - [ ] **COULD** have a webpage for uploading images
 - [ ] **COULD** have a webpage for viewing and deleting images
 
