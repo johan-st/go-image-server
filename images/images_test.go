@@ -155,7 +155,7 @@ func Test_SizeFromString(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := SizeParse(tt.args.str)
+			got, err := ParseSize(tt.args.str)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Size.FromString() error = %v, wantErr %v", err, tt.wantErr)
 				return

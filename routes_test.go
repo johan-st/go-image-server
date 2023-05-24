@@ -18,7 +18,7 @@ import (
 
 const (
 	testFsDir          = "test-fs"
-	test_import_source = "test-images"
+	test_import_source = "test-data"
 )
 
 func Test_HandleDocs(t *testing.T) {

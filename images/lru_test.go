@@ -1,16 +1,14 @@
-package images_test
+package images
 
 import (
 	"testing"
-
-	"github.com/johan-st/go-image-server/images"
 )
 
 func TestLru(t *testing.T) {
 	t.Parallel()
 
 	trimChan := make(chan string, 100)
-	lru := images.NewLru(3, trimChan)
+	lru := newLru(3, trimChan)
 
 	lt := lruT{
 		t:        t,
@@ -44,7 +42,7 @@ func TestLru(t *testing.T) {
 
 // HELPER
 type lruT struct {
-	lru      *images.Lru
+	lru      *lru
 	t        *testing.T
 	trimChan <-chan string
 }

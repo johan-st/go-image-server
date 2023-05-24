@@ -3,10 +3,13 @@ build: test-race
 	@go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" .
 
 run:
-	go run .
+	go run . -c devConf.yaml
+
+format:
+	gofmt -s -w .
 
 test:
-	go test ./...
+	go test -vet=all ./...
 
 test-race:
 	go test -race ./...

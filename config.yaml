@@ -19,12 +19,12 @@
 # SERVER CONFIGURATION
 http: 
     port: 8080
-    host:  # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
+    host: 'localhost'   # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
       
 # IMAGE HANDLER CONFIGURATION
 files:
-  clean_start: true # set to true to delete all images from the cache and originals on startup
-  populate_from: 'test-fs/originals'  # set to the path of a directory containing images to add to the server on startup
+  clean_start: false    # set to true to delete all images from the cache and originals on startup
+  populate_from:        # set to the path of a directory containing images to add to the server on startup. Leave empty to disable
 
   # paths are relative. Image Handler will will load images from here on startup and save images here when they are added or cached 
   paths:
@@ -38,14 +38,14 @@ files:
     create_dirs: true
     
   cache:
-    num: 5 # number of images to cache
+    num: 100000 # number of images to cache
     # total size of the cache in bytes, kilobytes, megabytes, gigabytes or terabytes
-    # valid values are positive integers followed by a unit of measurement (none for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
-    size: '1 MB'
+    # valid values are positive integers followed by a unit of measurement (none or B for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
+    size: '10 GB'
 
 # LOGGING CONFIGURATION
-# valid values are "debug", "info", "warn", "error", "fatal"
-logging: "debug"
+# valid values are "debug", "info", "warn", "error", "fatal" 
+logging: "info"
 
 
 # NAMED IMAGE PRESETS
@@ -94,11 +94,6 @@ image_presets:
     width: 100
     height: 100
     max_size: '10 KB'
-  - name: default small
-    alias: ["small", "sm", "s"]    
-    format: 'jpeg'
-    quality: 80
-    width: 400
-    height: 0
-    max_size: '30 KB'
+    resizer: 'nearest'
+
         

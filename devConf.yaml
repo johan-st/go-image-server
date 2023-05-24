@@ -1,0 +1,33 @@
+log_level: debug
+http:
+    port: 8080
+    host: localhost
+files:
+    clear_on_start: true
+    populate_from: test-data
+    set_perms: true
+    create_dirs: true
+    originals_dir: test-data/devconf/originals
+    cache_dir: test-data/devconf/cache
+cache_rules:
+    max_objects: 5
+    max_size: 1 MB
+image_defaults:
+    format: jpeg
+    quality_jpeg: 80
+    quality_gif: 256
+    width: 0
+    height: 800
+    max_size: 1 MB
+    interpolation: "nearestNeighbor"
+image_presets:
+    - name: dev thumbnail
+      alias:
+        - thumb
+        - th
+      format: jpeg
+      quality: 80
+      width: 100
+      height: 100
+      max_size: 10 KB
+      interpolation: "lanczos3"

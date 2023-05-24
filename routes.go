@@ -41,8 +41,11 @@ func (srv *server) routes() {
 func (srv *server) handleDocs() http.HandlerFunc {
 	// setup
 	l := srv.l.With("handler", "handleDocs")
-	t := time.Now
-	defer l.Debug("docs rendered", "time", time.Since(t()))
+
+	// time the handler initialization
+	defer func(t time.Time) {
+		l.Debug("docs rendered and redy to be served", "time", time.Since(t))
+	}(time.Now())
 
 	md := markdown.New(markdown.XHTMLOutput(true))
 
@@ -59,7 +62,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Info("handling request", "method", r.Method, "path", r.URL.Path)
+		l.Debug("handling request", "method", r.Method, "path", r.URL.Path)
 		if r.Method != http.MethodGet {
 			srv.respondError(w, r, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -79,7 +82,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Info("handling request", "method", r.Method, "path", r.URL.Path, "query", r.URL.Query())
+		l.Debug("handling request", "method", r.Method, "path", r.URL.Path, "query", r.URL.Query())
 		id_str := way.Param(r.Context(), "id")
 
 		id, err := strconv.Atoi(id_str)
@@ -119,7 +122,7 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Info("favicon requested")
+		l.Debug("favicon requested")
 		http.ServeFile(w, r, "assets/favicon.ico")
 	}
 }
@@ -226,13 +229,13 @@ func parseImageParameters(id int, val url.Values) (images.ImageParameters, error
 	}
 
 	if val.Has("maxsize") {
-		if v, err := images.SizeParse(val.Get("maxsize")); err == nil {
+		if v, err := images.ParseSize(val.Get("maxsize")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)
 		}
 	} else if val.Has("s") {
-		if v, err := images.SizeParse(val.Get("s")); err == nil {
+		if v, err := images.ParseSize(val.Get("s")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)
