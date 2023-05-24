@@ -22,7 +22,7 @@ import (
 // image files does therefor not store any data. What is of interest is
 // knowing wether a certain file is generated and the order in which the
 // files are accessed. LRU is thread safe.
-type Lru struct {
+type lru struct {
 	// timeSource    TimeSource
 	cap           int
 	len           int
@@ -40,8 +40,8 @@ type Lru struct {
 // cache.
 //
 // The trimedPathsChan is used to communicate which paths are trimmed from the cache. When a path is removed from the cache it will be sent to the trimedPathsChan. The caller is responsible for handling removal of cache-filesbased on the trimedPathsChan messages and aöso for closing the channel. The channel should have a buffer size of at least 1 but larger is higky recommended.The channel length should be monitored and if it is close to full a warning should be issued.
-func NewLru(cap int, trimedPathsChan chan<- string) *Lru {
-	return &Lru{
+func newLru(cap int, trimedPathsChan chan<- string) *lru {
+	return &lru{
 		cap:           cap,
 		lookup:        make(map[string]*node),
 		reverseLookup: make(map[*node]string),
@@ -62,7 +62,7 @@ type node struct {
 	prev, next *node
 }
 
-func (l *Lru) Access(filepath string) bool {
+func (l *lru) Access(filepath string) bool {
 	if n, ok := l.lookupNode(filepath); ok {
 		l.moveToFront(n)
 		return true
@@ -79,13 +79,13 @@ func (l *Lru) Access(filepath string) bool {
 	}
 }
 
-// func (l *Lru) LoadDir(dirpath string) error {
+// func (l *lru) LoadDir(dirpath string) error {
 // 	// load all files in dirpath into cache
 // 	//    if cache is full, trim it
 // 	panic("not implemented")
 // }
 
-func (l *Lru) trim() {
+func (l *lru) trim() {
 	for l.len > l.cap {
 		node := l.tail
 		key, _ := l.lookupPath(node)
@@ -100,7 +100,7 @@ func (l *Lru) trim() {
 
 // List operations
 
-func (l *Lru) addToFront(n *node) {
+func (l *lru) addToFront(n *node) {
 	if l.len == 0 {
 		l.head = n
 		l.tail = n
@@ -114,7 +114,7 @@ func (l *Lru) addToFront(n *node) {
 
 }
 
-func (l *Lru) moveToFront(n *node) {
+func (l *lru) moveToFront(n *node) {
 	// check if n is front
 	if l.head == n {
 		return
@@ -144,7 +144,7 @@ func (l *Lru) moveToFront(n *node) {
 	l.head = n
 }
 
-func (l *Lru) detatchTail() {
+func (l *lru) detatchTail() {
 	n := l.tail
 
 	// link tail to previous node
@@ -159,21 +159,21 @@ func (l *Lru) detatchTail() {
 
 // Lookup operations
 
-func (l *Lru) lookupNode(path string) (*node, bool) {
+func (l *lru) lookupNode(path string) (*node, bool) {
 	l.lMutex.RLock()
 	n, ok := l.lookup[path]
 	l.lMutex.RUnlock()
 	return n, ok
 }
 
-func (l *Lru) lookupPath(n *node) (string, bool) {
+func (l *lru) lookupPath(n *node) (string, bool) {
 	l.rlMutex.RLock()
 	path, ok := l.reverseLookup[n]
 	l.rlMutex.RUnlock()
 	return path, ok
 }
 
-func (l *Lru) addToLookup(n *node, path string) {
+func (l *lru) addToLookup(n *node, path string) {
 	l.lMutex.Lock()
 	l.rlMutex.Lock()
 	l.lookup[path] = n
@@ -182,7 +182,7 @@ func (l *Lru) addToLookup(n *node, path string) {
 	l.rlMutex.Unlock()
 }
 
-func (l *Lru) removeFromLookup(n *node, path string) {
+func (l *lru) removeFromLookup(n *node, path string) {
 	l.lMutex.Lock()
 	l.rlMutex.Lock()
 	delete(l.lookup, path)

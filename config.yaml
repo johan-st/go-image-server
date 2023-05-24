@@ -19,12 +19,12 @@
 # SERVER CONFIGURATION
 http: 
     port: 8080
-    host:  # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
+    host: 'localhost'   # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
       
 # IMAGE HANDLER CONFIGURATION
 files:
-  clean_start: true # set to true to delete all images from the cache and originals on startup
-  populate_from: 'test-fs/originals'  # set to the path of a directory containing images to add to the server on startup
+  clean_start: false    # set to true to delete all images from the cache and originals on startup
+  populate_from:        # set to the path of a directory containing images to add to the server on startup. Leave empty to disable
 
   # paths are relative. Image Handler will will load images from here on startup and save images here when they are added or cached 
   paths:
@@ -38,23 +38,21 @@ files:
     create_dirs: true
     
   cache:
-    num: 5 # number of images to cache
+    num: 100000 # number of images to cache
     # total size of the cache in bytes, kilobytes, megabytes, gigabytes or terabytes
-    # valid values are positive integers followed by a unit of measurement (none for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
-    size: '1 MB'
+    # valid values are positive integers followed by a unit of measurement (none or B for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
+    size: '10 GB'
 
 # LOGGING CONFIGURATION
-# valid values are "debug", "info", "warn", "error", "fatal"
-logging: "debug"
+# valid values are "debug", "info", "warn", "error", "fatal" 
+logging: "info"
 
 
 # NAMED IMAGE PRESETS
 # Default will be used if no parameters are specified in the URL
-# other sections can be added to provide named presets
-# e.g. 'thumbnail', 'small', 'medium', 'large', 'full', etc.
 # Values specified in the URL will override these values
       
-# aliases can be used in the URL instead of the name (e.g. /img/thumbnail/... or /img/tn/...)    
+# aliases are used in the URL to invoke a preset (e.g. /img/thumbnail/... or /img/tn/...)    
 
 # Image Format: 
 # valid formats are 'jpeg', 'gif' and 'png'.
@@ -77,6 +75,7 @@ logging: "debug"
 # interpolation algorithm used when resizing the image
 # TODO: benchmark these and make a note of the performance impact in here
 # valid values are 'nearest', 'bilinear', 'bicubic', 'MitchellNetravali', 'lanczos2' and 'lanczos3'
+
 default_image_preset:
   alias: ["default","def"]
   format: 'jpeg'
@@ -85,23 +84,16 @@ default_image_preset:
   width: 800
   height: 0
   max_size: '1 MB'
-  resize: 'lanczos3'
+  resizer: 'lanczos3'
 
 image_presets:
-  - name: thumbnail
+  - name: default thumbnail
     alias: ["thumb","th"]
     format: 'jpeg'
     quality: 80
     width: 100
     height: 100
     max_size: '10 KB'
-    resize: 'lanczos3'
-  - name: small
-    alias: ["sm"]    
-    format: 'jpeg'
-    quality: 80
-    width: 400
-    height: 0
-    max_size: '30 KB'
-    resize: 'lanczos3'
+    resizer: 'nearest'
+
         

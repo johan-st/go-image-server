@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,12 +24,15 @@ func main() {
 }
 
 func run(l *log.Logger) error {
+	confFile := flag.String("c", "config.yaml", "path to configuration file")
+	flag.Parse()
 
 	// image handler might not need a logger
 	// should return errors and let the caller decide how to handle and log them
 	ihLogger := l.WithPrefix("[ImageHandler]")
 	// ihLogger.SetLevel(log.DebugLevel)
-	conf, err := loadConfig("config.yaml")
+	l.Info("Loading configuration file", "path", *confFile)
+	conf, err := loadConfig(*confFile)
 	if err != nil {
 		return err
 	}
@@ -37,21 +41,74 @@ func run(l *log.Logger) error {
 		return err
 	}
 
-	saveConfig(conf, "runningConfig.yaml")
+	l.SetLevel(log.ParseLevel(conf.LogLevel))
 
-	ih, err := images.New(imgConf(&conf), ihLogger)
+	err = saveConfig(conf, "runningConfig.yaml")
+	if err != nil {
+		l.Error("could not save running config", "error", err)
+	}
+
+	if conf.Files.ClearOnStart {
+		l.Warn(
+			"Clearing folders",
+			"originals_dir", conf.Files.DirOriginals,
+			"cache_dir", conf.Files.DirCache,
+		)
+		os.RemoveAll(conf.Files.DirOriginals)
+		os.RemoveAll(conf.Files.DirCache)
+	}
+
+	imageDefaults, err := toImageDefaults(conf.ImageDefaults)
 	if err != nil {
 		return err
 	}
 
-	port := conf.Server.Port
-	if port == 0 {
-		l.Fatal("port not set in config")
+	imagePresets, err := toImagePresets(conf.ImagePresets, imageDefaults)
+	if err != nil {
+		return err
+	}
+
+	cacheMaxSize, err := images.ParseSize(conf.Cache.MaxSize)
+	if err != nil {
+		return err
+	}
+
+	// create image handler
+	ih, err := images.New(
+		images.WithLogger(ihLogger),
+		images.WithLogLevel(conf.LogLevel),
+
+		images.WithCreateDirs(conf.Files.CreateDirs),
+		images.WithSetPermissions(conf.Files.SetPerms),
+
+		images.WithOriginalsDir(conf.Files.DirOriginals),
+		images.WithCacheDir(conf.Files.DirCache),
+
+		images.WithCacheMaxNum(conf.Cache.Cap),
+		images.WithCacheMaxSize(cacheMaxSize),
+
+		images.WithImageDefaults(imageDefaults),
+		images.WithImagePresets(imagePresets),
+	)
+	if err != nil {
+		return err
+	}
+
+	if conf.Files.PopulateFrom != "" {
+		err = addFolder(ih, conf.Files.PopulateFrom)
+		if err != nil {
+			l.Error("could not populate originals", "error", err)
+		}
+	}
+
+	if conf.Http.Port == 0 {
+		conf.Http.Port = 8000
+		l.Info("Port not set in config. Using default port", "port", conf.Http.Port)
 	}
 
 	srv := newServer(l.WithPrefix("[http]"), ih)
 	mainSrv := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", conf.Server.Host, port),
+		Addr:              fmt.Sprintf("%s:%d", conf.Http.Host, conf.Http.Port),
 		Handler:           srv,
 		ReadTimeout:       1 * time.Second,
 		ReadHeaderTimeout: 1 * time.Second,
@@ -65,13 +122,7 @@ func run(l *log.Logger) error {
 	go func() {
 		for sig := range signalChan {
 			l.Warn("shutting down server...", "signal", sig)
-			if l.GetLevel() == log.DebugLevel {
-				l.Debug("removing test images")
-				os.RemoveAll(conf.Handler.Paths.Originals)
-				os.RemoveAll(conf.Handler.Paths.Cache)
-			}
 			mainSrv.Shutdown(context.Background())
-
 		}
 	}()
 
@@ -85,7 +136,7 @@ func run(l *log.Logger) error {
 func newCustomLogger() *log.Logger {
 	opt := log.Options{
 		Prefix:          "[main]",
-		Level:           envLogLevel(),
+		Level:           log.InfoLevel,
 		ReportCaller:    false,
 		CallerFormatter: funcCallerFormater,
 		ReportTimestamp: true,
@@ -107,24 +158,6 @@ func newCustomLogger() *log.Logger {
 	// l.SetOutput(logfile)
 	// l.SetFormatter(log.JSONFormatter)
 	return l
-}
-
-// NOTE: is duplicated in imageHandler
-func envLogLevel() log.Level {
-
-	switch os.Getenv("LOG") {
-	case "DEBUG":
-		return log.DebugLevel
-	case "INFO":
-		return log.InfoLevel
-	case "WARN":
-		return log.WarnLevel
-	case "ERROR":
-		return log.ErrorLevel
-	case "FATAL":
-		return log.FatalLevel
-	}
-	return log.InfoLevel
 }
 
 func funcCallerFormater(file string, line int, funcName string) string {
@@ -165,4 +198,25 @@ func trimCaller(path string, n int, sep byte) string {
 	}
 
 	return path[idx+1:]
+}
+
+func addFolder(ih *images.ImageHandler, folder string) error {
+	dir, err := os.Open(folder)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+
+	files, err := dir.Readdir(0)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		ih.Add(folder + "/" + file.Name())
+	}
+	return nil
 }

@@ -13,6 +13,13 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# cache and build artifacts
-img
+# build artifacts
 bin
+
+# runtime folders
+test-fs
+img
+
+# runtime files
+*.log
+runningConfig.yaml

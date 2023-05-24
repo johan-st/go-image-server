@@ -1,6 +1,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/gif"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/log"
 
@@ -23,223 +25,91 @@ import (
 	// eqvivalent on creation.
 )
 
-// TODO: create interface of used mathods to facilitate injecting a logger
-// type Logger interface {
-// 	Debug(msg interface{}, keyval ...interface{})
-// 	Debugf(format string, args ...interface{})
-// 	Info(msg interface{}, keyval ...interface{})
-// 	Infof(format string, args ...interface{})
-// 	Warn(msg interface{}, keyval ...interface{})
-// 	Warnf(format string, args ...interface{})
-// 	Error(msg interface{}, keyval ...interface{})
-// 	Errorf(format string, args ...interface{})
-// 	Fatal(msg interface{}, keyval ...interface{})
-// 	Fatalf(format string, args ...interface{})
-//  With
-// }
-
-// cache is expected to be thread-safe. It should return true if the path is in cache and false otherwise.
-//
-// It should add the path to cache if it is not already there.
-//
-// Cach should send evicted paths to the image handler to be deleted from disk.
-type cache interface {
-	Access(path string) bool
-}
-
 const (
-	originalsExt = ".jpg" //somewhat of a hack. all originals are saved and retrieved with this extention TODO: find a better way?
+	originalsExt = ".jpeg" //somewhat of a hack. all originals are saved and retrieved with this extention TODO: find a better way?
 )
 
 // ImageHandler is the main type of this package.
 type ImageHandler struct {
-	conf     Config // TODO: Read-only?
-	latestId int    // TODO: this can be accessed by multiple goroutines. Make thread-safe.
-	l        *log.Logger
-	cache    cache //TODO: slice as initial prototype
-	// TODO: might need a map to keep track of ids are in use after implementing "delete"
+	opts options
+
+	mu       sync.Mutex
+	latestId int
+
+	cache cache
 }
 
-// Config represents the configuration of an ImageHandler.
-// unset (0/"") parameters will be considered as "use default".
-//
-// Default values are:
-//
-//	OriginalsDir: "img/originals"
-//	CacheDir: "img/cache"
-//	DefaultParams: see ImageParameters
-//	CreateDirs: false
-//	SetPerms: false
-type Config struct {
-	OriginalsDir  string          // path to originals
-	CacheDir      string          // path to cache
-	DefaultParams ImageParameters // default image parameters
-	CreateDirs    bool            // create directories if needed
-	SetPerms      bool            // set permissions if needed
-}
-
-func (c *Config) withDefault() {
-	if c.OriginalsDir == "" {
-		c.OriginalsDir = "img/originals"
-	}
-	if c.CacheDir == "" {
-		c.CacheDir = "img/cache"
-	}
-	if c.DefaultParams.Format == "" {
-		c.DefaultParams.Format = Jpeg
-	}
-	if c.DefaultParams.Width == 0 && c.DefaultParams.Height == 0 {
-		c.DefaultParams.Width = 800
-	}
-	if c.DefaultParams.Quality == 0 && c.DefaultParams.Format == Jpeg {
-		c.DefaultParams.Quality = 80
-	}
-	if c.DefaultParams.Quality == 0 && c.DefaultParams.Format == Gif {
-		c.DefaultParams.Quality = 256
-	}
-}
-
-// ImageParameters represents how an image should be pressented.
-// note: Use 0 (zero) to explicitly set default.
-//
-// Default values are set when ImageHandler is created.
-//
-// Default values are:
-//
-//	Format: Jpeg
-//	Width: 800
-//	Height: 0 (keep aspect ratio)
-//	Quality: 80 (Jpeg), 256 (Gif)
-//	MaxSize: 0 (infinite)
 type ImageParameters struct {
-	Format  Format // Jpeg, Png, Gif (default: Jpeg)
-	Width   uint   // width in pixels (default: 800)
-	Height  uint   // height in pixels (default: 0/keep aspect ratio)
-	Quality int    // Jpeg:1-100, Gif:1-256 (default: 80 for jpeh, 256 for gif)
-	MaxSize Size   // Max file size in bytes (default: 0/infinite)
+	Id int
+
+	Format
+
+	// Jpeg:1-100, Gif:1-256
+	Quality int
+
+	// width and Height in pixels (0 = keep aspect ratio, both width and height can not be 0)
+	Width  uint
+	Height uint
+
+	// Max file-size in bytes (0 = no limit)
+	MaxSize Size
 }
 
-func (ip *ImageParameters) String() string {
-	if ip.Format == "" {
-		ip.Format = Jpeg
-	}
-	return fmt.Sprintf("%dx%d_q%d_%d.%s", ip.Width, ip.Height, ip.Quality, ip.MaxSize, ip.Format)
-}
-
-func (ip *ImageParameters) withDefaults(def ImageParameters) ImageParameters {
-	if ip.Format == "" {
-		ip.Format = def.Format
-	}
-	if ip.Format == Jpeg && ip.Quality == 0 {
-		ip.Quality = def.Quality
-	}
-	if ip.Format == Gif && ip.Quality == 0 {
-		ip.Quality = 256
-	}
-	if ip.Width == 0 {
-		ip.Width = def.Width
-	}
-	if ip.Height == 0 {
-		ip.Height = def.Height
-	}
-	if ip.MaxSize == 0 {
-		ip.MaxSize = def.MaxSize
-	}
-	return *ip
-}
-
-// Format represents image formats.
-type Format string
-
-const (
-	Jpeg Format = "jpeg" // quality 1-100
-	Png  Format = "png"  // always lossless
-	Gif  Format = "gif"  // num colors 1-256
-)
-
-func (f Format) String() string {
-	return string(f)
-}
-
-func FormatParse(s string) (Format, error) {
-	switch s {
-	case "jpeg":
-		return Jpeg, nil
-	case "jpg":
-		return Jpeg, nil
-	case "png":
-		return Png, nil
-	case "gif":
-		return Gif, nil
-	}
-	return "", fmt.Errorf("invalid image-format: %s", s)
-}
-
-func MustFormatParse(s string) Format {
-	f, err := FormatParse(s)
-	if err != nil {
-		panic(err)
-	}
-	return f
-}
-
-type ErrIdNotFound struct {
-	IdGiven int
-	Err     error
-}
-
-func (e ErrIdNotFound) Error() string {
-	return fmt.Sprintf("id (%d) not found\nerror: %s", e.IdGiven, e.Err.Error())
-}
-
-func (e ErrIdNotFound) Is(err error) bool {
-	_, ok := err.(ErrIdNotFound)
-	return ok
-}
-
-// New creates a new Imageandler with the given configuration.
+// New creates a new Imageandler and applies the given options.
 //
-// TODO: should take a list of parameters to create for all images
-// DEBUG: TODO: MUST create a cache based on files in cache folder on startup
-func New(conf Config, l *log.Logger) (*ImageHandler, error) {
-	conf.withDefault()
+// TODO: MUST create a cache based on files in cache folder on startup
+func New(optFuncs ...optFunc) (*ImageHandler, error) {
+	// set opts
+	opts := optionsDefault()
 
-	err := checkDirs(conf)
+	for _, fn := range optFuncs {
+		err := fn(&opts)
+		if err != nil {
+			return nil, err
+
+		}
+	}
+
+	// If no logger was set. Discard all logging from package.¨
+	// TODO: build noop logger or disable logging in a way that require less allocs
+	if opts.l == nil {
+		opts.l = log.New(io.Discard)
+	}
+
+	l := opts.l
+	l.Debug("Creating new ImageHandler", "number of options set", len(optFuncs), "resulting options", opts.String())
+
+	err := checkDirs(&opts)
 	if err != nil {
-		return &ImageHandler{}, err
-	}
-	if l == nil {
-		l = log.New(os.Stderr).WithPrefix("Image Handler")
-		l.SetLevel(logLevel())
-		l.Info("Using default logger")
+		return nil, err
 	}
 
-	evitedChan := make(chan string, 10)
-	go fileRemover(l, evitedChan)
+	evictedChan := make(chan string, 128)
+	go fileRemover(opts.l.WithPrefix("[file remover]"), evictedChan)
 
-	l.Debug("Creating new ImageHandler", "Config", conf)
 	ih := ImageHandler{
-		conf:     conf,
+		opts: opts,
+
+		mu:       sync.Mutex{},
 		latestId: 0,
-		l:        l,
-		cache:    NewLru(10, evitedChan),
+
+		cache: newLru(opts.cacheMaxNum, evictedChan),
 	}
 
 	ih.latestId, err = ih.findLatestId()
 	if err != nil {
-		ih.l.Fatal("could not get latest id during setup.", "error", err)
+		opts.l.Fatal("could not get latest id during setup.", "error", err)
 		return nil, err
 	}
 	return &ih, nil
 }
 
 // returns the path to the processed image.
-func (h *ImageHandler) Get(params ImageParameters, id int) (string, error) {
+func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 	// normalize parameters with defaults
-	params = params.withDefaults(h.conf.DefaultParams)
-
-	cachePath := h.cachePath(params, id)
-	h.l.Info("Get", "ImageId", id, "ImageParameters", params, "cachePath", cachePath)
+	params.apply(h.opts.imageDefaults) //TODO: test this
+	cachePath := h.cachePath(params)
+	h.opts.l.Info("Get", "ImageParameters", params, "cachePath", cachePath)
 
 	// Look for the image in the cache, return it if it does
 	if inCache := h.cache.Access(cachePath); inCache {
@@ -247,160 +117,64 @@ func (h *ImageHandler) Get(params ImageParameters, id int) (string, error) {
 	}
 
 	// file does not exist
-	size, err := h.createImage(params, id, cachePath)
+	size, err := h.createImage(params, cachePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", ErrIdNotFound{IdGiven: id, Err: err}
+			return "", ErrIdNotFound{IdGiven: params.Id, Err: err}
 		}
 		return "", err
 	}
 
 	// file was created
-	h.l.Debug("Cachefile Created", "path", cachePath, "size", size)
+	h.opts.l.Debug("Cachefile Created", "path", cachePath, "size", size)
 	return cachePath, nil
 }
 
 func (h *ImageHandler) Add(path string) (int, error) {
-	h.l.Info("Add", "path", path)
+	h.opts.l.Info("Add", "path", path)
 
 	// check if file exists
 	srcf, err := os.Open(path)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("could not open source file: %w", err)
 	}
 	defer srcf.Close()
 
-	// check if file is a supported image
-	ext := filepath.Ext(path)
-	supext := []string{".jpg", ".jpeg", ".png", ".gif"}
-	if !contains(supext, ext) {
-		return 0, fmt.Errorf("unsupported image format")
-	}
 	// TODO: check with the image package instead of just the extension?
 	// _, _, err = image.Decode(srcf)
 	// if err != nil {
+	// 	h.opts.l.Error("Error decoding image", "file", srcf, "error", err)
 	// 	return 0, err
 	// }
 
-	// update latest id
+	// get a new id
+	h.mu.Lock()
 	h.latestId++
+	id := h.latestId
+	h.mu.Unlock()
 
-	// determine destination path (TODO: should extention be changed?)
-	dst := h.conf.OriginalsDir + "/" + strconv.Itoa(h.latestId) + originalsExt
-
+	dst := h.opts.dirOriginals + "/" + strconv.Itoa(id) + originalsExt
 	// copy file to originals
 	dstf, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("could not open destination file: %w", err)
 	}
 	defer dstf.Close()
 	_, err = io.Copy(dstf, srcf)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("could not copy file: %w", err)
 	}
 	// return id
-	return h.latestId, nil
+	return id, nil
 }
-
-// func (h *ImageHandler) Remove(id ImageId) error {
-// 	h.l.Info("Remove", "id", id)
-// 	// remove from cache
-// 	h.CacheClearFor(id)
-// 	// remove original
-// 	oPath := h.originalPath(id)
-// 	err := os.Remove(oPath)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-//  TODO: decide which of these should even exist
-
-// // clear all cache
-// func (h *ImageHandler) CacheClear() (Size, error) {
-// 	h.l.Debug("CacheClear")
-// 	h.cache.clear()
-// 	// cachefoldersize
-// 	dir, err := os.Open(h.conf.CacheDir)
-// 	if err != nil {
-// 		h.l.Error("CacheClear", "error", err)
-// 		return 0, err
-// 	}
-// 	defer dir.Close()
-
-// 	// get list of files
-// 	files, err := dir.Readdir(0)
-// 	if err != nil {
-// 		h.l.Error("CacheClear", "error", err)
-// 		return 0, err
-// 	}
-
-// 	totalBytes := 0
-// 	for _, f := range files {
-// 		if f.IsDir() {
-// 			continue
-// 		}
-// 		totalBytes += int(f.Size())
-// 		// remove files
-// 		err = os.Remove(h.conf.CacheDir + "/" + f.Name())
-// 		if err != nil {
-// 			h.l.Error("CacheClear", "error", err)
-// 			return 0, err
-// 		}
-// 	}
-// 	h.l.Info("Cached cleared", "freed Bytes", totalBytes)
-// 	return Size(totalBytes), nil
-// }
-
-// func (h *ImageHandler) CacheClearFor(id ImageId) (Size, error) {
-// 	h.l.Debug("id", id)
-
-// 	bytesFreed := 0
-// 	dir, err := os.Open(h.conf.CacheDir)
-// 	if err != nil {
-// 		h.l.Error("CacheClearFor", "error", err)
-// 		return 0, err
-// 	}
-// 	defer dir.Close()
-
-// 	// get list of files
-// 	files, err := dir.Readdir(0)
-// 	if err != nil {
-// 		h.l.Error("CacheClearFor", "error", err)
-// 		return 0, err
-// 	}
-
-// 	errs := []error{}
-// 	for _, f := range files {
-// 		if f.IsDir() {
-// 			continue
-// 		}
-// 		// remove files
-// 		if strings.HasPrefix(f.Name(), id.String()) {
-// 			bytesFreed += int(f.Size())
-// 			err = os.Remove(h.conf.CacheDir + "/" + f.Name())
-// 			if err != nil {
-// 				h.l.Error("CacheClearFor", "error", err)
-// 				errs = append(errs, err)
-// 			}
-// 		}
-// 	}
-// 	if len(errs) > 0 {
-// 		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
-// 	}
-
-// 	return Size(bytesFreed), nil
-// }
 
 // TODO: page and chunk as arguments for when we have thousands of ids?
 func (h *ImageHandler) ListIds() ([]int, error) {
-	h.l.Debug("ListIds")
+	h.opts.l.Debug("ListIds")
 
-	dir, err := os.Open(h.conf.OriginalsDir)
+	dir, err := os.Open(h.opts.dirOriginals)
 	if err != nil {
-		h.l.Error("ListIds", "error", err)
+		h.opts.l.Error("ListIds", "error", err)
 		return nil, err
 	}
 	defer dir.Close()
@@ -408,7 +182,7 @@ func (h *ImageHandler) ListIds() ([]int, error) {
 	// get list of files
 	files, err := dir.Readdir(0)
 	if err != nil {
-		h.l.Error("ListIds", "error", err)
+		h.opts.l.Error("ListIds", "error", err)
 		return nil, err
 	}
 
@@ -421,81 +195,16 @@ func (h *ImageHandler) ListIds() ([]int, error) {
 		idStr := strings.Split(f.Name(), ".")[0]
 		idInt, err := strconv.Atoi(idStr)
 		if err != nil {
-			h.l.Error("ListIds", "error", err)
+			h.opts.l.Error("ListIds", "error", err)
 			return nil, err
 		}
 		id := idInt
 
-		h.l.Debug("ListIds got", "id", id, "from", f.Name())
+		h.opts.l.Debug("ListIds got", "id", id, "from", f.Name())
 		ids = append(ids, id)
 	}
 	return ids, nil
 }
-
-// TODO: should probably lock the cache while doing this
-// func (h *ImageHandler) CacheHouseKeeping() (Size, error) {
-
-// 	paths := h.cache.cacheByRules(h.conf.CacheRules)
-// 	bytesFreed := int64(0)
-// 	var errs []error
-// 	for _, p := range paths {
-// 		h.l.Debug("CacheHouseKeeping", "removing", p)
-// 		fileStat, err := os.Stat(p)
-// 		if err != nil {
-// 			h.l.Error("CacheHouseKeeping", "error", err)
-// 			errs = append(errs, err)
-// 			continue
-// 		}
-// 		size := fileStat.Size()
-// 		if err != nil {
-// 			h.l.Error("CacheHouseKeeping", "error", err)
-// 			errs = append(errs, err)
-// 		}
-// 		bytesFreed += size
-// 	}
-// 	if len(errs) > 0 {
-// 		return Size(bytesFreed), fmt.Errorf("errors while removing files. errors: %s", errs)
-// 	}
-// 	h.l.Info("CacheHouseKeeping", "freed Bytes", bytesFreed)
-// 	return Size(bytesFreed), nil
-// }
-
-// type ImageHandlerInfo struct {
-// 	NumOfOriginals int
-// 	NumOfCached    int
-// 	OriginalsSize  Size
-// 	CachedSize     Size
-// }
-
-// func (info ImageHandlerInfo) String() string {
-// 	return fmt.Sprintf(`
-// ImageHandlerInfo
-// 	NumOfOriginals %d
-// 	NumOfCached    %d
-// 	OriginalsSize  %s
-// 	CachedSize     %s
-// `,
-// 		info.NumOfOriginals,
-// 		info.NumOfCached,
-// 		info.OriginalsSize,
-// 		info.CachedSize)
-// }
-
-// func (h *ImageHandler) Info() ImageHandlerInfo {
-// 	oIds, err := h.ListIds()
-// 	numOrigs := len(oIds)
-// 	if err != nil {
-// 		h.l.Error("Info", "error", err)
-// 		numOrigs = -1
-// 	}
-
-// 	return ImageHandlerInfo{
-// 		NumOfOriginals: numOrigs,
-// 		NumOfCached:    h.cache.numberOfObjects,
-// 		OriginalsSize:  Size(0),
-// 		CachedSize:     h.cache.size,
-// 	}
-// }
 
 func (h *ImageHandler) findLatestId() (int, error) {
 	ids, err := h.ListIds()
@@ -514,8 +223,8 @@ func (h *ImageHandler) findLatestId() (int, error) {
 
 // Create a new image with the given configuration and
 // returns the path to the cached image.
-func (h *ImageHandler) createImage(params ImageParameters, id int, cachePath string) (Size, error) {
-	oPath := h.originalPath(id)
+func (h *ImageHandler) createImage(params ImageParameters, cachePath string) (Size, error) {
+	oPath := h.originalPath(params.Id)
 	oImg, err := loadImage(oPath)
 	if err != nil {
 		return 0, err
@@ -561,7 +270,7 @@ func (h *ImageHandler) createImage(params ImageParameters, id int, cachePath str
 	}
 	size := Size(stat.Size())
 	if size == 0 {
-		h.l.Error("createImage", "error", "created image has size "+size.String(), "path", cachePath)
+		h.opts.l.Error("createImage", "error", "created image has size "+size.String(), "path", cachePath)
 		return 0, fmt.Errorf("created image has size 0")
 	}
 	return size, nil
@@ -569,41 +278,14 @@ func (h *ImageHandler) createImage(params ImageParameters, id int, cachePath str
 
 func (h *ImageHandler) originalPath(id int) string {
 	idStr := strconv.Itoa(id)
-	return filepath.Join(h.conf.OriginalsDir, idStr+originalsExt)
+	return filepath.Join(h.opts.dirOriginals, idStr+originalsExt)
 }
 
-func (h *ImageHandler) cachePath(params ImageParameters, id int) string {
-	idStr := strconv.Itoa(id)
-	return filepath.Join(h.conf.CacheDir, idStr+"_"+params.String())
+func (h *ImageHandler) cachePath(params ImageParameters) string {
+	return filepath.Join(h.opts.dirCache, params.String())
 }
 
 // HELPER
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-// NOTE: is duplicated in main
-func logLevel() log.Level {
-	switch os.Getenv("LOG_LEVEL") {
-	case "DEBUG":
-		return log.DebugLevel
-	case "INFO":
-		return log.InfoLevel
-	case "WARN":
-		return log.WarnLevel
-	case "ERROR":
-		return log.ErrorLevel
-	case "FATAL":
-		return log.FatalLevel
-	}
-	return log.ErrorLevel
-}
 
 // retunes the image specified by the path
 func loadImage(path string) (image.Image, error) {
@@ -621,13 +303,13 @@ func loadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-func checkDirs(c Config) error {
-	paths := []string{c.OriginalsDir, c.CacheDir}
-	err := checkExists(paths, c.CreateDirs)
+func checkDirs(o *options) error {
+	paths := []string{o.dirOriginals, o.dirCache}
+	err := checkExists(paths, o.createDirs)
 	if err != nil {
 		return err
 	}
-	return checkFilePermissions(paths, c.SetPerms)
+	return checkFilePermissions(paths, o.setPermissions)
 }
 
 func checkExists(paths []string, createDirs bool) error {
@@ -674,6 +356,7 @@ func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
 			perm = file
 		}
 
+		// bitwise and on
 		if i.Mode().Perm()&perm < perm {
 			p := i.Mode().Perm() | perm
 			err := os.Chmod(path, p)
@@ -703,15 +386,7 @@ const (
 	Petabyte = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
 )
 
-func MustSizeParse(str string) Size {
-	s, err := SizeParse(str)
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
-func SizeParse(str string) (Size, error) {
+func ParseSize(str string) (Size, error) {
 	if s, ok := sizeParseHelper(str, "KB", Kilobyte); ok {
 		return s, nil
 	}
@@ -804,8 +479,7 @@ func signi3(whole, remainder int) string {
 }
 
 func fileRemover(l *log.Logger, pathChan <-chan string) {
-	l = l.WithPrefix("[FileRemover]")
-	l.Debug("Starting file remover")
+	l.Debug("Running...")
 	for path := range pathChan {
 		err := os.Remove(path)
 		if err != nil {
@@ -814,4 +488,350 @@ func fileRemover(l *log.Logger, pathChan <-chan string) {
 		l.Debug("File removed", "path", path)
 	}
 	l.Error("File Remover stopped. Channel closed.")
+}
+
+// TYPES and type parsers
+
+// Format represents image formats.
+type Format string
+
+const (
+	Jpeg Format = "jpeg" // quality 1-100
+	Png  Format = "png"  // always lossless
+	Gif  Format = "gif"  // num colors 1-256
+)
+
+func (f Format) String() string {
+	return string(f)
+}
+
+func ParseFormat(s string) (Format, error) {
+	switch s {
+	case "jpeg":
+		return Jpeg, nil
+	case "jpg":
+		return Jpeg, nil
+	case "png":
+		return Png, nil
+	case "gif":
+		return Gif, nil
+	}
+	return "", fmt.Errorf("invalid image-format: %s", s)
+}
+
+// Interpolation represents interpolation methods used when resizing images.
+type Interpolation string
+
+const (
+	NearestNeighbor Interpolation = "nearestNeighbor"
+	Bilinear        Interpolation = "bilinear"
+	Bicubic         Interpolation = "bicubic"
+	MitchellNetrav  Interpolation = "MitchellNetravali"
+	Lanczos2        Interpolation = "lanczos2"
+	Lanczos3        Interpolation = "lanczos3"
+)
+
+func (r Interpolation) String() string {
+	return string(r)
+}
+
+func ParseInterpolation(s string) (Interpolation, error) {
+	switch s {
+	case "nearestNeighbor":
+		return NearestNeighbor, nil
+	case "bilinear":
+		return Bilinear, nil
+	case "bicubic":
+		return Bicubic, nil
+	case "MitchellNetravali":
+		return MitchellNetrav, nil
+	case "lanczos2":
+		return Lanczos2, nil
+	case "lanczos3":
+		return Lanczos3, nil
+	}
+	return "", fmt.Errorf("invalid resize-interpolation-function. got: '%s'\nvalid options are: \n'nearestNeighbor'\n'bilinear'\n'bicubic'\n'MitchellNetravali'\n'lanczos2'\n'lanczos3'", s)
+}
+
+func (ip *ImageParameters) String() string {
+	return fmt.Sprintf("%d_%dx%d_q%d_s%d.%s", ip.Id, ip.Width, ip.Height, ip.Quality, ip.MaxSize, ip.Format)
+}
+
+func (ip *ImageParameters) apply(def ImageDefaults) {
+	if ip.Format == "" {
+		ip.Format = def.Format
+	}
+	if ip.Quality == 0 && ip.Format == Jpeg {
+		ip.Quality = def.QualityJpeg
+	}
+	if ip.Quality == 0 && ip.Format == Gif {
+		ip.Quality = def.QualityGif
+	}
+	if ip.Width == 0 && ip.Height == 0 {
+		ip.Width = uint(def.Width)
+		ip.Height = uint(def.Height)
+	}
+	if ip.MaxSize == 0 {
+		ip.MaxSize = def.MaxSize
+	}
+}
+
+// cache is expected to be thread-safe. It should return true if the path is in cache and false otherwise.
+//
+// It should add the path to cache if it is not already there.
+//
+// NOTE: cache should send evicted paths through a channel to the image handler to be deleted from disk.
+type cache interface {
+	Access(path string) bool
+}
+
+// CONFIGURATION
+
+// options represents the configuration options for the ImageHandler
+type options struct {
+	l        *log.Logger
+	logLevel log.Level
+
+	createDirs     bool
+	setPermissions bool
+
+	dirOriginals string
+	dirCache     string
+
+	cacheMaxNum  int
+	cacheMaxSize Size
+
+	imageDefaults ImageDefaults
+	imagePresets  []ImagePreset
+}
+
+func (o *options) String() string {
+	strB := strings.Builder{}
+	strB.WriteString("Options:\n")
+	if o.l != nil {
+		strB.WriteString("  logging: yes\n")
+		strB.WriteString(fmt.Sprintf("  logLevel: %s\n", o.logLevel))
+	} else {
+		strB.WriteString("  logging: no\n")
+	}
+	strB.WriteString(fmt.Sprintf("  createDirs: %t\n", o.createDirs))
+	strB.WriteString(fmt.Sprintf("  setPermissions: %t\n", o.setPermissions))
+	strB.WriteString(fmt.Sprintf("  originalsDir: %s\n", o.dirOriginals))
+	strB.WriteString(fmt.Sprintf("  cacheDir: %s\n", o.dirCache))
+	strB.WriteString(fmt.Sprintf("  cacheMaxNum: %d\n", o.cacheMaxNum))
+	strB.WriteString(fmt.Sprintf("  cacheMaxSize: %s\n", o.cacheMaxSize))
+	strB.WriteString(fmt.Sprintf("  imageDefaults: %s\n", o.imageDefaults))
+	strB.WriteString(fmt.Sprintf("  imagePresets: %s\n", o.imagePresets))
+	return strB.String()
+
+}
+
+type ImageDefaults struct {
+	Format      Format
+	QualityJpeg int
+	QualityGif  int
+	Width       int
+	Height      int
+	MaxSize     Size
+	Interpolation
+}
+
+func (id ImageDefaults) String() string {
+	strB := strings.Builder{}
+	strB.WriteString("\n")
+	strB.WriteString(fmt.Sprintf("    format: %s\n", id.Format))
+	strB.WriteString(fmt.Sprintf("    qualityJpeg: %d\n", id.QualityJpeg))
+	strB.WriteString(fmt.Sprintf("    qualityGif: %d\n", id.QualityGif))
+	strB.WriteString(fmt.Sprintf("    width: %d\n", id.Width))
+	strB.WriteString(fmt.Sprintf("    height: %d\n", id.Height))
+	strB.WriteString(fmt.Sprintf("    maxSize: %s\n", id.MaxSize))
+	strB.WriteString(fmt.Sprintf("    interpolation: %s", id.Interpolation))
+	return strB.String()
+}
+
+func (id *ImageDefaults) validate() error {
+	return nil
+	// TODO: this function
+}
+
+type ImagePreset struct {
+	Name    string
+	Alias   []string
+	Format  Format
+	Quality int
+	Width   int
+	Height  int
+	MaxSize Size
+	Interpolation
+}
+
+func (ip ImagePreset) String() string {
+	strB := strings.Builder{}
+	strB.WriteString("\n")
+	strB.WriteString(fmt.Sprintf("    %s:\n", ip.Name))
+	strB.WriteString(fmt.Sprintf("      alias: %s\n", ip.Alias))
+	strB.WriteString(fmt.Sprintf("      format: %s\n", ip.Format))
+	strB.WriteString(fmt.Sprintf("      quality: %d\n", ip.Quality))
+	strB.WriteString(fmt.Sprintf("      width: %d\n", ip.Width))
+	strB.WriteString(fmt.Sprintf("      height: %d\n", ip.Height))
+	strB.WriteString(fmt.Sprintf("      maxSize: %s\n", ip.MaxSize))
+	strB.WriteString(fmt.Sprintf("      interpolation: %s", ip.Interpolation))
+	return strB.String()
+}
+
+func (ip ImagePreset) validate() error {
+	return nil
+	// TODO: this function
+}
+
+func optionsDefault() options {
+	return options{
+		l:        nil,
+		logLevel: log.InfoLevel,
+
+		createDirs:     false,
+		setPermissions: false,
+
+		dirOriginals: "img/originals",
+
+		dirCache:     "img/cache",
+		cacheMaxNum:  1000000,
+		cacheMaxSize: 10 * Gigabyte,
+
+		imageDefaults: ImageDefaults{
+			Format:      Jpeg,
+			QualityJpeg: 80,
+			QualityGif:  256,
+			Width:       0,
+			Height:      800,
+			MaxSize:     10 * Megabyte,
+		},
+
+		imagePresets: []ImagePreset{},
+	}
+}
+
+// optFunc is a function for setting an option
+type optFunc func(*options) error
+
+// WithLogger sets the logger
+func WithLogger(l *log.Logger) optFunc {
+	return func(o *options) error {
+		o.l = l
+		return nil
+	}
+}
+
+// WithLogLevel sets the log level
+func WithLogLevel(s string) optFunc {
+	return func(o *options) error {
+		l := log.ParseLevel(s)
+		o.logLevel = l
+		o.l.SetLevel(l)
+		return nil
+	}
+}
+
+// WithCreateDirs sets the create directories option
+func WithCreateDirs(b bool) optFunc {
+	return func(o *options) error {
+		o.createDirs = b
+		return nil
+	}
+}
+
+// WithSetPermissions sets the set permissions option
+func WithSetPermissions(b bool) optFunc {
+	return func(o *options) error {
+		o.setPermissions = b
+		return nil
+	}
+}
+
+// WithOriginalsDir sets the originals directory
+func WithOriginalsDir(dir string) optFunc {
+	return func(o *options) error {
+		o.dirOriginals = dir
+		return nil
+	}
+}
+
+// WithCacheDir sets the cache directory
+func WithCacheDir(dir string) optFunc {
+	return func(o *options) error {
+		o.dirCache = dir
+		return nil
+	}
+}
+
+// WithCacheMaxNum sets the cache max number option
+func WithCacheMaxNum(num int) optFunc {
+	return func(o *options) error {
+		if num < 1 {
+			return fmt.Errorf("cache can not be smaller then 1 image. got: %d", num)
+		}
+		o.cacheMaxNum = num
+		return nil
+	}
+}
+
+// WithCacheMaxSize sets the cache max size option
+func WithCacheMaxSize(size Size) optFunc {
+	return func(o *options) error {
+		o.cacheMaxSize = size
+		return nil
+	}
+}
+
+// WithImageDefaults sets defaults used when no preset or parameters are given
+func WithImageDefaults(id ImageDefaults) optFunc {
+	return func(o *options) error {
+		err := id.validate()
+		if err != nil {
+			return err
+		}
+		o.imageDefaults = id
+		return nil
+	}
+}
+
+// WithImagePresets adds the given set of presets to the handler
+func WithImagePresets(presets []ImagePreset) optFunc {
+	return func(o *options) error {
+		errs := []error{}
+		for _, p := range presets {
+			errs = append(errs, p.validate())
+		}
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
+		o.imagePresets = append(o.imagePresets, presets...)
+		return nil
+	}
+}
+
+// ERRORS
+
+type ErrIdNotFound struct {
+	IdGiven int
+	Err     error
+}
+
+func (e ErrIdNotFound) Error() string {
+	return fmt.Sprintf("id (%d) not found\nerror: %s", e.IdGiven, e.Err.Error())
+}
+
+func (e ErrIdNotFound) Is(err error) bool {
+	_, ok := err.(ErrIdNotFound)
+	return ok
+}
+
+// Logger
+
+type Logger interface {
+	Debug(msg any, keyvals ...any)
+	Info(msg any, keyvals ...any)
+	Warn(msg any, keyvals ...any)
+	Error(msg any, keyvals ...any)
+	Fatal(msg any, keyvals ...any)
 }

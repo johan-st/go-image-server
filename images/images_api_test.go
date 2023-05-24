@@ -5,16 +5,18 @@ import (
 	"strconv"
 	"testing"
 
-	img "github.com/johan-st/go-image-server/images"
+	"github.com/charmbracelet/log"
+	"github.com/johan-st/go-image-server/images"
 )
 
 const (
 	testFsDir          = "test-fs"
 	test_import_source = testFsDir + "/originals"
-	commonExt          = ".jpg" // this needs to be  the same as in images.go
+	commonExt          = ".jpeg" // this needs to be  the same as in images.go
 )
 
 func Test_Add(t *testing.T) {
+	t.Parallel()
 	// Arange
 	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
 	if err != nil {
@@ -28,12 +30,14 @@ func Test_Add(t *testing.T) {
 	}
 	defer os.RemoveAll(cachePath)
 
-	conf := img.Config{
-		OriginalsDir: originalsDir,
-		CacheDir:     cachePath,
-	}
-
-	ih, err := img.New(conf, nil)
+	ih, err := images.New(
+		images.WithOriginalsDir(originalsDir),
+		images.WithCacheDir(cachePath),
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
+		images.WithLogger(log.New(os.Stderr).WithPrefix(t.Name())),
+		images.WithLogLevel("debug"),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,8 +58,8 @@ func Test_Add(t *testing.T) {
 	}
 	if stat.Size() == 0 {
 		t.Log("path\t", path)
-		t.Log("size\t\t", img.Size(stat.Size()))
-		t.Log("msg\t\t", "file is empty")
+		t.Log("size\t", images.Size(stat.Size()))
+		t.Log("msg\t", "file is empty")
 		t.Fail()
 	}
 
@@ -67,12 +71,13 @@ func Test_Add(t *testing.T) {
 	if len(dir) < 1 {
 		t.Fatal("originals dir is empty")
 	}
-
 }
 
 func Test_Get(t *testing.T) {
+	t.Parallel()
 
-	// arange
+	// arange¨
+	// l := log.Default().WithPrefix("Test_Get").WithLevel(log.LevelDebug)
 	// filesystem
 	originalsDir, err := os.MkdirTemp(testFsDir, "testAdd-Originals_")
 	if err != nil {
@@ -85,13 +90,16 @@ func Test_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(cachePath)
-	// config
-	conf := img.Config{
-		OriginalsDir: originalsDir,
-		CacheDir:     cachePath,
-	}
 	// handler
-	ih, err := img.New(conf, nil)
+	ih, err := images.New(
+		images.WithOriginalsDir(originalsDir),
+		images.WithCacheDir(cachePath),
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
+		images.WithLogger(log.New(os.Stderr).WithPrefix(t.Name())),
+		images.WithLogLevel("debug"),
+	)
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,8 +111,15 @@ func Test_Get(t *testing.T) {
 	t.Log("added id\t", id)
 
 	// act
-	path, err := ih.Get(img.ImageParameters{}, id)
-	t.Log("got path\t", path)
+	path, err := ih.Get(images.ImageParameters{
+		Id:      id,
+		Width:   500,
+		Height:  500,
+		Format:  images.Jpeg,
+		Quality: 10,
+		MaxSize: 50 * images.Megabyte,
+	})
+	t.Logf("got path (%s)", path)
 
 	// assert
 	if err != nil {
@@ -151,12 +166,12 @@ func Test_Get(t *testing.T) {
 // 	}
 // 	defer os.RemoveAll(cachePath)
 
-// 	conf := img.Config{
+// 	conf := images.Config{
 // 		OriginalsDir: originalsDir,
 // 		CacheDir:     cachePath,
 // 	}
 
-// 	ih, err := img.New(conf, nil)
+// 	ih, err := images.New()
 // 	if err != nil {
 // 		t.Fatal(err)
 // 	}
@@ -168,7 +183,7 @@ func Test_Get(t *testing.T) {
 // 	if err != nil {
 // 		t.Fatal(err)
 // 	}
-// 	ih.Get(img.ImageParameters{Width: 10}, idKeep)
+// 	ih.Get(images.ImageParameters{Width: 10}, idKeep)
 
 // 	// act
 // 	err = ih.Remove(idRem)
@@ -185,15 +200,15 @@ func Test_Get(t *testing.T) {
 // 	if len(dir) != 1 {
 // 		t.Fatalf("originals dir is not the anticipated length (%d). len=%d", 1, len(dir))
 // 	}
-// 	_, err = ih.Get(img.ImageParameters{Width: 10}, idRem)
+// 	_, err = ih.Get(images.ImageParameters{Width: 10}, idRem)
 // 	if err == nil {
 // 		t.Fatal("file still found")
 // 	}
-// 	if !errors.Is(err, img.ErrIdNotFound{}) {
+// 	if !errors.Is(err, images.ErrIdNotFound{}) {
 // 		t.Fatal(err)
 // 	}
 // 	// check that the keep file is still there
-// 	_, err = ih.Get(img.ImageParameters{Width: 10}, idKeep)
+// 	_, err = ih.Get(images.ImageParameters{Width: 10}, idKeep)
 // 	if err != nil {
 // 		t.Fatal(err)
 // 	}
@@ -201,6 +216,7 @@ func Test_Get(t *testing.T) {
 // }
 
 func Test_ListIds(t *testing.T) {
+	t.Parallel()
 	// arange
 	originalsDir, _ := os.MkdirTemp(testFsDir, "testAdd-Originals_")
 	defer os.RemoveAll(originalsDir)
@@ -208,11 +224,14 @@ func Test_ListIds(t *testing.T) {
 	cachePath, _ := os.MkdirTemp(testFsDir, "testAdd-Cache_")
 	defer os.RemoveAll(cachePath)
 
-	ih, _ := img.New(
-		img.Config{
-			OriginalsDir: originalsDir,
-			CacheDir:     cachePath,
-		}, nil)
+	ih, _ := images.New(
+		images.WithOriginalsDir(originalsDir),
+		images.WithCacheDir(cachePath),
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
+		images.WithLogger(log.New(os.Stderr).WithPrefix(t.Name())),
+		images.WithLogLevel("debug"),
+	)
 
 	ids := []int{}
 	id, _ := ih.Add(test_import_source + "/one.jpg")
