@@ -7,8 +7,8 @@ files:
     populate_from: test-data
     set_perms: true
     create_dirs: true
-    originals_dir: test-data/devconf/originals
-    cache_dir: test-data/devconf/cache
+    originals_dir: test-fs/devconf/originals
+    cache_dir: test-fs/devconf/cache
 cache_rules:
     max_objects: 5
     max_size: 1 MB

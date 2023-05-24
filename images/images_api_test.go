@@ -33,8 +33,8 @@ func Test_Add(t *testing.T) {
 	ih, err := images.New(
 		images.WithOriginalsDir(originalsDir),
 		images.WithCacheDir(cachePath),
-		images.WithSetPermissions,
-		images.WithCreateDirs,
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
 		images.WithLogger(log.New(os.Stderr).WithPrefix(t.Name())),
 		images.WithLogLevel("debug"),
 	)
@@ -94,8 +94,8 @@ func Test_Get(t *testing.T) {
 	ih, err := images.New(
 		images.WithOriginalsDir(originalsDir),
 		images.WithCacheDir(cachePath),
-		images.WithSetPermissions,
-		images.WithCreateDirs,
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
 		images.WithLogger(log.New(os.Stderr).WithPrefix(t.Name())),
 		images.WithLogLevel("debug"),
 	)
@@ -227,8 +227,8 @@ func Test_ListIds(t *testing.T) {
 	ih, _ := images.New(
 		images.WithOriginalsDir(originalsDir),
 		images.WithCacheDir(cachePath),
-		images.WithSetPermissions,
-		images.WithCreateDirs,
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
 		images.WithLogger(log.New(os.Stderr).WithPrefix(t.Name())),
 		images.WithLogLevel("debug"),
 	)

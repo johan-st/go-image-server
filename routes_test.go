@@ -54,8 +54,8 @@ func Test_HandleImg(t *testing.T) {
 	ih, err := images.New(
 		images.WithOriginalsDir(originalsDir),
 		images.WithCacheDir(cachePath),
-		images.WithSetPermissions,
-		images.WithCreateDirs,
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
 	)
 	is.NoErr(err)
 
@@ -127,8 +127,8 @@ func Benchmark_HandleImg_cached(b *testing.B) {
 	ih, err := images.New(
 		images.WithOriginalsDir(originalsDir),
 		images.WithCacheDir(cachePath),
-		images.WithSetPermissions,
-		images.WithCreateDirs,
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
 	)
 
 	if err != nil {
@@ -180,8 +180,8 @@ func Benchmark_HandleImg_notCached(b *testing.B) {
 	ih, err := images.New(
 		images.WithOriginalsDir(originalsDir),
 		images.WithCacheDir(cachePath),
-		images.WithSetPermissions,
-		images.WithCreateDirs,
+		images.WithSetPermissions(true),
+		images.WithCreateDirs(true),
 		images.WithCacheMaxNum(1),
 	)
 
