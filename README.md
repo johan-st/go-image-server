@@ -81,7 +81,10 @@ _(#backatit)_
 - 2023-05-18: set up basics for yaml config. this will supercede the defaults when implemented
 - 2023-05-19: hook in yaml config. All settings are not yet used. 
 - 2023-05-19: create branch for working on a new config pattern for images package
+<<<<<<< HEAD
 - 2023-05-24: branch: conf another way. refactoring and hook in config file   
+=======
+>>>>>>> main
 
 ## Februari 2022
 
