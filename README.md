@@ -87,6 +87,7 @@ _(#backatit)_
 - 2023-05-19: create branch for working on a new config pattern for images package
 - 2023-05-24: branch: conf another way. refactoring and hook in config file   
 - 2023-05-25: work on conf and update todos
+- 2023-05-26: work on conf and check a few todos
 
 ## Februari 2022
 
