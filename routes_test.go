@@ -40,6 +40,7 @@ func Test_HandleDocs(t *testing.T) {
 }
 
 func Test_HandleImg(t *testing.T) {
+
 	is := is.New(t)
 
 	// arrange
@@ -90,22 +91,6 @@ func Test_HandleImg(t *testing.T) {
 }
 
 // BENCHMARKS
-
-func Benchmark_HandleDocs(b *testing.B) {
-	l := log.WithPrefix("[http bechmark]")
-	l.SetLevel(log.FatalLevel)
-
-	srv := server{
-		router: *way.NewRouter(),
-	}
-
-	srv.routes()
-	req := httptest.NewRequest("GET", "/", nil)
-	w := httptest.NewRecorder()
-	for i := 0; i < b.N; i++ {
-		srv.ServeHTTP(w, req)
-	}
-}
 
 func Benchmark_HandleImg_cached(b *testing.B) {
 	l := log.Default()

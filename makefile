@@ -14,8 +14,8 @@ test:
 test-race:
 	go test -race ./...
 
-bench:
-	go test -bench=. -benchmem ./... 
+bench:. 
+	go test -benchmem -bench .
 
 coverage:
 	go test -coverprofile=coverage.out ./...
