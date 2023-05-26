@@ -59,9 +59,9 @@ _(#backatit)_
   - e.g: `NewServer(withPort(8080), withCacheSize(1000), withImageDefaults(imgDef), withImagePreset(imgPresetSmall), withImagePreset(imgPresetThumb))` etc...
   - https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
   - Anthony GG video: https://www.youtube.com/watch?v=MDy7JQN5MN4
-- [ ] Stricter checks when adding images. Should be imposible to add a file that can not be parsed as an image.
+- [X] Stricter checks when adding images. Should be imposible to add a file that can not be parsed as an image.
 - [ ] decide on pathing when calling from a different folder than the binary
-- [ ] docs should be opt-in with a flag and config-file
+- [X] docs should be opt-in with a flag and config-file
 - [ ] 'clear cache on startup' should be 'clear cache on shutdown'
 
 ### log
