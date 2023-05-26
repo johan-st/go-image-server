@@ -140,21 +140,27 @@ func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 }
 
 func (h *ImageHandler) Add(path string) (int, error) {
-	h.opts.l.Info("Add", "path", path)
+	h.opts.l.Debug("Add", "path", path)
 
 	// check if file exists
 	srcf, err := os.Open(path)
 	if err != nil {
 		return 0, fmt.Errorf("could not open source file: %w", err)
 	}
-	defer srcf.Close()
 
 	// TODO: check with the image package instead of just the extension?
-	// _, _, err = image.Decode(srcf)
-	// if err != nil {
-	// 	h.opts.l.Error("Error decoding image", "file", srcf, "error", err)
-	// 	return 0, err
-	// }
+	_, _, err = image.Decode(srcf)
+	if err != nil {
+		return 0, err
+	}
+	srcf.Close()
+
+	// breaks if we dont reopen the file
+	srcf, err = os.Open(path)
+	if err != nil {
+		return 0, fmt.Errorf("could not open source file: %w", err)
+	}
+	defer srcf.Close()
 
 	// get a new id
 	h.mu.Lock()

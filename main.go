@@ -258,7 +258,13 @@ func addFolder(ih *images.ImageHandler, folder string) error {
 		if file.IsDir() {
 			continue
 		}
-		ih.Add(folder + "/" + file.Name())
+		id, err := ih.Add(folder + "/" + file.Name())
+		if err != nil {
+			log.Default().Info("failed to add image", "file", file.Name(), "error", err)
+		} else {
+			log.Default().Debug("added image", "file", file.Name(), "id", id)
+		}
+
 	}
 	return nil
 }
