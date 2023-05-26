@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/johan-st/go-image-server/images"
 	"gopkg.in/yaml.v3"
@@ -24,12 +24,14 @@ type confHttp struct {
 }
 
 type confFiles struct {
-	ClearOnStart bool   `yaml:"clear_on_start"`
-	PopulateFrom string `yaml:"populate_from"`
 	SetPerms     bool   `yaml:"set_perms"`
 	CreateDirs   bool   `yaml:"create_dirs"`
 	DirOriginals string `yaml:"originals_dir"`
 	DirCache     string `yaml:"cache_dir"`
+
+	// debug options TODO: should these be here?
+	ClearOnStart bool   `yaml:"clear_on_start"`
+	PopulateFrom string `yaml:"populate_from"`
 }
 
 type confCache struct {
@@ -50,12 +52,12 @@ type confImageDefault struct {
 type confImagePreset struct {
 	Name          string   `yaml:"name"`
 	Alias         []string `yaml:"alias"`
-	Format        string   `yaml:"format"`
-	Quality       int      `yaml:"quality"`
+	Format        string   `yaml:"format,omitempty"`
+	Quality       int      `yaml:"quality,omitempty"`
 	Width         int      `yaml:"width"`
 	Height        int      `yaml:"height"`
-	MaxSize       string   `yaml:"max_size"`
-	Interpolation string   `yaml:"interpolation"`
+	MaxSize       string   `yaml:"max_size,omitempty"`
+	Interpolation string   `yaml:"interpolation,omitempty"`
 }
 
 func saveConfig(c config, filename string) error {
@@ -64,11 +66,11 @@ func saveConfig(c config, filename string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(filename, bytes, 0644)
+	return os.WriteFile(filename, bytes, 0644)
 }
 
 func loadConfig(filename string) (config, error) {
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return config{}, err
 	}
@@ -157,19 +159,26 @@ func (c *config) validate() error {
 
 // TODO: handle errors by returning them?
 func toImageDefaults(c confImageDefault) (images.ImageDefaults, error) {
+	errs := []error{}
+
 	format, err := images.ParseFormat(c.Format)
 	if err != nil {
-		return images.ImageDefaults{}, fmt.Errorf("error while building images.ImageDefaults. %s", err)
+		errs = append(errs, err)
 	}
-
 	size, err := images.ParseSize(c.MaxSize)
 	if err != nil {
-		return images.ImageDefaults{}, fmt.Errorf("error while building images.ImageDefaults. %s", err)
+		errs = append(errs, err)
 	}
 
 	interpolation, err := images.ParseInterpolation(c.Interpolation)
 	if err != nil {
-		return images.ImageDefaults{}, fmt.Errorf("error while building images.ImageDefaults. %s", err)
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		newErrs := []error{fmt.Errorf("(%d) errors while building ImageDefaults", len(errs))}
+		newErrs = append(newErrs, errs...)
+		return images.ImageDefaults{}, errors.Join(newErrs...)
 	}
 
 	return images.ImageDefaults{
@@ -186,13 +195,15 @@ func toImageDefaults(c confImageDefault) (images.ImageDefaults, error) {
 func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.ImagePreset, error) {
 	presets := []images.ImagePreset{}
 	var err error
+	errs := []error{}
+
 	for _, cp := range conf {
 		// format
 		var format images.Format
 		if cp.Format != "" {
 			format, err = images.ParseFormat(cp.Format)
 			if err != nil {
-				return []images.ImagePreset{}, fmt.Errorf("error while building the preset '%s'. %s", cp.Name, err)
+				errs = append(errs, err)
 			}
 		} else {
 			format = def.Format
@@ -203,7 +214,7 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 		if cp.MaxSize != "" {
 			size, err = images.ParseSize(cp.MaxSize)
 			if err != nil {
-				return []images.ImagePreset{}, fmt.Errorf("error while building the preset '%s'. %s", cp.Name, err)
+				errs = append(errs, err)
 			}
 		} else {
 			size = def.MaxSize
@@ -214,7 +225,7 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 		if cp.Interpolation != "" {
 			interpolation, err = images.ParseInterpolation(cp.Interpolation)
 			if err != nil {
-				return []images.ImagePreset{}, fmt.Errorf("error while building the preset '%s'. %s", cp.Name, err)
+				errs = append(errs, err)
 			}
 		} else {
 			interpolation = def.Interpolation
@@ -233,5 +244,72 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 		}
 		presets = append(presets, p)
 	}
+
+	if len(errs) > 0 {
+		newErrs := []error{fmt.Errorf("(%d) errors while building ImagePresets", len(errs))}
+		newErrs = append(newErrs, errs...)
+		return []images.ImagePreset{}, errors.Join(newErrs...)
+	}
 	return presets, nil
+}
+
+func defaultConfig() config {
+	return config{
+		LogLevel: "info",
+		Http: confHttp{
+			Port: 8080,
+			Host: "",
+		},
+		Files: confFiles{
+			ClearOnStart: false,
+			PopulateFrom: "",
+			SetPerms:     false,
+			CreateDirs:   false,
+			DirOriginals: "img/originals",
+			DirCache:     "img/cached",
+		},
+		Cache: confCache{
+			Cap:     100000,
+			MaxSize: "500 GB",
+		},
+		ImageDefaults: confImageDefault{
+			Format:        "jpeg",
+			QualityJpeg:   80,
+			QualityGif:    256,
+			Width:         0,
+			Height:        800,
+			MaxSize:       "1 MB",
+			Interpolation: "nearestNeighbor",
+		},
+		ImagePresets: []confImagePreset{
+			{
+				Name:          "thumbnail",
+				Alias:         []string{"thumb", "th"},
+				Format:        "jpeg",
+				Quality:       80,
+				Width:         150,
+				Height:        150,
+				MaxSize:       "10 KB",
+				Interpolation: "lanczos3",
+			},
+			{
+				Name:   "small",
+				Alias:  []string{"small", "s"},
+				Height: 400,
+				Width:  0,
+			},
+			{
+				Name:   "medium",
+				Alias:  []string{"medium", "m"},
+				Height: 800,
+				Width:  0,
+			},
+			{
+				Name:   "large",
+				Alias:  []string{"large", "l"},
+				Height: 400,
+				Width:  0,
+			},
+		},
+	}
 }

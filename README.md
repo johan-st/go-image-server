@@ -59,6 +59,10 @@ _(#backatit)_
   - e.g: `NewServer(withPort(8080), withCacheSize(1000), withImageDefaults(imgDef), withImagePreset(imgPresetSmall), withImagePreset(imgPresetThumb))` etc...
   - https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
   - Anthony GG video: https://www.youtube.com/watch?v=MDy7JQN5MN4
+- [ ] Stricter checks when adding images. Should be imposible to add a file that can not be parsed as an image.
+- [ ] decide on pathing when calling from a different folder than the binary
+- [ ] docs should be opt-in with a flag and config-file
+- [ ] 'clear cache on startup' should be 'clear cache on shutdown'
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
@@ -81,10 +85,8 @@ _(#backatit)_
 - 2023-05-18: set up basics for yaml config. this will supercede the defaults when implemented
 - 2023-05-19: hook in yaml config. All settings are not yet used. 
 - 2023-05-19: create branch for working on a new config pattern for images package
-<<<<<<< HEAD
 - 2023-05-24: branch: conf another way. refactoring and hook in config file   
-=======
->>>>>>> main
+- 2023-05-25: work on conf and update todos
 
 ## Februari 2022
 

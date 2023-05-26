@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -24,29 +25,32 @@ func main() {
 }
 
 func run(l *log.Logger) error {
-	confFile := flag.String("c", "config.yaml", "path to configuration file")
+	confFile := flag.String("c", "imageServer_config.yaml", "path to configuration file")
 	flag.Parse()
 
 	// image handler might not need a logger
 	// should return errors and let the caller decide how to handle and log them
 	ihLogger := l.WithPrefix("[ImageHandler]")
 	// ihLogger.SetLevel(log.DebugLevel)
-	l.Info("Loading configuration file", "path", *confFile)
 	conf, err := loadConfig(*confFile)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			l.Error("configuration file not found. creating example configuration in its place", "path", *confFile)
+			saveErr := saveConfig(defaultConfig(), *confFile)
+			if saveErr != nil {
+				l.Error("could not save config", "error", saveErr)
+			}
+			return fmt.Errorf("config was not set")
+		}
 		return err
 	}
-	err = conf.validate()
-	if err != nil {
-		return err
-	}
+	l.Info("configuration loaded", "file path", *confFile)
+	// err = conf.validate()
+	// if err != nil {
+	// 	return err
+	// }
 
 	l.SetLevel(log.ParseLevel(conf.LogLevel))
-
-	err = saveConfig(conf, "runningConfig.yaml")
-	if err != nil {
-		l.Error("could not save running config", "error", err)
-	}
 
 	if conf.Files.ClearOnStart {
 		l.Warn(

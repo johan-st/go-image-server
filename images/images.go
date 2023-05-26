@@ -411,7 +411,7 @@ func ParseSize(str string) (Size, error) {
 		return Size(intVal), nil
 	}
 
-	return Size(0), fmt.Errorf("could not parse size string '%s'", str)
+	return Size(0), fmt.Errorf("could not parse string '%s' as a Size", str)
 }
 
 func sizeParseHelper(str string, sufix string, size Size) (Size, bool) {
@@ -516,7 +516,7 @@ func ParseFormat(s string) (Format, error) {
 	case "gif":
 		return Gif, nil
 	}
-	return "", fmt.Errorf("invalid image-format: %s", s)
+	return "", fmt.Errorf("invalid image-format. \n\tGot: %s\n\tWant: 'jpeg', 'jpg', 'png', 'gif'", s)
 }
 
 // Interpolation represents interpolation methods used when resizing images.
@@ -550,7 +550,7 @@ func ParseInterpolation(s string) (Interpolation, error) {
 	case "lanczos3":
 		return Lanczos3, nil
 	}
-	return "", fmt.Errorf("invalid resize-interpolation-function. got: '%s'\nvalid options are: \n'nearestNeighbor'\n'bilinear'\n'bicubic'\n'MitchellNetravali'\n'lanczos2'\n'lanczos3'", s)
+	return "", fmt.Errorf("invalid interpolation-function. \n\tGot: '%s'\n\tWant: 'nearestNeighbor', 'bilinear', 'bicubic', 'MitchellNetravali', 'lanczos2', 'lanczos3'", s)
 }
 
 func (ip *ImageParameters) String() string {
