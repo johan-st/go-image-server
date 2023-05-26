@@ -3,7 +3,7 @@ build: test-race
 	@go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" .
 
 run:
-	go run . -c devConf.yaml
+	go run . -c devConf.yaml -dev
 
 format:
 	gofmt -s -w .
@@ -13,6 +13,9 @@ test:
 
 test-race:
 	go test -race ./...
+
+bench:
+	go test -bench=. -benchmem ./... 
 
 coverage:
 	go test -coverprofile=coverage.out ./...

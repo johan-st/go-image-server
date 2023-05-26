@@ -13,42 +13,85 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/way"
 )
 
 func main() {
 	l := newCustomLogger()
+	log.SetDefault(l)
 
-	err := run(l)
+	err := run()
 	if err != nil {
+		// if errors.Is(err, http.ErrServerClosed) {
+		// l.Info("server closed")
+		// return
+		// }
 		l.Fatal(err)
 	}
 }
 
-func run(l *log.Logger) error {
-	confFile := flag.String("c", "imageServer_config.yaml", "path to configuration file")
+func run() error {
+	// parse flags
+	flagConf := flag.String("c", "imageServer_config.yaml", "path to configuration file")
+	flagDev := flag.Bool("dev", false, "enable source code debugging")
+	// flagLogFile := flag.String("log", "", "path to log file")
 	flag.Parse()
 
-	// image handler might not need a logger
-	// should return errors and let the caller decide how to handle and log them
-	ihLogger := l.WithPrefix("[ImageHandler]")
-	// ihLogger.SetLevel(log.DebugLevel)
-	conf, err := loadConfig(*confFile)
+	// load configuration
+	conf, err := loadConfig(*flagConf)
+
+	// set up logger
+	l := log.Default()
+	// l.Info("starting server", "version", version, "commit", commit, "build time", buildTime)
+
+	// enable development mode before handling first error. If flag is set
+	// i.e. report caller and set log level to debug
+	if *flagDev {
+		l.SetReportCaller(true)
+		l.SetLevel(log.DebugLevel)
+		conf.LogLevel = "debug"
+	}
+
+	// JUST REDIRECT STDOUT TO A FILE INSTEAD (./goImageServer >> file.log)
+	// Log to file
+	// if *flagLogFile != "" {
+	// 	l.Info("logging to file", "path", *flagLogFile)
+
+	// 	l := log.Default()
+
+	// 	logfile, err := os.OpenFile(*flagLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// 	if err != nil {
+	// 		l.Fatal("Could no set up logfile", "error", err)
+	// 	}
+	// 	defer logfile.Close()
+
+	// 	l.SetOutput(logfile)
+	// 	l.SetFormatter(log.TextFormatter)
+	// 	// l.SetFormatter(log.LogfmtFormatter)
+	// 	// l.SetFormatter(log.JSONFormatter)
+	// }
+	l.Info("starting server...")
+
+	// handle configuration errors
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			l.Error("configuration file not found. creating example configuration in its place", "path", *confFile)
-			saveErr := saveConfig(defaultConfig(), *confFile)
+			l.Error("configuration file not found. creating example configuration in its place", "path", *flagConf)
+			saveErr := saveConfig(defaultConfig(), *flagConf)
 			if saveErr != nil {
 				l.Error("could not save config", "error", saveErr)
+				return fmt.Errorf("config file not found. could not create example config file: %w", saveErr)
 			}
-			return fmt.Errorf("config was not set")
+			return fmt.Errorf("config was not found. created example config in %s", *flagConf)
 		}
 		return err
 	}
-	l.Info("configuration loaded", "file path", *confFile)
-	// err = conf.validate()
-	// if err != nil {
-	// 	return err
-	// }
+
+	l.Debug("configuration loaded", "file path", *flagConf)
+	err = conf.validate()
+	if err != nil {
+		return err
+	}
+	l.Debug("configuration loaded and validated", "file path", *flagConf)
 
 	l.SetLevel(log.ParseLevel(conf.LogLevel))
 
@@ -79,7 +122,7 @@ func run(l *log.Logger) error {
 
 	// create image handler
 	ih, err := images.New(
-		images.WithLogger(ihLogger),
+		images.WithLogger(l.WithPrefix("[images]")),
 		images.WithLogLevel(conf.LogLevel),
 
 		images.WithCreateDirs(conf.Files.CreateDirs),
@@ -110,10 +153,18 @@ func run(l *log.Logger) error {
 		l.Info("Port not set in config. Using default port", "port", conf.Http.Port)
 	}
 
-	srv := newServer(l.WithPrefix("[http]"), ih)
+	// set up router
+	router := &server{
+		conf:   conf.Http,
+		router: *way.NewRouter(),
+		ih:     ih,
+	}
+	router.routes()
+
+	// set up server
 	mainSrv := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", conf.Http.Host, conf.Http.Port),
-		Handler:           srv,
+		Handler:           router,
 		ReadTimeout:       1 * time.Second,
 		ReadHeaderTimeout: 1 * time.Second,
 		WriteTimeout:      1 * time.Second,
@@ -125,12 +176,12 @@ func run(l *log.Logger) error {
 	signal.Notify(signalChan, os.Interrupt)
 	go func() {
 		for sig := range signalChan {
-			l.Warn("shutting down server...", "signal", sig)
+			l.Debug("signal recieved", "signal", sig)
 			mainSrv.Shutdown(context.Background())
 		}
 	}()
 
-	srv.l.Infof("server is up and listening on %s", mainSrv.Addr)
+	l.Info("server is up and listening", "addr", mainSrv.Addr)
 	return mainSrv.ListenAndServe()
 }
 
@@ -148,24 +199,11 @@ func newCustomLogger() *log.Logger {
 		Formatter:       log.TextFormatter,
 		Fields:          []interface{}{},
 	}
-	l := log.NewWithOptions(os.Stderr, opt)
-
-	if l.GetLevel() == log.DebugLevel {
-		l.SetReportCaller(true)
-	}
-
-	// logfile, err := os.OpenFile("image-server.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// if err != nil {
-	// l.Error("Could no set up logfile", "error", err)
-	// }
-	// defer logfile.Close()
-	// l.SetOutput(logfile)
-	// l.SetFormatter(log.JSONFormatter)
-	return l
+	return log.NewWithOptions(os.Stdout, opt)
 }
 
 func funcCallerFormater(file string, line int, funcName string) string {
-	return fmt.Sprintf(" %s:%d %s ", trimCaller(file, 1, '/'), line, trimCaller(funcName, 1, '.'))
+	return fmt.Sprintf("%s:%d %s", trimCaller(file, 2, '/'), line, trimCaller(funcName, 2, '.'))
 }
 
 // Cleanup a path by returning the last n segments of the path only.

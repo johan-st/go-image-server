@@ -2,6 +2,7 @@ log_level: debug
 http:
     port: 8080
     host: localhost
+    documentation: true
 files:
     clear_on_start: true
     populate_from: test-data

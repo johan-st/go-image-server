@@ -24,8 +24,10 @@ const (
 func Test_HandleDocs(t *testing.T) {
 	is := is.New(t)
 	srv := server{
-		l:      log.Default(),
 		router: *way.NewRouter(),
+		conf: confHttp{
+			Docs: true,
+		},
 	}
 	srv.routes()
 	req := httptest.NewRequest("GET", "/", nil)
@@ -64,7 +66,6 @@ func Test_HandleImg(t *testing.T) {
 	t.Log(id)
 
 	srv := server{
-		l:      log.Default(),
 		router: *way.NewRouter(),
 		ih:     ih,
 	}
@@ -95,7 +96,6 @@ func Benchmark_HandleDocs(b *testing.B) {
 	l.SetLevel(log.FatalLevel)
 
 	srv := server{
-		l:      l,
 		router: *way.NewRouter(),
 	}
 
@@ -141,7 +141,6 @@ func Benchmark_HandleImg_cached(b *testing.B) {
 	}
 
 	srv := server{
-		l:      l,
 		router: *way.NewRouter(),
 		ih:     ih,
 	}
@@ -199,7 +198,6 @@ func Benchmark_HandleImg_notCached(b *testing.B) {
 	}
 
 	srv := server{
-		l:      l,
 		router: *way.NewRouter(),
 		ih:     ih,
 	}

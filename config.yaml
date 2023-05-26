@@ -12,15 +12,19 @@
 # or set the CONFIG_FILE environment variable
 
 # The server will look for a config file in the following order:
-# 1. The file specified with the -c flag ((TODO: implement this)))
+# 1. The file specified with the -c flag
 # 2. The file specified in the environment variable CONFIG_FILE ((TODO: implement this)))
 # 3. The default config file (this file)
+
+# LOGGING CONFIGURATION
+# valid values are "debug", "info", "warn", "error", "fatal" 
+logging: "info"
 
 # SERVER CONFIGURATION
 http: 
     port: 8080
     host: 'localhost'   # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
-      
+    documentation: true # set to false to disable the documentation page
 # IMAGE HANDLER CONFIGURATION
 files:
   clean_start: false    # set to true to delete all images from the cache and originals on startup
@@ -43,9 +47,6 @@ files:
     # valid values are positive integers followed by a unit of measurement (none or B for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
     size: '10 GB'
 
-# LOGGING CONFIGURATION
-# valid values are "debug", "info", "warn", "error", "fatal" 
-logging: "info"
 
 
 # NAMED IMAGE PRESETS

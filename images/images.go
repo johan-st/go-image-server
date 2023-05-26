@@ -37,6 +37,8 @@ type ImageHandler struct {
 	latestId int
 
 	cache cache
+
+	presets map[string]ImagePreset
 }
 
 type ImageParameters struct {
@@ -53,6 +55,10 @@ type ImageParameters struct {
 
 	// Max file-size in bytes (0 = no limit)
 	MaxSize Size
+
+	// TODO: implement
+	// Interpolation function used if a new cache file is created
+	// Interpolation Interpolation
 }
 
 // New creates a new Imageandler and applies the given options.
@@ -77,9 +83,8 @@ func New(optFuncs ...optFunc) (*ImageHandler, error) {
 	}
 
 	l := opts.l
-	l.Debug("Creating new ImageHandler", "number of options set", len(optFuncs), "resulting options", opts.String())
 
-	err := checkDirs(&opts)
+	err := checkDirs(l, &opts)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +99,8 @@ func New(optFuncs ...optFunc) (*ImageHandler, error) {
 		latestId: 0,
 
 		cache: newLru(opts.cacheMaxNum, evictedChan),
+
+		presets: presetsMap(opts.imagePresets),
 	}
 
 	ih.latestId, err = ih.findLatestId()
@@ -101,6 +108,8 @@ func New(optFuncs ...optFunc) (*ImageHandler, error) {
 		opts.l.Fatal("could not get latest id during setup.", "error", err)
 		return nil, err
 	}
+
+	l.Debug("Creating new ImageHandler", "number of options set", len(optFuncs), "resulting options", opts.String())
 	return &ih, nil
 }
 
@@ -206,6 +215,14 @@ func (h *ImageHandler) ListIds() ([]int, error) {
 	return ids, nil
 }
 
+func (h *ImageHandler) GetPreset(preset string) (ImagePreset, bool) {
+	p, ok := h.presets[preset]
+	if !ok {
+		return ImagePreset{}, false
+	}
+	return p, true
+}
+
 func (h *ImageHandler) findLatestId() (int, error) {
 	ids, err := h.ListIds()
 	if err != nil {
@@ -303,19 +320,20 @@ func loadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-func checkDirs(o *options) error {
+func checkDirs(l *log.Logger, o *options) error {
 	paths := []string{o.dirOriginals, o.dirCache}
-	err := checkExists(paths, o.createDirs)
+	err := checkExists(l, paths, o.createDirs)
 	if err != nil {
 		return err
 	}
-	return checkFilePermissions(paths, o.setPermissions)
+	return checkFilePermissions(l, paths, o.setPermissions)
 }
 
-func checkExists(paths []string, createDirs bool) error {
+func checkExists(l *log.Logger, paths []string, createDirs bool) error {
 	for _, path := range paths {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if createDirs {
+				l.Info("creating directory", "path", path)
 				err = os.MkdirAll(path, 0700)
 				if err != nil {
 					return err
@@ -329,9 +347,9 @@ func checkExists(paths []string, createDirs bool) error {
 }
 
 // check that the images directory exists and is writable. If not, set up needed permissions.
-func checkFilePermissions(paths []string, setPerms bool) error {
+func checkFilePermissions(l *log.Logger, paths []string, setPerms bool) error {
 	for _, path := range paths {
-		err := filepath.WalkDir(path, permAtLeast(0700, 0600))
+		err := filepath.WalkDir(path, permAtLeast(l, 0700, 0600))
 		if err != nil {
 			return err
 		}
@@ -340,7 +358,7 @@ func checkFilePermissions(paths []string, setPerms bool) error {
 }
 
 // Will extend permissions if needed, but will not reduce them.
-func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
+func permAtLeast(l *log.Logger, dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
 	return func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -363,7 +381,7 @@ func permAtLeast(dir os.FileMode, file os.FileMode) fs.WalkDirFunc {
 			if err != nil {
 				return fmt.Errorf("'%s' has insufficient permissions and setting new permission failed. (was: %o, need at least: %o)", path, i.Mode().Perm(), perm)
 			}
-			fmt.Printf("'%s' had insufficient permissions. Setting permissions to %o. (was: %o, need at least: %o)\n", path, p, i.Mode().Perm(), perm)
+			l.Warn("insufficient permissions", "path", path, "was", i.Mode().Perm(), "need at least", perm, "set to", p)
 
 		}
 		return nil
@@ -621,7 +639,7 @@ func (o *options) String() string {
 	strB.WriteString(fmt.Sprintf("  cacheMaxNum: %d\n", o.cacheMaxNum))
 	strB.WriteString(fmt.Sprintf("  cacheMaxSize: %s\n", o.cacheMaxSize))
 	strB.WriteString(fmt.Sprintf("  imageDefaults: %s\n", o.imageDefaults))
-	strB.WriteString(fmt.Sprintf("  imagePresets: %s\n", o.imagePresets))
+	strB.WriteString(fmt.Sprintf("  imagePresets: %+v\n", o.imagePresets))
 	return strB.String()
 
 }
@@ -709,6 +727,17 @@ func optionsDefault() options {
 
 		imagePresets: []ImagePreset{},
 	}
+}
+
+func presetsMap(imagePresets []ImagePreset) map[string]ImagePreset {
+	m := make(map[string]ImagePreset)
+	for _, p := range imagePresets {
+		for _, a := range p.Alias {
+			m[a] = p
+		}
+
+	}
+	return m
 }
 
 // optFunc is a function for setting an option
@@ -801,11 +830,11 @@ func WithImagePresets(presets []ImagePreset) optFunc {
 		errs := []error{}
 		for _, p := range presets {
 			errs = append(errs, p.validate())
+			o.imagePresets = append(o.imagePresets, p)
 		}
 		if len(errs) > 0 {
 			return errors.Join(errs...)
 		}
-		o.imagePresets = append(o.imagePresets, presets...)
 		return nil
 	}
 }

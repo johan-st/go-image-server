@@ -21,6 +21,7 @@ type config struct {
 type confHttp struct {
 	Port int    `yaml:"port"`
 	Host string `yaml:"host"`
+	Docs bool   `yaml:"documentation"`
 }
 
 type confFiles struct {
@@ -130,7 +131,7 @@ func (c *config) validate() error {
 		if name == "" {
 			errs = append(errs, fmt.Errorf("image parameters name must be set"))
 		}
-		if p.Format != "jpeg" && p.Format != "png" && p.Format != "gif" {
+		if p.Format != "" && p.Format != "jpeg" && p.Format != "png" && p.Format != "gif" {
 			errs = append(errs, fmt.Errorf("image parameters (name: \"%s\") format must be set to a valid value. Valid values are: jpeg, png, gif", name))
 		}
 		if p.Quality == 0 && p.Format == "jpeg" {
@@ -259,6 +260,7 @@ func defaultConfig() config {
 		Http: confHttp{
 			Port: 8080,
 			Host: "",
+			Docs: false,
 		},
 		Files: confFiles{
 			ClearOnStart: false,
@@ -307,7 +309,7 @@ func defaultConfig() config {
 			{
 				Name:   "large",
 				Alias:  []string{"large", "l"},
-				Height: 400,
+				Height: 1600,
 				Width:  0,
 			},
 		},
