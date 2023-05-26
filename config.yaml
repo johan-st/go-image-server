@@ -27,7 +27,8 @@ http:
     documentation: true # set to false to disable the documentation page
 # IMAGE HANDLER CONFIGURATION
 files:
-  clean_start: false    # set to true to delete all images from the cache and originals on startup
+  clear_on_start: false    # set to true to delete all images from the cache and originals on startup
+  clear_on_exit: false    # set to true to delete all images from the cache and originals when halting the server
   populate_from:        # set to the path of a directory containing images to add to the server on startup. Leave empty to disable
 
   # paths are relative. Image Handler will will load images from here on startup and save images here when they are added or cached 

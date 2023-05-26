@@ -32,6 +32,7 @@ type confFiles struct {
 
 	// debug options TODO: should these be here?
 	ClearOnStart bool   `yaml:"clear_on_start"`
+	ClearOnExit  bool   `yaml:"clear_on_exit"`
 	PopulateFrom string `yaml:"populate_from"`
 }
 

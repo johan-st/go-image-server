@@ -3,6 +3,9 @@ build: test-race
 	@go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" .
 
 run:
+	go run . -c devConf.yaml 
+	
+debug:
 	go run . -c devConf.yaml -dev
 
 format:

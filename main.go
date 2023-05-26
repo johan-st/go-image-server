@@ -177,6 +177,15 @@ func run() error {
 	go func() {
 		for sig := range signalChan {
 			l.Debug("signal recieved", "signal", sig)
+			if conf.Files.ClearOnExit {
+				l.Warn(
+					"Clearing folders",
+					"originals_dir", conf.Files.DirOriginals,
+					"cache_dir", conf.Files.DirCache,
+				)
+				os.RemoveAll(conf.Files.DirOriginals)
+				os.RemoveAll(conf.Files.DirCache)
+			}
 			mainSrv.Shutdown(context.Background())
 		}
 	}()

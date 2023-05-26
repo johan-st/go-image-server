@@ -1,10 +1,11 @@
-log_level: debug
+log_level: info
 http:
     port: 8080
     host: localhost
     documentation: true
 files:
-    clear_on_start: true
+    clear_on_start: false
+    clean_on_exit: true
     populate_from: test-data
     set_perms: true
     create_dirs: true

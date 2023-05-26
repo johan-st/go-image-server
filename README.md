@@ -62,7 +62,7 @@ _(#backatit)_
 - [X] Stricter checks when adding images. Should be imposible to add a file that can not be parsed as an image.
 - [ ] decide on pathing when calling from a different folder than the binary
 - [X] docs should be opt-in with a flag and config-file
-- [ ] 'clear cache on startup' should be 'clear cache on shutdown'
+- [X] 'clear cache on startup' should be 'clear cache on shutdown'
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
