@@ -22,10 +22,10 @@ func main() {
 
 	err := run()
 	if err != nil {
-		// if errors.Is(err, http.ErrServerClosed) {
-		// l.Info("server closed")
-		// return
-		// }
+		if errors.Is(err, http.ErrServerClosed) {
+			l.Info("server closed")
+			return
+		}
 		l.Fatal(err)
 	}
 }
