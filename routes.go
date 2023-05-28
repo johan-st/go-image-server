@@ -131,7 +131,7 @@ func (srv *server) handleImgWithPreset() http.HandlerFunc {
 		presetMaybe := way.Param(r.Context(), "preset")
 		p, ok := srv.ih.GetPreset(presetMaybe)
 		if !ok {
-			l.Debug("could not find preset. ignoring..", "not a preset", presetMaybe)
+			l.Debug("could not match preset. ignoring..", "not a preset", presetMaybe)
 			imgPar, err := parseImageParameters(id, query)
 			if err != nil {
 				l.Warn("could not parse image parameters", "err", err, "query", query)
@@ -157,11 +157,9 @@ func (srv *server) handleImgWithPreset() http.HandlerFunc {
 // handleFavicon serves the favicon.ico.
 func (srv *server) handleFavicon() http.HandlerFunc {
 	// setup
-	l := log.Default().With("handler", "handleFavicon")
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Debug("favicon requested")
 		http.ServeFile(w, r, "assets/favicon.ico")
 	}
 }
@@ -187,7 +185,7 @@ func (srv *server) handleInfo() http.HandlerFunc {
 	}
 }
 
-// TODO: implement this properly. Is buggy
+// TODO: implement this properly.
 func (srv *server) handleHousekeeping() http.HandlerFunc {
 	// setup
 	l := log.Default().With("handler", "handleHousekeeping")

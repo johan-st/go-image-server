@@ -43,7 +43,7 @@ _(#backatit)_
 - [X] Refactor tests to work on the image modules API (not as part of the module)  
 - [X] decide on benchmark-method for single images
   - I will use the `go test -bench=. -benchmem` method
-- [ ] add usage log 
+- [x] add usage log 
 - [X] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
@@ -55,7 +55,7 @@ _(#backatit)_
 - [ ] support webp
 - [ ] safe concurrency
 - [ ] switch to disable docs
-- [ ] consider using OptFunc pattern for config. 
+- [x] consider using OptFunc pattern for config. 
   - e.g: `NewServer(withPort(8080), withCacheSize(1000), withImageDefaults(imgDef), withImagePreset(imgPresetSmall), withImagePreset(imgPresetThumb))` etc...
   - https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
   - Anthony GG video: https://www.youtube.com/watch?v=MDy7JQN5MN4
@@ -63,6 +63,7 @@ _(#backatit)_
 - [ ] decide on pathing when calling from a different folder than the binary
 - [X] docs should be opt-in with a flag and config-file
 - [X] 'clear cache on startup' should be 'clear cache on shutdown'
+- 
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
