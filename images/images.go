@@ -118,10 +118,11 @@ func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 	// normalize parameters with defaults
 	params.apply(h.opts.imageDefaults) //TODO: test this
 	cachePath := h.cachePath(params)
-	h.opts.l.Info("Get", "ImageParameters", params, "cachePath", cachePath)
+	h.opts.l.Debug("Get", "ImageParameters", params, "cachePath", cachePath)
 
 	// Look for the image in the cache, return it if it does
-	if inCache := h.cache.Access(cachePath); inCache {
+	if inCache := h.cache.Contains(cachePath); inCache {
+		h.cache.AddOrUpdate(cachePath)
 		return cachePath, nil
 	}
 
@@ -134,7 +135,8 @@ func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 		return "", err
 	}
 
-	// file was created
+	// file was created, adding to cache.
+	h.cache.AddOrUpdate(cachePath)
 	h.opts.l.Debug("Cachefile Created", "path", cachePath, "size", size)
 	return cachePath, nil
 }
@@ -600,13 +602,12 @@ func (ip *ImageParameters) apply(def ImageDefaults) {
 	}
 }
 
-// cache is expected to be thread-safe. It should return true if the path is in cache and false otherwise.
-//
-// It should add the path to cache if it is not already there.
+// cache is expected to be thread-safe.
 //
 // NOTE: cache should send evicted paths through a channel to the image handler to be deleted from disk.
 type cache interface {
-	Access(path string) bool
+	Contains(path string) bool
+	AddOrUpdate(path string) bool
 }
 
 // CONFIGURATION

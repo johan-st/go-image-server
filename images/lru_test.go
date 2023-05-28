@@ -49,16 +49,16 @@ type lruT struct {
 
 func (l *lruT) miss(s string) {
 	l.t.Helper()
-	if l.lru.Access(s) {
-		l.t.Errorf("Access(\"%s\") expected miss", s)
+	if l.lru.AddOrUpdate(s) {
+		l.t.Errorf("AddOrUpdate(\"%s\") expected miss", s)
 	}
 	l.t.Log("miss: ", s)
 }
 
 func (l *lruT) hit(s string) {
 	l.t.Helper()
-	if !l.lru.Access(s) {
-		l.t.Errorf("Access(\"%s\") expected hit", s)
+	if !l.lru.AddOrUpdate(s) {
+		l.t.Errorf("AddOrUpdate(\"%s\") expected hit", s)
 	}
 	l.t.Log("hit:  ", s)
 }

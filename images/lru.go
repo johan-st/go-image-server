@@ -62,7 +62,15 @@ type node struct {
 	prev, next *node
 }
 
-func (l *lru) Access(filepath string) bool {
+func (l *lru) Contains(filepath string) bool {
+	if _, ok := l.lookupNode(filepath); ok {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (l *lru) AddOrUpdate(filepath string) bool {
 	if n, ok := l.lookupNode(filepath); ok {
 		l.moveToFront(n)
 		return true
