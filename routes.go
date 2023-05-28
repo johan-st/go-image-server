@@ -214,11 +214,11 @@ func (srv *server) respondWithImage(w http.ResponseWriter, r *http.Request, l *l
 	path, err := srv.ih.Get(imgPar)
 	if err != nil {
 		if errors.Is(err, images.ErrIdNotFound{}) {
-			l.Warn("image not found", "id", imgPar.Id, "ImageParameters", imgPar, "err", err)
-			srv.respondError(w, r, err.Error(), http.StatusNotFound)
+			l.Warn("id not found", "id", imgPar.Id, "referer", r.Referer())
+			srv.respondError(w, r, fmt.Sprintf("id '%d' was not found", imgPar.Id), http.StatusNotFound)
 			return
 		}
-		l.Error("could not get image", "id", imgPar.Id, "ImageParameters", imgPar, "err", err)
+		l.Error("failed to serve image", "id", imgPar.Id, "ImageParameters", imgPar, "err", err)
 		srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
