@@ -63,7 +63,19 @@ _(#backatit)_
 - [ ] decide on pathing when calling from a different folder than the binary
 - [X] docs should be opt-in with a flag and config-file
 - [X] 'clear cache on startup' should be 'clear cache on shutdown'
-- 
+- [ ] inplement interpolation function
+- [ ] load images and cache from disk on startup
+- [ ] investigate hardcoding docs into binary
+- [ ] Add folder on startup should be reccursive?
+- [ ] Strip images package to bare minimum. Move unnecessary stuff to main package
+- [ ] update USAGE.md
+- [ ] make the creation of a default config file when no conf was found an opt-in feature
+- [ ] handle width and height from diferent sources (query params, presets, defaults)
+- [ ] consider having a fallback image for when the requested image is not found
+- [ ] consider having a fallback image or a smaller image for quick response when the requested image is not cached
+- [X] Access Log as midleware in router
+- [ ] consider commiting to single executable? as of now I need docs folder and config file
+- [ ] add cacnelation context to "add folder on startup" and "load images and cache from disk on startup"?
 
 ### log
 - 2023-04-25: look over code and tests. Plan future work
@@ -89,6 +101,7 @@ _(#backatit)_
 - 2023-05-24: branch: conf another way. refactoring and hook in config file   
 - 2023-05-25: work on conf and update todos
 - 2023-05-26: work on conf and check a few todos
+- 2023-05-28: Fix bug and add access log as file
 
 ## Februari 2022
 
