@@ -19,9 +19,10 @@ type config struct {
 }
 
 type confHttp struct {
-	Port int    `yaml:"port"`
-	Host string `yaml:"host"`
-	Docs bool   `yaml:"documentation"`
+	Port      int    `yaml:"port"`
+	Host      string `yaml:"host"`
+	Docs      bool   `yaml:"documentation"`
+	AccessLog string `yaml:"access_log"`
 }
 
 type confFiles struct {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ func main() {
 	if err != nil {
 		if errors.Is(err, http.ErrServerClosed) {
 			l.Info("server closed")
+			os.Exit(0)
 			return
 		}
 		l.Fatal(err)
@@ -153,18 +155,39 @@ func run() error {
 		l.Info("Port not set in config. Using default port", "port", conf.Http.Port)
 	}
 
-	// set up router
-	router := &server{
+	// set up http log
+	var al *log.Logger
+	if conf.Http.AccessLog != "" {
+		l.Info("access log enabled", "path", conf.Http.AccessLog)
+		file, err := os.OpenFile(conf.Http.AccessLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			l.Error("could not open access log file", "error", err)
+		}
+		defer file.Close()
+
+		al := log.New(file)
+		if path.Ext(conf.Http.AccessLog) == ".json" {
+			al.SetFormatter(log.JSONFormatter)
+			l.Info("access log format set to json", "path", conf.Http.AccessLog)
+		} else {
+			al.SetFormatter(log.TextFormatter)
+			l.Info("access log format set to text", "path", conf.Http.AccessLog)
+		}
+	}
+
+	// set up srv
+	srv := &server{
 		conf:   conf.Http,
 		router: *way.NewRouter(),
 		ih:     ih,
+		l:      al,
 	}
-	router.routes()
+	srv.routes()
 
 	// set up server
 	mainSrv := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", conf.Http.Host, conf.Http.Port),
-		Handler:           router,
+		Handler:           srv,
 		ReadTimeout:       1 * time.Second,
 		ReadHeaderTimeout: 1 * time.Second,
 		WriteTimeout:      1 * time.Second,
@@ -179,7 +202,7 @@ func run() error {
 			l.Debug("signal recieved", "signal", sig)
 			if conf.Files.ClearOnExit {
 				l.Warn(
-					"Clearing folders",
+					"Removing folders",
 					"originals_dir", conf.Files.DirOriginals,
 					"cache_dir", conf.Files.DirCache,
 				)

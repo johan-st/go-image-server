@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 )
 
 type server struct {
+	l      *log.Logger
 	conf   confHttp
 	ih     *images.ImageHandler
 	router way.Router
@@ -25,18 +27,18 @@ type server struct {
 // Register handlers for routes
 func (srv *server) routes() {
 	if srv.conf.Docs {
-		srv.router.HandleFunc("GET", "/", srv.handleDocs())
-		srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
+		srv.router.HandleFunc("GET", "/", srv.logAccess(srv.handleDocs()))
+		srv.router.HandleFunc("GET", "/favicon.ico", srv.logAccess(srv.handleFavicon()))
 	} else {
-		srv.router.HandleFunc("GET", "/", srv.handleNotFound())
+		srv.router.HandleFunc("GET", "/", srv.logAccess(srv.handleNotFound()))
 	}
 
-	srv.router.HandleFunc("GET", "/clearcache", srv.handleClearCache())
-	srv.router.HandleFunc("GET", "/info", srv.handleInfo())
-	srv.router.HandleFunc("GET", "/housekeeping", srv.handleHousekeeping())
-	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
-	srv.router.HandleFunc("GET", "/:id/:preset", srv.handleImgWithPreset())
-	srv.router.HandleFunc("GET", "/:id/:preset/:filename", srv.handleImgWithPreset())
+	srv.router.HandleFunc("GET", "/clearcache", srv.logAccess(srv.handleClearCache()))
+	srv.router.HandleFunc("GET", "/info", srv.logAccess(srv.handleInfo()))
+	srv.router.HandleFunc("GET", "/housekeeping", srv.logAccess(srv.handleHousekeeping()))
+	srv.router.HandleFunc("GET", "/:id", srv.logAccess(srv.handleImg()))
+	srv.router.HandleFunc("GET", "/:id/:preset", srv.logAccess(srv.handleImgWithPreset()))
+	srv.router.HandleFunc("GET", "/:id/:preset/:filename", srv.logAccess(srv.handleImgWithPreset()))
 
 }
 
@@ -413,16 +415,42 @@ func parseImageFormat(str string) (images.Format, error) {
 	}
 }
 
+// ACCESS LOGGER
+// TODO: make concurrency safe!
+func (s *server) logAccess(h http.HandlerFunc) http.HandlerFunc {
+	if s.conf.AccessLog == "" {
+		return h
+	}
+
+	f, err := os.OpenFile(s.conf.AccessLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// defer f.Close()
+	l := log.New(f)
+
+	if path.Ext(s.conf.AccessLog) == ".json" {
+		l.SetFormatter(log.JSONFormatter)
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		t := time.Now()
+		h(w, r)
+		l.Print(t.UTC().Local(), "method", r.Method, "url", r.Host+r.URL.String(), "remote", r.RemoteAddr, "user-agent", r.UserAgent(), "time elapsed", time.Since(t))
+	}
+}
+
 // OTHER ESSENTIALS
 
+func NewServer(l *log.Logger, c confHttp, ih *images.ImageHandler) *server {
+
+	return &server{
+		l:      l,
+		conf:   c,
+		ih:     ih,
+		router: *way.NewRouter(),
+	}
+}
+
 func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s := time.Now()
 	srv.router.ServeHTTP(w, r)
-	log.Default().Info("Request served",
-		"method", r.Method,
-		"url", r.Host+r.URL.String(),
-		"remote", r.RemoteAddr,
-		"user-agent", r.UserAgent(),
-		"time elapsed", time.Since(s),
-	)
 }

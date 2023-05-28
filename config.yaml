@@ -19,12 +19,14 @@
 # LOGGING CONFIGURATION
 # valid values are "debug", "info", "warn", "error", "fatal" 
 logging: "info"
-
 # SERVER CONFIGURATION
 http: 
     port: 8080
     host: 'localhost'   # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
     documentation: true # set to false to disable the documentation page
+    # access_log: set to the path of a file to log access to the server. Leave blank to disable.
+    # fileending in .json will log in json format. Any other file ending will log in text format
+    access_log: "access.json" 
 # IMAGE HANDLER CONFIGURATION
 files:
   clear_on_start: false    # set to true to delete all images from the cache and originals on startup
