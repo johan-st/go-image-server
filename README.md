@@ -198,9 +198,9 @@ _(#backatit)_
 ## images package API (DRAFT)
 
 ## Performance
-example benchmark run on my laptop
-2023-05-19
+example benchmarks run on my laptop
 ```bash
+# 2023-05-19
 goos: linux
 goarch: amd64
 pkg: github.com/johan-st/go-image-server
@@ -210,7 +210,19 @@ Benchmark_HandleImg_cached-8                5510            228708 ns/op        
 Benchmark_HandleImg_notCached-8                3         399386964 ns/op        100122525 B/op       427 allocs/op
 PASS
 ok      github.com/johan-st/go-image-server     16.047s
+
+# 2023-06-01
+goos: linux
+goarch: amd64
+pkg: github.com/johan-st/go-image-server
+cpu: Intel(R) Core(TM) i5-10310U CPU @ 1.70GHz
+Benchmark_HandleImg_cached-8                 939           1499931 ns/op         1386588 B/op         43 allocs/op
+Benchmark_HandleImg_notCached-8                2         605024558 ns/op        159178332 B/op       306 allocs/op
+PASS
+ok      github.com/johan-st/go-image-server     17.842s
 ```
+
+
 
 # Known issues
 - imagecache is not persisted between starts
