@@ -42,8 +42,14 @@ func Test_Add(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	file, err := os.Open(test_import_source + "/one.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
 	// act
-	id, err := ih.Add(test_import_source + "/one.jpg")
+	id, err := ih.Add(file)
 
 	// assert
 	if err != nil {
@@ -104,12 +110,9 @@ func Test_Get(t *testing.T) {
 		t.Fatal(err)
 	}
 	// add original
-	id, err := ih.Add(test_import_source + "/one.jpg")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("added id\t", id)
+	id := addOrig(t, ih, test_import_source+"/one.jpg")
 
+	t.Log("added id\t", id)
 	// act
 	path, err := ih.Get(images.ImageParameters{
 		Id:      id,
@@ -129,8 +132,8 @@ func Test_Get(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stat.Size() == 0 {
-		t.Log("err\t\t file is empty")
+	if stat.Size() < 1024 {
+		t.Log("err\t\t file is to small. Bytes:", stat.Size())
 		t.Fail()
 	}
 	file, err := os.Open(path)
@@ -148,7 +151,6 @@ func Test_Get(t *testing.T) {
 	if len(dir) == 0 {
 		t.Fatal("cache dir is empty")
 	}
-
 }
 
 // func Test_Remove(t *testing.T) {
@@ -234,12 +236,9 @@ func Test_ListIds(t *testing.T) {
 	)
 
 	ids := []int{}
-	id, _ := ih.Add(test_import_source + "/one.jpg")
-	ids = append(ids, id)
-	id, _ = ih.Add(test_import_source + "/two.jpg")
-	ids = append(ids, id)
-	id, _ = ih.Add(test_import_source + "/three.jpg")
-	ids = append(ids, id)
+	ids = append(ids, addOrig(t, ih, test_import_source+"/one.jpg"))
+	ids = append(ids, addOrig(t, ih, test_import_source+"/two.jpg"))
+	ids = append(ids, addOrig(t, ih, test_import_source+"/three.jpg"))
 
 	ihList, err := ih.ListIds()
 	if err != nil {
@@ -262,4 +261,22 @@ func Test_ListIds(t *testing.T) {
 			t.Fatalf("id %d not found", id)
 		}
 	}
+}
+
+// helper
+
+func addOrig(t *testing.T, ih *images.ImageHandler, path string) int {
+	t.Helper()
+	// add original
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	id, err := ih.Add(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
 }

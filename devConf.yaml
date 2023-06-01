@@ -3,7 +3,7 @@ http:
     port: 8080
     host: localhost
     documentation: true
-    access_log: access.log
+    access_log: 
 files:
     clear_on_start: false
     clear_on_exit: true

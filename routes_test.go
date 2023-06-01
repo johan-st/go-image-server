@@ -62,7 +62,7 @@ func Test_HandleImg(t *testing.T) {
 	)
 	is.NoErr(err)
 
-	id, err := ih.Add(test_import_source + "/one.jpg")
+	id := addOrig(t, ih, test_import_source+"/one.jpg")
 	is.NoErr(err)
 	t.Log(id)
 
@@ -120,10 +120,7 @@ func Benchmark_HandleImg_cached(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	id, err := ih.Add(test_import_source + "/one.jpg")
-	if err != nil {
-		b.Fatal(err)
-	}
+	id := addOrigB(b, ih, test_import_source+"/one.jpg")
 
 	srv := server{
 		router: *way.NewRouter(),
@@ -173,14 +170,8 @@ func Benchmark_HandleImg_notCached(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	id1, err := ih.Add(test_import_source + "/one.jpg")
-	if err != nil {
-		b.Fatal(err)
-	}
-	id2, err := ih.Add(test_import_source + "/two.jpg")
-	if err != nil {
-		b.Fatal(err)
-	}
+	id1 := addOrigB(b, ih, test_import_source+"/one.jpg")
+	id2 := addOrigB(b, ih, test_import_source+"/two.jpg")
 
 	srv := server{
 		router: *way.NewRouter(),
@@ -205,4 +196,40 @@ func Benchmark_HandleImg_notCached(b *testing.B) {
 
 		srv.ServeHTTP(w, req2)
 	}
+}
+
+// helper
+
+func addOrig(t *testing.T, ih *images.ImageHandler, path string) int {
+	t.Helper()
+	// add original
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	id, err := ih.Add(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+// helper
+
+func addOrigB(b *testing.B, ih *images.ImageHandler, path string) int {
+	b.Helper()
+	// add original
+	file, err := os.Open(path)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer file.Close()
+
+	id, err := ih.Add(file)
+	if err != nil {
+		b.Fatal(err)
+	}
+	return id
 }

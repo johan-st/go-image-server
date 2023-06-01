@@ -173,6 +173,8 @@ func run() error {
 			al.SetFormatter(log.TextFormatter)
 			l.Info("access log format set to text", "path", conf.Http.AccessLog)
 		}
+	} else {
+		al = log.Default()
 	}
 
 	// set up srv
@@ -286,13 +288,19 @@ func addFolder(ih *images.ImageHandler, folder string) error {
 		return err
 	}
 
-	for _, file := range files {
-		if file.IsDir() {
+	for _, info := range files {
+		if info.IsDir() {
 			continue
 		}
-		id, err := ih.Add(folder + "/" + file.Name())
+		file, err := os.Open(folder + "/" + info.Name())
 		if err != nil {
-			log.Default().Info("failed to add image", "file", file.Name(), "error", err)
+			log.Default().Info("failed to open image", "file", info.Name(), "error", err)
+			continue
+		}
+		defer file.Close()
+		id, err := ih.Add(file)
+		if err != nil {
+			log.Default().Info("failed to add image", "file", info.Name(), "error", err)
 		} else {
 			log.Default().Debug("added image", "file", file.Name(), "id", id)
 		}

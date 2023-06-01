@@ -141,28 +141,31 @@ func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 	return cachePath, nil
 }
 
-func (h *ImageHandler) Add(path string) (int, error) {
-	h.opts.l.Debug("Add", "path", path)
+// Returns id of the added image
+func (h *ImageHandler) Add(r io.Reader) (int, error) {
+	h.opts.l.Debug("AddIO", "io", r)
 
-	// check if file exists
-	srcf, err := os.Open(path)
+	// temp file
+	tmpFile, err := os.CreateTemp("", "upload-*")
 	if err != nil {
-		return 0, fmt.Errorf("could not open source file: %w", err)
+		return 0, fmt.Errorf("could not create temporary file: %w", err)
 	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
-	// TODO: check with the image package instead of just the extension?
-	_, _, err = image.Decode(srcf)
+	tr := io.TeeReader(r, tmpFile)
+
+	// decode image
+	_, _, err = image.Decode(tr)
 	if err != nil {
 		return 0, err
 	}
-	srcf.Close()
 
-	// breaks if we dont reopen the file
-	srcf, err = os.Open(path)
+	// seek to start
+	_, err = tmpFile.Seek(0, io.SeekStart)
 	if err != nil {
-		return 0, fmt.Errorf("could not open source file: %w", err)
+		return 0, fmt.Errorf("could not read from tmpFile: %w", err)
 	}
-	defer srcf.Close()
 
 	// get a new id
 	h.mu.Lock()
@@ -172,15 +175,17 @@ func (h *ImageHandler) Add(path string) (int, error) {
 
 	dst := h.opts.dirOriginals + "/" + strconv.Itoa(id) + originalsExt
 	// copy file to originals
-	dstf, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	dstFile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return 0, fmt.Errorf("could not open destination file: %w", err)
 	}
-	defer dstf.Close()
-	_, err = io.Copy(dstf, srcf)
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, tmpFile)
 	if err != nil {
 		return 0, fmt.Errorf("could not copy file: %w", err)
 	}
+
 	// return id
 	return id, nil
 }

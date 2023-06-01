@@ -26,6 +26,8 @@ type server struct {
 
 // Register handlers for routes
 func (srv *server) routes() {
+
+	// Docs / root
 	if srv.conf.Docs {
 		srv.router.HandleFunc("GET", "/", srv.logAccess(srv.handleDocs()))
 		srv.router.HandleFunc("GET", "/favicon.ico", srv.logAccess(srv.handleFavicon()))
@@ -33,12 +35,18 @@ func (srv *server) routes() {
 		srv.router.HandleFunc("GET", "/", srv.logAccess(srv.handleNotFound()))
 	}
 
-	srv.router.HandleFunc("GET", "/clearcache", srv.logAccess(srv.handleClearCache()))
-	srv.router.HandleFunc("GET", "/info", srv.logAccess(srv.handleInfo()))
-	srv.router.HandleFunc("GET", "/housekeeping", srv.logAccess(srv.handleHousekeeping()))
+	// API & Upload
+	srv.router.HandleFunc("GET", "/api", srv.logAccess(srv.handleApiGet()))
+	srv.router.HandleFunc("POST", "/api", srv.logAccess(srv.handleApiPost()))
+	srv.router.HandleFunc("POST", "/upload", srv.logAccess(srv.handleUpload(images.Size(5*images.Megabyte))))
+
+	// Serve Images
 	srv.router.HandleFunc("GET", "/:id", srv.logAccess(srv.handleImg()))
 	srv.router.HandleFunc("GET", "/:id/:preset", srv.logAccess(srv.handleImgWithPreset()))
 	srv.router.HandleFunc("GET", "/:id/:preset/:filename", srv.logAccess(srv.handleImgWithPreset()))
+
+	// 404
+	srv.router.NotFound = srv.logAccess(srv.handleNotFound())
 
 }
 
@@ -48,7 +56,12 @@ func (srv *server) routes() {
 // It also inlines some rudimentary css.
 func (srv *server) handleDocs() http.HandlerFunc {
 	// setup
-	l := log.Default().With("handler", "handleDocs")
+	var l *log.Logger
+	if srv.l == nil {
+		l = log.Default().With("handler", "handleDocs")
+	} else {
+		l = srv.l.With("handler", "handleDocs")
+	}
 
 	// time the handler initialization
 	defer func(t time.Time) {
@@ -86,7 +99,12 @@ func (srv *server) handleDocs() http.HandlerFunc {
 // handleImg also takes query parameter into account to deliver a preprocessed version of the image.
 func (srv *server) handleImg() http.HandlerFunc {
 	// setup
-	l := log.Default().With("handler", "handleImg")
+	var l *log.Logger
+	if srv.l == nil {
+		l = log.Default().With("handler", "handleImg")
+	} else {
+		l = srv.l.With("handler", "handleImg")
+	}
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +131,12 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 func (srv *server) handleImgWithPreset() http.HandlerFunc {
 	// setup
-	l := log.Default().With("handler", "handleImgWithPreset")
+	var l *log.Logger
+	if srv.l == nil {
+		l = log.Default().With("handler", "handleImgWithPreset")
+	} else {
+		l = srv.l.With("handler", "handleImgWithPreset")
+	}
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -164,40 +187,14 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 	}
 }
 
-func (srv *server) handleClearCache() http.HandlerFunc {
-	// setup
-	l := log.Default().With("handler", "handleClearCache")
-
-	// handler
-	return func(w http.ResponseWriter, r *http.Request) {
-		l.Error("not implemented")
-		srv.respondError(w, r, "not implemented", http.StatusNotImplemented)
-	}
-}
-
-func (srv *server) handleInfo() http.HandlerFunc {
-	// setup
-	l := log.Default().With("handler", "handleInfo")
-	return func(w http.ResponseWriter, r *http.Request) {
-		// handler
-		l.Error("not implemented")
-		srv.respondError(w, r, "not implemented", http.StatusNotImplemented)
-	}
-}
-
-// TODO: implement this properly.
-func (srv *server) handleHousekeeping() http.HandlerFunc {
-	// setup
-	l := log.Default().With("handler", "handleHousekeeping")
-	return func(w http.ResponseWriter, r *http.Request) {
-		l.Error("not implemented")
-		srv.respondError(w, r, "not implemented", http.StatusNotImplemented)
-	}
-}
-
 func (srv *server) handleNotFound() http.HandlerFunc {
 	// setup
-	l := log.Default().With("handler", "handleNotFound")
+	var l *log.Logger
+	if srv.l == nil {
+		l = log.Default().With("handler", "handleNotFound")
+	} else {
+		l = srv.l.With("handler", "handleNotFound")
+	}
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -416,38 +413,31 @@ func parseImageFormat(str string) (images.Format, error) {
 // ACCESS LOGGER
 // TODO: make concurrency safe!
 func (s *server) logAccess(h http.HandlerFunc) http.HandlerFunc {
-	if s.conf.AccessLog == "" {
-		return h
-	}
+	var l *log.Logger
+	if s.conf.AccessLog == "" && s.l != nil {
+		l = s.l.WithPrefix("request")
+	} else if s.conf.AccessLog == "" && s.l == nil {
+		l = log.Default().WithPrefix("request")
+	} else {
+		f, err := os.OpenFile(s.conf.AccessLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// defer f.Close()
+		l = log.New(f)
 
-	f, err := os.OpenFile(s.conf.AccessLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// defer f.Close()
-	l := log.New(f)
-
-	if path.Ext(s.conf.AccessLog) == ".json" {
-		l.SetFormatter(log.JSONFormatter)
+		if path.Ext(s.conf.AccessLog) == ".json" {
+			l.SetFormatter(log.JSONFormatter)
+		}
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		t := time.Now()
 		h(w, r)
-		l.Print(t.UTC().Local(), "method", r.Method, "url", r.Host+r.URL.String(), "remote", r.RemoteAddr, "user-agent", r.UserAgent(), "time elapsed", time.Since(t))
+		l.Info(t.UTC().Local(), "method", r.Method, "url", r.Host+r.URL.String(), "remote", r.RemoteAddr, "user-agent", r.UserAgent(), "time elapsed", time.Since(t))
 	}
 }
 
 // OTHER ESSENTIALS
-
-func NewServer(l *log.Logger, c confHttp, ih *images.ImageHandler) *server {
-
-	return &server{
-		l:      l,
-		conf:   c,
-		ih:     ih,
-		router: *way.NewRouter(),
-	}
-}
 
 func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	srv.router.ServeHTTP(w, r)
