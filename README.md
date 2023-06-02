@@ -23,7 +23,6 @@ A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD*
 - [Table Of Contents](#table-of-contents)
   - [Project Requirements](#project-requirements)
     - [Server](#server)
-    - [Images](#images)
 - [Sprints](#sprints)
   - [MoSCoW](#moscow)
   - [June 2023](#june-2023)
@@ -52,13 +51,18 @@ Server **SHOULD** have a mechanism for finding errors and possible abuse.
 Server **MUST** be able to add images while running.
 Server **MUST** be able to add images from a folder on startup.
 Server **COULD** monitor a folder for new images and add them automatically.
-
-### Images
+Server **COULD** serve thumbnail of image while creating a new cached version.
 Images requested **SHOULD** be served within 500ms on first request and **MUST** be served within 25ms on subsequent requests.
 Images **MUST** be served in the size requested. 
 Images **MUST** not be stretched or distorted.
 Images **SHOULD** not be scaled up from original.
-
+Images **SHUOLD** have quality-options
+Images **COULD** have added watermark
+Images **COULD** have added text
+Code **MUST** have relevant tests
+Code **SHOULD** be benchmarked for performance
+Code **COULD** be profiled for cpu and memory usage
+Code **SHOULD** be maintainable and easy to understand.
 
 # Sprints
 ## [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method)
