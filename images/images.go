@@ -143,10 +143,10 @@ func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 
 // Returns id of the added image
 func (h *ImageHandler) Add(r io.Reader) (int, error) {
-	h.opts.l.Debug("AddIO", "io", r)
+	h.opts.l.Debug("Add called on imageHandler")
 
 	// temp file
-	tmpFile, err := os.CreateTemp("", "upload-*")
+	tmpFile, err := os.CreateTemp(h.opts.dirCache, "upload-*")
 	if err != nil {
 		return 0, fmt.Errorf("could not create temporary file: %w", err)
 	}

@@ -18,15 +18,18 @@
 
 # LOGGING CONFIGURATION
 # valid values are "debug", "info", "warn", "error", "fatal" 
-logging: "info"
+logging: info
 # SERVER CONFIGURATION
 http: 
     port: 8080
-    host: 'localhost'   # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
+    host: localhost   # leave blank to listen on all interfaces. Set to 'localhost' to only listen on the loopback interface
     documentation: true # set to false to disable the documentation page
     # access_log: set to the path of a file to log access to the server. Leave blank to disable.
     # fileending in .json will log in json format. Any other file ending will log in text format
-    access_log: "access.json" 
+    access_log: access.json 
+    # maximum size of an uploaded image in bytes, kilobytes, megabytes or gigabytes
+    # valid values are positive integers followed by a unit of measurement (none or B for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
+    max_upload_size: 30 MB 
 # IMAGE HANDLER CONFIGURATION
 files:
   clear_on_start: false    # set to true to delete all images from the cache and originals on startup
@@ -36,9 +39,9 @@ files:
   # paths are relative. Image Handler will will load images from here on startup and save images here when they are added or cached 
   paths:
     # The path to the directory where the original images are stored after being added
-    originals: 'img/originals'
+    originals: img/originals
     # The path to the directory where the cached images are stored
-    cache: 'img/cache'
+    cache: img/cache
     # set_perms: set to true to set the permissions of the originals and cache directories to 755
     set_perms: true
     # create_dirs: set to true to create the originals and cache directories if they do not exist
@@ -46,9 +49,9 @@ files:
     
   cache:
     num: 100000 # number of images to cache
-    # total size of the cache in bytes, kilobytes, megabytes, gigabytes or terabytes
+    # total size (on disk) of the cache in bytes, kilobytes, megabytes, gigabytes or terabytes
     # valid values are positive integers followed by a unit of measurement (none or B for bytes, KB for kilobytes, MB for megabytes, GB for gigabytes, TB for terabytes)
-    size: '10 GB'
+    size: 10 GB
 
 
 
@@ -81,23 +84,23 @@ files:
 # valid values are 'nearest', 'bilinear', 'bicubic', 'MitchellNetravali', 'lanczos2' and 'lanczos3'
 
 default_image_preset:
-  alias: ["default","def"]
-  format: 'jpeg'
+  alias: [default,def]
+  format: jpeg
   quality_jpeg: 80
   quality_gif: 256
   width: 800
   height: 0
-  max_size: '1 MB'
-  resizer: 'lanczos3'
+  max_size: 1 MB
+  resizer: lanczos3
 
 image_presets:
   - name: default thumbnail
-    alias: ["thumb","th"]
-    format: 'jpeg'
+    alias: [thumb,th]
+    format: jpeg
     quality: 80
     width: 100
     height: 100
-    max_size: '10 KB'
-    resizer: 'nearest'
+    max_size: 10 KB
+    resizer: nearest
 
         

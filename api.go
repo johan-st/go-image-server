@@ -2,24 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"image"
 
 	"net/http"
 
-	"github.com/charmbracelet/log"
 	"github.com/johan-st/go-image-server/images"
 	"github.com/johan-st/go-image-server/way"
 )
 
 func (srv *server) handleApiGet() http.HandlerFunc {
 	// setup
-	var l *log.Logger
-	if srv.debugLogger == nil {
-		l = log.Default().With("handler", "handleApiGet")
-		l.Warn("no logger provided, using default logger", "level", l.GetLevel()) //DEBUG: remove or move
-	} else {
-		l = srv.debugLogger.With("handler", "handleApiGet")
-		l.Warn("logger provided, using provided logger", "level", l.GetLevel()) //DEBUG: remove or move
-	}
+	l := srv.debugLogger.With("handler", "handleApiGet")
 	l.With("version", "1")
 	l.With("method", "GET")
 
@@ -52,12 +46,7 @@ func (srv *server) handleApiGet() http.HandlerFunc {
 
 func (srv *server) handleApiPost() http.HandlerFunc {
 	// setup
-	var l *log.Logger
-	if srv.debugLogger == nil {
-		l = log.Default().With("handler", "handleApiPost")
-	} else {
-		l = srv.debugLogger.With("handler", "handleApiPost")
-	}
+	l := srv.debugLogger.With("handler", "handleApiPost")
 	l.With("version", "1")
 	l.With("method", "POST")
 
@@ -69,7 +58,7 @@ func (srv *server) handleApiPost() http.HandlerFunc {
 	}
 	type badReqResp struct {
 		Status   int     `json:"status"`
-		Message  string  `json:"message"`
+		Error    string  `json:"error"`
 		Expectes request `json:"expected body"`
 	}
 
@@ -91,11 +80,11 @@ func (srv *server) handleApiPost() http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			resp := badReqResp{
-				Status:  http.StatusBadRequest,
-				Message: "BAD REQUEST. expected json body",
+				Status: http.StatusBadRequest,
+				Error:  "BAD REQUEST. expected json body",
 				Expectes: request{
 					Action:       "string",
-					ResourceType: "image | default | preset | cache",
+					ResourceType: "image | default | preset | cache ",
 					Id:           "string",
 				},
 			}
@@ -120,14 +109,9 @@ func (srv *server) handleApiPost() http.HandlerFunc {
 }
 
 // TODO: handle errors and respond with correct status codes
-func (srv *server) handleUpload(maxSize images.Size) http.HandlerFunc {
+func (srv *server) handleUpload() http.HandlerFunc {
 	// setup
-	var l *log.Logger
-	if srv.debugLogger == nil {
-		l = log.Default().With("handler", "handleUpload")
-	} else {
-		l = srv.debugLogger.With("handler", "handleUpload")
-	}
+	l := srv.debugLogger.With("handler", "handleUpload")
 	l.With("version", "1")
 	l.With("method", "POST")
 
@@ -141,13 +125,18 @@ func (srv *server) handleUpload(maxSize images.Size) http.HandlerFunc {
 	// TODO: figure out which erorrs are client errors and which are server errors (warn/info vs error)
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse up to maxSize
-		err := r.ParseMultipartForm(int64(maxSize))
+		err := r.ParseMultipartForm(int64(50 * images.Megabyte))
 		if err != nil {
 			l.Warn("Error while parsing upload", "ParseMultipartFormError", err)
+			respondJson(w, r, http.StatusBadRequest, response{
+				Status:  http.StatusBadRequest,
+				Message: err.Error(),
+			})
 			return
 		}
 
 		// Get header for filename, size and headers
+		// TODO: can I get the first file from the form without knowing the name?
 		upload, header, err := r.FormFile("image")
 		if err != nil {
 			l.Warn("Error Retrieving the File", "FormFileError", err)
@@ -155,9 +144,34 @@ func (srv *server) handleUpload(maxSize images.Size) http.HandlerFunc {
 		}
 		defer upload.Close()
 
+		// check size
+		hs := images.Size(header.Size)
+		ms, err := images.ParseSize(srv.conf.MaxUploadSize)
+		if err != nil {
+			l.Fatal("Error while parsing max upload size. Did we fail to validate the field on start?", "ParseSizeError", err)
+			respondJson(w, r, http.StatusInternalServerError, response{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+			})
+			return
+		}
+		if hs > ms {
+			l.Warn("Maximum upload size exceeded", "FileSize", hs, "MaxUploadSize", ms)
+			respondJson(w, r, http.StatusBadRequest, response{Status: http.StatusBadRequest, Message: "Maximum upload size exceeded"})
+			return
+		}
+
 		// add to image handler
 		id, err := srv.ih.Add(upload)
 		if err != nil {
+			if errors.Is(err, image.ErrFormat) {
+				l.Warn("Error while adding image to handler", "AddIOError", err)
+				respondJson(w, r, http.StatusBadRequest, response{
+					Status:  http.StatusBadRequest,
+					Message: "File is not a valid image",
+				})
+				return
+			}
 			l.Error("Error while adding image to handler", "AddIOError", err)
 		}
 

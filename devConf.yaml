@@ -4,6 +4,7 @@ http:
     host: localhost
     documentation: true
     access_logfile: devconf-access.log
+    max_upload_size: 20MB
 files:
     set_perms: true
     create_dirs: true

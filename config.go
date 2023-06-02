@@ -19,10 +19,11 @@ type config struct {
 }
 
 type confHttp struct {
-	Port      int    `yaml:"port"`
-	Host      string `yaml:"host"`
-	Docs      bool   `yaml:"documentation"`
-	AccessLog string `yaml:"access_logfile"`
+	Port          int    `yaml:"port"`
+	Host          string `yaml:"host"`
+	Docs          bool   `yaml:"documentation"`
+	AccessLog     string `yaml:"access_logfile"`
+	MaxUploadSize string `yaml:"max_upload_size"`
 }
 
 type confFiles struct {
@@ -95,6 +96,14 @@ func (c *config) validate() error {
 	if c.Http.Port == 0 {
 		errs = append(errs, fmt.Errorf("server port must be set"))
 	}
+	if c.Http.MaxUploadSize == "" {
+		c.Http.MaxUploadSize = "20MB"
+	}
+	_, err := images.ParseSize(c.Http.MaxUploadSize)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("server max upload size must be a valid size (e.g. 20MB)"))
+	}
+
 	// empty host is ok
 	// TODO: validate host format
 

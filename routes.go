@@ -38,7 +38,7 @@ func (srv *server) routes() {
 	// API & Upload
 	srv.router.HandleFunc("GET", "/api", srv.handleApiGet())
 	srv.router.HandleFunc("POST", "/api", srv.handleApiPost())
-	srv.router.HandleFunc("POST", "/upload", srv.handleUpload(images.Size(5*images.Megabyte)))
+	srv.router.HandleFunc("POST", "/upload", srv.handleUpload())
 
 	// Serve Images
 	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
@@ -56,12 +56,7 @@ func (srv *server) routes() {
 // It also inlines some rudimentary css.
 func (srv *server) handleDocs() http.HandlerFunc {
 	// setup
-	var l *log.Logger
-	if srv.accessLogger != nil {
-		l = srv.accessLogger.With("handler", "handleDocs")
-	} else {
-		l = &log.Logger{}
-	}
+	l := srv.debugLogger.With("handler", "handleDocs")
 
 	// time the handler initialization
 	defer func(t time.Time) {
@@ -99,12 +94,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 // handleImg also takes query parameter into account to deliver a preprocessed version of the image.
 func (srv *server) handleImg() http.HandlerFunc {
 	// setup
-	var l *log.Logger
-	if srv.debugLogger == nil {
-		l = log.Default().With("handler", "handleImg")
-	} else {
-		l = srv.debugLogger.With("handler", "handleImg")
-	}
+	l := srv.debugLogger.With("handler", "handleImg")
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -131,12 +121,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 func (srv *server) handleImgWithPreset() http.HandlerFunc {
 	// setup
-	var l *log.Logger
-	if srv.debugLogger == nil {
-		l = log.Default().With("handler", "handleImgWithPreset")
-	} else {
-		l = srv.debugLogger.With("handler", "handleImgWithPreset")
-	}
+	l := srv.debugLogger.With("handler", "handleImgWithPreset")
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -189,16 +174,8 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 
 func (srv *server) handleNotFound() http.HandlerFunc {
 	// setup
-	var l *log.Logger
-	if srv.debugLogger == nil {
-		l = log.Default().With("handler", "handleNotFound")
-	} else {
-		l = srv.debugLogger.With("handler", "handleNotFound")
-	}
-
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Debug("not found")
 		srv.respondError(w, r, "not found", http.StatusNotFound)
 	}
 }
