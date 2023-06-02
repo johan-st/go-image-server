@@ -199,11 +199,11 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 	var err error
 	errs := []error{}
 
-	for _, cp := range conf {
+	for _, cip := range conf {
 		// format
 		var format images.Format
-		if cp.Format != "" {
-			format, err = images.ParseFormat(cp.Format)
+		if cip.Format != "" {
+			format, err = images.ParseFormat(cip.Format)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -213,8 +213,8 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 
 		// size
 		var size images.Size
-		if cp.MaxSize != "" {
-			size, err = images.ParseSize(cp.MaxSize)
+		if cip.MaxSize != "" {
+			size, err = images.ParseSize(cip.MaxSize)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -224,8 +224,8 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 
 		// interpolation
 		var interpolation images.Interpolation
-		if cp.Interpolation != "" {
-			interpolation, err = images.ParseInterpolation(cp.Interpolation)
+		if cip.Interpolation != "" {
+			interpolation, err = images.ParseInterpolation(cip.Interpolation)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -235,12 +235,12 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 
 		// resulting preset
 		p := images.ImagePreset{
-			Name:          cp.Name,
-			Alias:         cp.Alias,
+			Name:          cip.Name,
+			Alias:         cip.Alias,
 			Format:        format,
-			Quality:       cp.Quality,
-			Width:         cp.Width,
-			Height:        cp.Height,
+			Quality:       cip.Quality,
+			Width:         cip.Width,
+			Height:        cip.Height,
 			MaxSize:       size,
 			Interpolation: interpolation,
 		}
