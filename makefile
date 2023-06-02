@@ -1,11 +1,11 @@
-build: test-race
+build: race
 	@echo go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" . 
 	@go build -o "bin/go-image-server_$$(git describe --tags --always --dirty)" .
 
 run:
 	go run . -c devConf.yaml 
 	
-debug:
+dev:
 	go run . -c devConf.yaml -dev
 
 format:
@@ -14,7 +14,7 @@ format:
 test:
 	go test -vet=all ./...
 
-test-race:
+race:
 	go test -race ./...
 
 bench:. 
@@ -28,4 +28,4 @@ clean:
 	rm -rf bin
 	rm -rf coverage.out
 	rm -rf test-fs/*
-	rm runningConfig.yaml
+	rm *access.*

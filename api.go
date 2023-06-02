@@ -13,11 +13,11 @@ import (
 func (srv *server) handleApiGet() http.HandlerFunc {
 	// setup
 	var l *log.Logger
-	if srv.l == nil {
+	if srv.debugLogger == nil {
 		l = log.Default().With("handler", "handleApiGet")
 		l.Warn("no logger provided, using default logger", "level", l.GetLevel()) //DEBUG: remove or move
 	} else {
-		l = srv.l.With("handler", "handleApiGet")
+		l = srv.debugLogger.With("handler", "handleApiGet")
 		l.Warn("logger provided, using provided logger", "level", l.GetLevel()) //DEBUG: remove or move
 	}
 	l.With("version", "1")
@@ -53,10 +53,10 @@ func (srv *server) handleApiGet() http.HandlerFunc {
 func (srv *server) handleApiPost() http.HandlerFunc {
 	// setup
 	var l *log.Logger
-	if srv.l == nil {
+	if srv.debugLogger == nil {
 		l = log.Default().With("handler", "handleApiPost")
 	} else {
-		l = srv.l.With("handler", "handleApiPost")
+		l = srv.debugLogger.With("handler", "handleApiPost")
 	}
 	l.With("version", "1")
 	l.With("method", "POST")
@@ -123,10 +123,10 @@ func (srv *server) handleApiPost() http.HandlerFunc {
 func (srv *server) handleUpload(maxSize images.Size) http.HandlerFunc {
 	// setup
 	var l *log.Logger
-	if srv.l == nil {
+	if srv.debugLogger == nil {
 		l = log.Default().With("handler", "handleUpload")
 	} else {
-		l = srv.l.With("handler", "handleUpload")
+		l = srv.debugLogger.With("handler", "handleUpload")
 	}
 	l.With("version", "1")
 	l.With("method", "POST")

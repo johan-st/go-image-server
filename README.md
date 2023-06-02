@@ -6,6 +6,7 @@ Idea is to be able to upload a an image in high resolution and quality and have 
 
 Idealy image workflow should be significantly simplified. Workflow could be to upload a single high-res version of each image to the image-server and let all teams fetch the sizes, qualities and formats they require for each application. Once a specific image has been requested it will be cached and instantly available on subsequent requests.
 
+
 ## Proof of concept
 
 A proof of concept **MUST** be able to serve images in the requested pixel-size.
@@ -15,11 +16,99 @@ It **SHOULD** have at least two (2) quality levels and **SHOULD** be able to cac
 
 A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD** have rudimentary authentication/domain restrictions.
 
+# Table Of Contents
+- [go-image-server](#go-image-server)
+  - [Proof of concept](#proof-of-concept)
+  - [Minimum Viable Product](#minimum-viable-product)
+- [Table Of Contents](#table-of-contents)
+  - [Project Requirements](#project-requirements)
+    - [Server](#server)
+    - [Images](#images)
+- [Sprints](#sprints)
+  - [MoSCoW](#moscow)
+  - [June 2023](#june-2023)
+    - [todo](#todo)
+    - [log](#log)
+  - [April \& May 2023](#april--may-2023)
+    - [todo](#todo-1)
+    - [log](#log-1)
+  - [Februari 2022](#februari-2022)
+    - [todo](#todo-2)
+    - [log](#log-2)
+- [Requirements](#requirements)
+- [Questions to answer](#questions-to-answer)
+  - [structure of request](#structure-of-request)
+  - [Caching](#caching)
+- [thoughts](#thoughts)
+  - [images package API (DRAFT)](#images-package-api-draft)
+  - [Performance](#performance)
+- [Known issues](#known-issues)
+
+## Project Requirements 
+
+### Server 
+Server **MUST** have sufficient authorization and domain restrictions to avoid abuse.
+Server **SHOULD** have a mechanism for finding errors and possible abuse.
+Server **MUST** be able to add images while running.
+Server **MUST** be able to add images from a folder on startup.
+Server **COULD** monitor a folder for new images and add them automatically.
+
+### Images
+Images requested **SHOULD** be served within 500ms on first request and **MUST** be served within 25ms on subsequent requests.
+Images **MUST** be served in the size requested. 
+Images **MUST** not be stretched or distorted.
+Images **SHOULD** not be scaled up from original.
+
+
 # Sprints
 ## [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method)
 Planing and prioritization of features and requirements to be implemented during each sprint.
 
 Requirements not mentioned should be regarded as **WONT**
+
+## June 2023
+
+- [ ] **MUST** have prototype admin for uploading images
+- [ ] **MUST** have prototype admin for viewing and deleting images
+- [ ] **SHOULD** have prototype info page for viewing server status, uptime, cache size etc
+- [ ] **SHOULD** keep aspect ratio when cropping 
+- [ ] **COULD** have prototype admin for viewing and deleting cached images
+- [ ] **COULD** be benchmarked for performance
+
+### todo
+- [ ] decide on how to handle handle requests for images larger than original?
+- [ ] crop should keep aspect ratio
+- [X] handle folder creation and permissions
+  - [ ] win
+  - [ ] linux
+- [ ] tests need to be able to run with no setup after clone (include sane default conf in repo)
+- [ ] app need to be able to run as binary with no setup (maybe sane default conf is created?)
+- [ ] support webp
+- [ ] safe concurrency
+- [ ] switch to disable docs
+- [ ] decide on pathing when calling from a different folder than the binary
+- [ ] inplement interpolation function
+- [ ] load images and cache from disk on startup
+- [ ] investigate hardcoding docs into binary
+- [ ] Add folder on startup should be reccursive?
+- [ ] Strip images package to bare minimum. Move unnecessary stuff to main package
+- [ ] update USAGE.md
+- [ ] make the creation of a default config file when no conf was found an opt-in feature
+- [ ] handle width and height from diferent sources (query params, presets, defaults)
+- [ ] consider having a fallback image for when the requested image is not found
+- [ ] consider having a fallback image or a smaller image for quick response when the requested image is not cached
+- [ ] consider commiting to single executable? as of now I need docs folder and config file
+- [ ] add cacnelation context to "add folder on startup" and "load images and cache from disk on startup"?
+- [ ] decide on benchmark-method for single images
+- [ ] asking for a non-exsistant id should give 404 (not 500)
+- [ ] add usage log 
+- [ ] add cache reclaimation
+- [ ] decide on how to handle handle requests for images larger than original?
+- [ ] crop should keep aspect ratio
+
+### log
+- 2023-06-01: wip. refactoring logging and config. Banchmarks are a lot worse than before. Need to investigate.
+- 2023-06-02: update README.md
 
 ## April & May 2023
 _(#backatit)_
@@ -102,6 +191,7 @@ _(#backatit)_
 - 2023-05-25: work on conf and update todos
 - 2023-05-26: work on conf and check a few todos
 - 2023-05-28: Fix bug and add access log as file
+- 2023-05-31: create image upload endpoint.
 
 ## Februari 2022
 
@@ -220,6 +310,18 @@ Benchmark_HandleImg_cached-8                 939           1499931 ns/op        
 Benchmark_HandleImg_notCached-8                2         605024558 ns/op        159178332 B/op       306 allocs/op
 PASS
 ok      github.com/johan-st/go-image-server     17.842s
+
+# 2023-06-02
+goos: linux
+goarch: amd64
+pkg: github.com/johan-st/go-image-server
+cpu: Intel(R) Core(TM) i5-10310U CPU @ 1.70GHz
+Benchmark_HandleImg_cached-8                         656           2039988 ns/op         1151419 B/op         36 allocs/op
+Benchmark_HandleImg_cached_concurrent-8             1411            762330 ns/op         1025997 B/op         50 allocs/op
+Benchmark_HandleImg_notCached-8                        1        1004751282 ns/op        396902072 B/op      1559 allocs/op
+PASS
+ok      github.com/johan-st/go-image-server     33.246s
+
 ```
 
 

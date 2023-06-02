@@ -156,6 +156,7 @@ func run() error {
 	}
 
 	// set up http log
+
 	var al *log.Logger
 	if conf.Http.AccessLog != "" {
 		l.Info("access log enabled", "path", conf.Http.AccessLog)
@@ -165,24 +166,23 @@ func run() error {
 		}
 		defer file.Close()
 
-		al := log.New(file)
+		al = log.New(file)
 		if path.Ext(conf.Http.AccessLog) == ".json" {
 			al.SetFormatter(log.JSONFormatter)
-			l.Info("access log format set to json", "path", conf.Http.AccessLog)
+			l.Info("access log format set to json")
 		} else {
 			al.SetFormatter(log.TextFormatter)
-			l.Info("access log format set to text", "path", conf.Http.AccessLog)
+			l.Info("access log format set to text")
 		}
-	} else {
-		al = log.Default()
 	}
 
 	// set up srv
 	srv := &server{
-		conf:   conf.Http,
-		router: *way.NewRouter(),
-		ih:     ih,
-		l:      al,
+		conf:         conf.Http,
+		router:       *way.NewRouter(),
+		ih:           ih,
+		accessLogger: al,
+		debugLogger:  l.WithPrefix("[http]"),
 	}
 	srv.routes()
 

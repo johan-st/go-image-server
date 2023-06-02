@@ -22,18 +22,17 @@ type confHttp struct {
 	Port      int    `yaml:"port"`
 	Host      string `yaml:"host"`
 	Docs      bool   `yaml:"documentation"`
-	AccessLog string `yaml:"access_log"`
+	AccessLog string `yaml:"access_logfile"`
 }
 
 type confFiles struct {
-	SetPerms     bool   `yaml:"set_perms"`
-	CreateDirs   bool   `yaml:"create_dirs"`
+	ClearOnStart bool `yaml:"clear_on_start"`
+	ClearOnExit  bool `yaml:"clear_on_exit"`
+	SetPerms     bool `yaml:"set_perms"`
+	CreateDirs   bool `yaml:"create_dirs"`
+
 	DirOriginals string `yaml:"originals_dir"`
 	DirCache     string `yaml:"cache_dir"`
-
-	// debug options TODO: should these be here?
-	ClearOnStart bool   `yaml:"clear_on_start"`
-	ClearOnExit  bool   `yaml:"clear_on_exit"`
 	PopulateFrom string `yaml:"populate_from"`
 }
 

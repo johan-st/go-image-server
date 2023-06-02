@@ -3,15 +3,15 @@ http:
     port: 8080
     host: localhost
     documentation: true
-    access_log: 
+    access_logfile: devconf-access.log
 files:
-    clear_on_start: false
-    clear_on_exit: true
-    populate_from: test-data
     set_perms: true
     create_dirs: true
     originals_dir: test-fs/devconf/originals
     cache_dir: test-fs/devconf/cache
+    clear_on_start: false
+    clear_on_exit: true
+    populate_from: test-data
 cache_rules:
     max_objects: 5
     max_size: 1 MB

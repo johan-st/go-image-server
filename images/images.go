@@ -747,7 +747,6 @@ func presetsMap(imagePresets []ImagePreset) map[string]ImagePreset {
 		for _, a := range p.Alias {
 			m[a] = p
 		}
-
 	}
 	return m
 }

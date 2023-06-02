@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -18,10 +17,11 @@ import (
 )
 
 type server struct {
-	l      *log.Logger
-	conf   confHttp
-	ih     *images.ImageHandler
-	router way.Router
+	debugLogger  *log.Logger
+	accessLogger *log.Logger
+	conf         confHttp
+	ih           *images.ImageHandler
+	router       way.Router
 }
 
 // Register handlers for routes
@@ -29,24 +29,24 @@ func (srv *server) routes() {
 
 	// Docs / root
 	if srv.conf.Docs {
-		srv.router.HandleFunc("GET", "/", srv.logAccess(srv.handleDocs()))
-		srv.router.HandleFunc("GET", "/favicon.ico", srv.logAccess(srv.handleFavicon()))
+		srv.router.HandleFunc("GET", "/", srv.handleDocs())
+		srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
 	} else {
-		srv.router.HandleFunc("GET", "/", srv.logAccess(srv.handleNotFound()))
+		srv.router.HandleFunc("GET", "/", srv.handleNotFound())
 	}
 
 	// API & Upload
-	srv.router.HandleFunc("GET", "/api", srv.logAccess(srv.handleApiGet()))
-	srv.router.HandleFunc("POST", "/api", srv.logAccess(srv.handleApiPost()))
-	srv.router.HandleFunc("POST", "/upload", srv.logAccess(srv.handleUpload(images.Size(5*images.Megabyte))))
+	srv.router.HandleFunc("GET", "/api", srv.handleApiGet())
+	srv.router.HandleFunc("POST", "/api", srv.handleApiPost())
+	srv.router.HandleFunc("POST", "/upload", srv.handleUpload(images.Size(5*images.Megabyte)))
 
 	// Serve Images
-	srv.router.HandleFunc("GET", "/:id", srv.logAccess(srv.handleImg()))
-	srv.router.HandleFunc("GET", "/:id/:preset", srv.logAccess(srv.handleImgWithPreset()))
-	srv.router.HandleFunc("GET", "/:id/:preset/:filename", srv.logAccess(srv.handleImgWithPreset()))
+	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
+	srv.router.HandleFunc("GET", "/:id/:preset", srv.handleImgWithPreset())
+	srv.router.HandleFunc("GET", "/:id/:preset/:filename", srv.handleImgWithPreset())
 
 	// 404
-	srv.router.NotFound = srv.logAccess(srv.handleNotFound())
+	srv.router.NotFound = srv.handleNotFound()
 
 }
 
@@ -57,10 +57,10 @@ func (srv *server) routes() {
 func (srv *server) handleDocs() http.HandlerFunc {
 	// setup
 	var l *log.Logger
-	if srv.l == nil {
-		l = log.Default().With("handler", "handleDocs")
+	if srv.accessLogger != nil {
+		l = srv.accessLogger.With("handler", "handleDocs")
 	} else {
-		l = srv.l.With("handler", "handleDocs")
+		l = &log.Logger{}
 	}
 
 	// time the handler initialization
@@ -100,10 +100,10 @@ func (srv *server) handleDocs() http.HandlerFunc {
 func (srv *server) handleImg() http.HandlerFunc {
 	// setup
 	var l *log.Logger
-	if srv.l == nil {
+	if srv.debugLogger == nil {
 		l = log.Default().With("handler", "handleImg")
 	} else {
-		l = srv.l.With("handler", "handleImg")
+		l = srv.debugLogger.With("handler", "handleImg")
 	}
 
 	// handler
@@ -132,10 +132,10 @@ func (srv *server) handleImg() http.HandlerFunc {
 func (srv *server) handleImgWithPreset() http.HandlerFunc {
 	// setup
 	var l *log.Logger
-	if srv.l == nil {
+	if srv.debugLogger == nil {
 		l = log.Default().With("handler", "handleImgWithPreset")
 	} else {
-		l = srv.l.With("handler", "handleImgWithPreset")
+		l = srv.debugLogger.With("handler", "handleImgWithPreset")
 	}
 
 	// handler
@@ -190,10 +190,10 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 func (srv *server) handleNotFound() http.HandlerFunc {
 	// setup
 	var l *log.Logger
-	if srv.l == nil {
+	if srv.debugLogger == nil {
 		l = log.Default().With("handler", "handleNotFound")
 	} else {
-		l = srv.l.With("handler", "handleNotFound")
+		l = srv.debugLogger.With("handler", "handleNotFound")
 	}
 
 	// handler
@@ -410,35 +410,19 @@ func parseImageFormat(str string) (images.Format, error) {
 	}
 }
 
-// ACCESS LOGGER
-// TODO: make concurrency safe!
-func (s *server) logAccess(h http.HandlerFunc) http.HandlerFunc {
-	var l *log.Logger
-	if s.conf.AccessLog == "" && s.l != nil {
-		l = s.l.WithPrefix("request")
-	} else if s.conf.AccessLog == "" && s.l == nil {
-		l = log.Default().WithPrefix("request")
-	} else {
-		f, err := os.OpenFile(s.conf.AccessLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// defer f.Close()
-		l = log.New(f)
-
-		if path.Ext(s.conf.AccessLog) == ".json" {
-			l.SetFormatter(log.JSONFormatter)
-		}
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		t := time.Now()
-		h(w, r)
-		l.Info(t.UTC().Local(), "method", r.Method, "url", r.Host+r.URL.String(), "remote", r.RemoteAddr, "user-agent", r.UserAgent(), "time elapsed", time.Since(t))
-	}
-}
-
 // OTHER ESSENTIALS
 
 func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if srv.accessLogger == nil {
+		srv.router.ServeHTTP(w, r)
+		return
+	}
+	t := time.Now()
 	srv.router.ServeHTTP(w, r)
+	srv.accessLogger.Print(t.UTC().Local(),
+		"method", r.Method,
+		"url", r.Host+r.URL.String(),
+		"remote", r.RemoteAddr,
+		"user-agent", r.UserAgent(),
+		"time elapsed", time.Since(t))
 }
