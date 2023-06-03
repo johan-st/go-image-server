@@ -113,6 +113,8 @@ Requirements not mentioned should be regarded as **WONT**
 ### log
 - 2023-06-01: wip. refactoring logging and config. Banchmarks are a lot worse than before. Need to investigate.
 - 2023-06-02: update README.md
+- 2023-06-02: apply logging and config changes
+- 2023-06-03: add docs to API
 
 ## April & May 2023
 _(#backatit)_
