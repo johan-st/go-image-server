@@ -2,29 +2,50 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"image"
+	"os"
+	"time"
 
 	"net/http"
 
 	"github.com/johan-st/go-image-server/images"
 	"github.com/johan-st/go-image-server/way"
+	"gitlab.com/golang-commonmark/markdown"
 )
 
 // DOCS
-
-func (src *server) handleApiDocs() http.HandlerFunc {
+// handleDocs responds to a request with USAGE.md parsed to html.
+// It also inlines some rudimentary css.
+func (srv *server) handleApiDocs() http.HandlerFunc {
 	// setup
-	l := src.errorLogger.With("handler", "handlerApiDocs")
+	l := srv.errorLogger.With("handler", "handleApiDocs")
 
-	type resp struct {
-		Message string `json:"message"`
+	// time the handler initialization
+	defer func(t time.Time) {
+		l.Debug("api docs rendered and redy to be served", "time", time.Since(t))
+	}(time.Now())
+
+	md := markdown.New(markdown.XHTMLOutput(true))
+
+	f, err := os.ReadFile("docs/API.md")
+	if err != nil {
+		l.Fatalf("Could not read docs\n%s", err)
+	}
+	docs := md.RenderToString(f)
+
+	style, err := os.ReadFile("docs/dark.css")
+	if err != nil {
+		l.Fatalf("Could not read docs/dark.css\n%s", err)
 	}
 
+	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Debug("TODO: implement handlerApiDocs")
-		respondJson(w, r, http.StatusNotImplemented, resp{
-			Message: "TODO: implement handlerApiDocs",
-		})
+		l.Debug("handling request", "method", r.Method, "path", r.URL.Path)
+
+		w.Header().Add("content-type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "<html><head><title>img.jst.dev | API</title></head><body><style>%s</style>%s</body></html>", style, docs)
 	}
 }
 
