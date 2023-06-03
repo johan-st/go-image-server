@@ -182,7 +182,7 @@ func run() error {
 		router:       *way.NewRouter(),
 		ih:           ih,
 		accessLogger: al,
-		debugLogger:  l.WithPrefix("[http]"),
+		errorLogger:  l.WithPrefix("[http]"),
 	}
 	srv.routes()
 
@@ -233,7 +233,7 @@ func newCustomLogger() *log.Logger {
 		Formatter:       log.TextFormatter,
 		Fields:          []interface{}{},
 	}
-	return log.NewWithOptions(os.Stdout, opt)
+	return log.NewWithOptions(os.Stderr, opt)
 }
 
 func funcCallerFormater(file string, line int, funcName string) string {
@@ -276,6 +276,7 @@ func trimCaller(path string, n int, sep byte) string {
 	return path[idx+1:]
 }
 
+// Helper function to add all images in a folder to the image handler
 func addFolder(ih *images.ImageHandler, folder string) error {
 	dir, err := os.Open(folder)
 	if err != nil {

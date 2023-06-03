@@ -191,7 +191,7 @@ func (h *ImageHandler) Add(r io.Reader) (int, error) {
 }
 
 // TODO: page and chunk as arguments for when we have thousands of ids?
-func (h *ImageHandler) ListIds() ([]int, error) {
+func (h *ImageHandler) Ids() ([]int, error) {
 	h.opts.l.Debug("ListIds")
 
 	dir, err := os.Open(h.opts.dirOriginals)
@@ -237,7 +237,7 @@ func (h *ImageHandler) GetPreset(preset string) (ImagePreset, bool) {
 }
 
 func (h *ImageHandler) findLatestId() (int, error) {
-	ids, err := h.ListIds()
+	ids, err := h.Ids()
 	if err != nil {
 		return 0, err
 	}

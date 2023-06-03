@@ -240,7 +240,7 @@ func Test_ListIds(t *testing.T) {
 	ids = append(ids, addOrig(t, ih, test_import_source+"/two.jpg"))
 	ids = append(ids, addOrig(t, ih, test_import_source+"/three.jpg"))
 
-	ihList, err := ih.ListIds()
+	ihList, err := ih.Ids()
 	if err != nil {
 		t.Fatal(err)
 	}

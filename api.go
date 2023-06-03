@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"image"
 
@@ -11,107 +10,77 @@ import (
 	"github.com/johan-st/go-image-server/way"
 )
 
-func (srv *server) handleApiGet() http.HandlerFunc {
+// DOCS
+
+func (src *server) handleApiDocs() http.HandlerFunc {
 	// setup
-	l := srv.debugLogger.With("handler", "handleApiGet")
-	l.With("version", "1")
-	l.With("method", "GET")
+	l := src.errorLogger.With("handler", "handlerApiDocs")
 
 	type resp struct {
-		Status   int    `json:"status"`
-		Method   string `json:"method"`
-		Version  string `json:"version"`
-		Message  string `json:"message"`
-		Resource string `json:"resource"`
-		Id       string `json:"id"`
+		Message string `json:"message"`
 	}
 
-	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		resource := way.Param(r.Context(), "resource")
-		id := way.Param(r.Context(), "id")
-
-		resp := resp{
-			Status:   http.StatusNotImplemented,
-			Method:   "GET",
-			Version:  "1",
-			Message:  "NOT YET IMPLEMENTED",
-			Resource: resource,
-			Id:       id,
-		}
-		l.Debug(resp)
-		respondJson(w, r, http.StatusNotImplemented, resp)
+		l.Debug("TODO: implement handlerApiDocs")
+		respondJson(w, r, http.StatusNotImplemented, resp{
+			Message: "TODO: implement handlerApiDocs",
+		})
 	}
 }
 
-func (srv *server) handleApiPost() http.HandlerFunc {
+// IMAGES
+
+func (srv *server) handleApiImageGet() http.HandlerFunc {
 	// setup
-	l := srv.debugLogger.With("handler", "handleApiPost")
-	l.With("version", "1")
-	l.With("method", "POST")
+	l := srv.errorLogger.With("handler", "handleApiImageGet")
 
-	// handlerspecific types
-	type request struct {
-		Action       string `json:"action"`
-		ResourceType string `json:"resourceType"`
-		Id           string `json:"id"`
-	}
-	type badReqResp struct {
-		Status   int     `json:"status"`
-		Error    string  `json:"error"`
-		Expectes request `json:"expected body"`
-	}
-
-	type response struct {
-		Status   int    `json:"status"`
-		Method   string `json:"method"`
-		Version  string `json:"version"`
-		Message  string `json:"message"`
-		Resource string `json:"resource"`
-		Id       string `json:"id"`
+	type resp struct {
+		Message      string `json:"message"`
+		AvailableIds []int  `json:"availableIds,omitempty"`
 	}
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		resource := way.Param(r.Context(), "resource")
-		id := way.Param(r.Context(), "id")
-
-		req := request{}
-		err := json.NewDecoder(r.Body).Decode(&req)
+		ids, err := srv.ih.Ids()
 		if err != nil {
-			resp := badReqResp{
-				Status: http.StatusBadRequest,
-				Error:  "BAD REQUEST. expected json body",
-				Expectes: request{
-					Action:       "string",
-					ResourceType: "image | default | preset | cache ",
-					Id:           "string",
-				},
-			}
-
-			l.Info(err)
-			respondJson(w, r, http.StatusBadRequest, resp)
-			return
+			l.Error(err)
+			respondJson(w, r, http.StatusInternalServerError, resp{
+				Message: "Internal Server Error",
+			})
 		}
-
-		resp := response{
-			Status:   http.StatusNotImplemented,
-			Method:   "POST",
-			Version:  "1",
-			Message:  "NOT YET IMPLEMENTED",
-			Resource: resource,
-			Id:       id,
+		resp := resp{
+			Message:      "listing all available image ids",
+			AvailableIds: ids,
 		}
 		l.Debug(resp)
-		respondJson(w, r, http.StatusNotImplemented, resp)
+		respondJson(w, r, http.StatusOK, resp)
 	}
+}
 
+func (srv *server) handleApiImageDelete() http.HandlerFunc {
+	// setup
+	l := srv.errorLogger.With("handler", "handleApiImageDelete")
+
+	// handler
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := way.Param(r.Context(), "id")
+		l.Debug("handling delete image request", "id", id)
+
+		// err = srv.ih.Delete(req.Id)
+		// if err != nil {
+		// l.Error("error while deleting image", "id", req.Id, "ImageHandlerError", err)
+		// 	respondCode(w, r, http.StatusInternalServerError)
+		// 	return
+		// }
+		// respondCode(w, r, http.StatusOK)
+		respondCode(w, r, http.StatusNotImplemented)
+	}
 }
 
 // TODO: handle errors and respond with correct status codes
 func (srv *server) handleUpload() http.HandlerFunc {
 	// setup
-	l := srv.debugLogger.With("handler", "handleUpload")
+	l := srv.errorLogger.With("handler", "handleUpload")
 	l.With("version", "1")
 	l.With("method", "POST")
 
@@ -125,7 +94,7 @@ func (srv *server) handleUpload() http.HandlerFunc {
 	// TODO: figure out which erorrs are client errors and which are server errors (warn/info vs error)
 	return func(w http.ResponseWriter, r *http.Request) {
 		// parse up to maxSize
-		err := r.ParseMultipartForm(int64(50 * images.Megabyte))
+		err := r.ParseMultipartForm(int64(15 * images.Megabyte))
 		if err != nil {
 			l.Warn("Error while parsing upload", "ParseMultipartFormError", err)
 			respondJson(w, r, http.StatusBadRequest, response{
@@ -148,7 +117,7 @@ func (srv *server) handleUpload() http.HandlerFunc {
 		hs := images.Size(header.Size)
 		ms, err := images.ParseSize(srv.conf.MaxUploadSize)
 		if err != nil {
-			l.Fatal("Error while parsing max upload size. Did we fail to validate the field on start?", "ParseSizeError", err)
+			l.Fatal("Error while parsing max upload size", "ParseSizeError", err)
 			respondJson(w, r, http.StatusInternalServerError, response{
 				Status:  http.StatusInternalServerError,
 				Message: "Internal Server Error",
@@ -184,11 +153,4 @@ func (srv *server) handleUpload() http.HandlerFunc {
 
 		respondJson(w, r, http.StatusCreated, response)
 	}
-}
-
-// HELPER
-func respondJson(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(data)
 }

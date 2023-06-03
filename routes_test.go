@@ -28,6 +28,7 @@ func Test_HandleDocs(t *testing.T) {
 		conf: confHttp{
 			Docs: true,
 		},
+		errorLogger: log.New(os.Stderr),
 	}
 	srv.routes()
 	req := httptest.NewRequest("GET", "/", nil)
@@ -67,8 +68,9 @@ func Test_HandleImg(t *testing.T) {
 	t.Log(id)
 
 	srv := server{
-		router: *way.NewRouter(),
-		ih:     ih,
+		router:      *way.NewRouter(),
+		ih:          ih,
+		errorLogger: log.New(os.Stderr),
 	}
 	srv.routes()
 	w := httptest.NewRecorder()
@@ -93,7 +95,7 @@ func Test_HandleImg(t *testing.T) {
 // BENCHMARKS
 
 func Benchmark_HandleImg_cached(b *testing.B) {
-	l := log.Default()
+	l := log.New(os.Stderr)
 	l.SetLevel(log.FatalLevel)
 
 	// arrange
@@ -123,8 +125,9 @@ func Benchmark_HandleImg_cached(b *testing.B) {
 	id := addOrigB(b, ih, test_import_source+"/one.jpg")
 
 	srv := server{
-		router: *way.NewRouter(),
-		ih:     ih,
+		router:      *way.NewRouter(),
+		ih:          ih,
+		errorLogger: l,
 	}
 
 	srv.routes()
@@ -172,8 +175,9 @@ func Benchmark_HandleImg_cached_concurrent(b *testing.B) {
 	id := addOrigB(b, ih, test_import_source+"/one.jpg")
 
 	srv := server{
-		router: *way.NewRouter(),
-		ih:     ih,
+		router:      *way.NewRouter(),
+		ih:          ih,
+		errorLogger: log.New(os.Stderr),
 	}
 
 	srv.routes()
@@ -224,8 +228,9 @@ func Benchmark_HandleImg_notCached(b *testing.B) {
 	id2 := addOrigB(b, ih, test_import_source+"/two.jpg")
 
 	srv := server{
-		router: *way.NewRouter(),
-		ih:     ih,
+		router:      *way.NewRouter(),
+		ih:          ih,
+		errorLogger: log.New(os.Stderr),
 	}
 
 	srv.routes()

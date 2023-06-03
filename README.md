@@ -320,12 +320,11 @@ goos: linux
 goarch: amd64
 pkg: github.com/johan-st/go-image-server
 cpu: Intel(R) Core(TM) i5-10310U CPU @ 1.70GHz
-Benchmark_HandleImg_cached-8                         656           2039988 ns/op         1151419 B/op         36 allocs/op
-Benchmark_HandleImg_cached_concurrent-8             1411            762330 ns/op         1025997 B/op         50 allocs/op
-Benchmark_HandleImg_notCached-8                        1        1004751282 ns/op        396902072 B/op      1559 allocs/op
+Benchmark_HandleImg_cached-8                         718           1702645 ns/op         1055027 B/op         39 allocs/op
+Benchmark_HandleImg_cached_concurrent-8             5318            264746 ns/op          564334 B/op         47 allocs/op
+Benchmark_HandleImg_notCached-8                        1        1010868220 ns/op        318381320 B/op      2219 allocs/op
 PASS
-ok      github.com/johan-st/go-image-server     33.246s
-
+ok      github.com/johan-st/go-image-server     38.109s
 ```
 
 

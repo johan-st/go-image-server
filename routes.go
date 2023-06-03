@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,11 +18,12 @@ import (
 )
 
 type server struct {
-	debugLogger  *log.Logger
-	accessLogger *log.Logger
-	conf         confHttp
-	ih           *images.ImageHandler
-	router       way.Router
+	errorLogger  *log.Logger // *required
+	accessLogger *log.Logger // optional
+
+	conf   confHttp
+	ih     *images.ImageHandler
+	router way.Router
 }
 
 // Register handlers for routes
@@ -29,25 +31,26 @@ func (srv *server) routes() {
 
 	// Docs / root
 	if srv.conf.Docs {
-		srv.router.HandleFunc("GET", "/", srv.handleDocs())
 		srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
-	} else {
-		srv.router.HandleFunc("GET", "/", srv.handleNotFound())
+		srv.router.HandleFunc("GET", "", srv.handleDocs())
 	}
 
-	// API & Upload
-	srv.router.HandleFunc("GET", "/api", srv.handleApiGet())
-	srv.router.HandleFunc("POST", "/api", srv.handleApiPost())
+	// API
+	srv.router.HandleFunc("GET", "/api", srv.handleApiDocs())
+
+	srv.router.HandleFunc("GET", "/api/image", srv.handleApiImageGet())
+	srv.router.HandleFunc("DELETE", "/api/image/:id", srv.handleApiImageDelete())
+	srv.router.HandleFunc("*", "/api/image/", srv.handleNotAllowed())
+
+	// upload
 	srv.router.HandleFunc("POST", "/upload", srv.handleUpload())
 
 	// Serve Images
-	srv.router.HandleFunc("GET", "/:id", srv.handleImg())
-	srv.router.HandleFunc("GET", "/:id/:preset", srv.handleImgWithPreset())
-	srv.router.HandleFunc("GET", "/:id/:preset/:filename", srv.handleImgWithPreset())
+	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())
+	srv.router.HandleFunc("GET", "/:id/", srv.handleImg())
 
 	// 404
 	srv.router.NotFound = srv.handleNotFound()
-
 }
 
 // HANDLERS
@@ -56,7 +59,7 @@ func (srv *server) routes() {
 // It also inlines some rudimentary css.
 func (srv *server) handleDocs() http.HandlerFunc {
 	// setup
-	l := srv.debugLogger.With("handler", "handleDocs")
+	l := srv.errorLogger.With("handler", "handleDocs")
 
 	// time the handler initialization
 	defer func(t time.Time) {
@@ -94,7 +97,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 // handleImg also takes query parameter into account to deliver a preprocessed version of the image.
 func (srv *server) handleImg() http.HandlerFunc {
 	// setup
-	l := srv.debugLogger.With("handler", "handleImg")
+	l := srv.errorLogger.With("handler", "handleImg")
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +124,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 func (srv *server) handleImgWithPreset() http.HandlerFunc {
 	// setup
-	l := srv.debugLogger.With("handler", "handleImgWithPreset")
+	l := srv.errorLogger.With("handler", "handleImgWithPreset")
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +153,9 @@ func (srv *server) handleImgWithPreset() http.HandlerFunc {
 			return
 		}
 
-		l.Debug("found preset", "preset", presetMaybe)
+		l.Debug("found preset alias",
+			"alias", presetMaybe,
+			"preset", p.Name)
 
 		imgPar, err := parseImageParametersWithPreset(id, query, p)
 		if err != nil {
@@ -165,19 +170,49 @@ func (srv *server) handleImgWithPreset() http.HandlerFunc {
 // handleFavicon serves the favicon.ico.
 func (srv *server) handleFavicon() http.HandlerFunc {
 	// setup
+	l := srv.errorLogger.With("handler", "handleFavicon")
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
+		l.Debug("handling request", "method", r.Method, "path", r.URL.Path)
 		http.ServeFile(w, r, "assets/favicon.ico")
 	}
 }
 
 func (srv *server) handleNotFound() http.HandlerFunc {
 	// setup
+	l := srv.errorLogger.With("handler", "handleNotFound")
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
+		l.Debug("handling request", "method", r.Method, "path", r.URL.Path)
 		srv.respondError(w, r, "not found", http.StatusNotFound)
 	}
+}
+func (srv *server) handleNotAllowed() http.HandlerFunc {
+	// setup
+	l := srv.errorLogger.With("handler", "handleNotAllowed")
+	// handler
+	return func(w http.ResponseWriter, r *http.Request) {
+		l.Info("Method not allowed", "method", r.Method, "path", r.URL.Path)
+		respondCode(w, r, http.StatusMethodNotAllowed)
+	}
+}
+
+// RESPONDERS
+func respondJson(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(data)
+}
+
+func respondCode(w http.ResponseWriter, r *http.Request, code int) {
+	w.WriteHeader(code)
+}
+
+// respondError sends out a respons containing an error. This helper function is meant to be generic enough to serve most needs to communicate errors to the users
+func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
+	w.WriteHeader(statusCode)
+	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }
 
 //  HELPERS
@@ -194,14 +229,8 @@ func (srv *server) respondWithImage(w http.ResponseWriter, r *http.Request, l *l
 		srv.respondError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	l.Debug("serving image", "id", imgPar.Id, "ImageParameters", imgPar, "path", path)
+	l.Debug("serving image", "id", imgPar.Id, "ImageParameters", imgPar, "file", path)
 	http.ServeFile(w, r, path)
-}
-
-// respondError sends out a respons containing an error. This helper function is meant to be generic enough to serve most needs to communicate errors to the users
-func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
-	w.WriteHeader(statusCode)
-	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
 }
 
 func parseImageParameters(id int, val url.Values) (images.ImageParameters, error) {
