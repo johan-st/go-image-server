@@ -45,7 +45,7 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("*", "/api/image/", srv.handleNotAllowed())
 
 	// Admin
-	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
+	srv.router.HandleFunc("GET", "/admin", srv.handleAdminLive())
 
 	// Serve Images
 	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())
@@ -57,17 +57,14 @@ func (srv *server) routes() {
 
 // HANDLERS
 
-func (srv *server) handleAdmin() http.HandlerFunc {
+func (srv *server) handleAdminLive() http.HandlerFunc {
 	// setup
 	l := srv.errorLogger.With("handler", "handleAdmin")
 	// time the handler initialization
-	defer func(t time.Time) {
-		l.Debug("admin page parsed and ready to be served", "time", time.Since(t))
-	}(time.Now())
-
+	l.Warn("parsing admin page on request (and not startup for ease of development)")
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func(t time.Time) {
-			l.Warn("DEBUG: parsed and served", "time", time.Since(t))
+			l.Debug("admin page parsed and served", "time", time.Since(t))
 		}(time.Now())
 
 		ts, err := template.ParseFiles("www/admin.html")
