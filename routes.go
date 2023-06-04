@@ -40,14 +40,12 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/api", srv.handleApiDocs())
 
 	srv.router.HandleFunc("GET", "/api/image", srv.handleApiImageGet())
+	srv.router.HandleFunc("POST", "/api/image", srv.handleApiImagePost())
 	srv.router.HandleFunc("DELETE", "/api/image/:id", srv.handleApiImageDelete())
 	srv.router.HandleFunc("*", "/api/image/", srv.handleNotAllowed())
 
 	// Admin
 	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
-
-	// upload
-	srv.router.HandleFunc("POST", "/upload", srv.handleUpload())
 
 	// Serve Images
 	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())
@@ -62,32 +60,38 @@ func (srv *server) routes() {
 func (srv *server) handleAdmin() http.HandlerFunc {
 	// setup
 	l := srv.errorLogger.With("handler", "handleAdmin")
-
 	// time the handler initialization
 	defer func(t time.Time) {
 		l.Debug("admin page parsed and ready to be served", "time", time.Since(t))
 	}(time.Now())
 
-	// template, err := template.ParseFiles("www/admin.gohtml", "www/index.gohtml")
-	template, err := template.ParseFiles("www/index.gohtml")
-	if err != nil {
-		l.Fatalf("Could not parse admin template\n%s", err)
-	}
-
-	type data struct {
-		Title   string
-		Content string
-		Name    string
-	}
-
-	d := data{
-		Title:   "Admin",
-		Content: "This is the admin page",
-		Name:    "Mr Admin",
-	}
-	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		respondTemplate(w, r, http.StatusOK, template, d)
+		defer func(t time.Time) {
+			l.Warn("DEBUG: parsed and served", "time", time.Since(t))
+		}(time.Now())
+
+		ts, err := template.ParseFiles("www/admin.html")
+		if err != nil {
+			l.Fatalf("Could not parse admin template\n%s", err)
+		}
+
+		type data struct {
+			Name string
+			Ids  []int
+		}
+
+		ids, err := srv.ih.Ids()
+		if err != nil {
+			l.Fatalf("Could not get image ids\n%s", err)
+		}
+
+		d := data{
+			Name: "Mr Admin",
+			Ids:  ids,
+		}
+		// handler
+		// return func(w http.ResponseWriter, r *http.Request) {
+		respondTemplate(w, r, http.StatusOK, ts.Lookup("admin.html"), d)
 	}
 }
 

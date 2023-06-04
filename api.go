@@ -116,7 +116,7 @@ func (srv *server) handleApiImageDelete() http.HandlerFunc {
 }
 
 // TODO: handle errors and respond with correct status codes
-func (srv *server) handleUpload() http.HandlerFunc {
+func (srv *server) handleApiImagePost() http.HandlerFunc {
 	// setup
 	l := srv.errorLogger.With("handler", "handleUpload")
 	l.With("version", "1")
