@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,6 +43,9 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("DELETE", "/api/image/:id", srv.handleApiImageDelete())
 	srv.router.HandleFunc("*", "/api/image/", srv.handleNotAllowed())
 
+	// Admin
+	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
+
 	// upload
 	srv.router.HandleFunc("POST", "/upload", srv.handleUpload())
 
@@ -55,6 +59,38 @@ func (srv *server) routes() {
 
 // HANDLERS
 
+func (srv *server) handleAdmin() http.HandlerFunc {
+	// setup
+	l := srv.errorLogger.With("handler", "handleAdmin")
+
+	// time the handler initialization
+	defer func(t time.Time) {
+		l.Debug("admin page parsed and ready to be served", "time", time.Since(t))
+	}(time.Now())
+
+	// template, err := template.ParseFiles("www/admin.gohtml", "www/index.gohtml")
+	template, err := template.ParseFiles("www/index.gohtml")
+	if err != nil {
+		l.Fatalf("Could not parse admin template\n%s", err)
+	}
+
+	type data struct {
+		Title   string
+		Content string
+		Name    string
+	}
+
+	d := data{
+		Title:   "Admin",
+		Content: "This is the admin page",
+		Name:    "Mr Admin",
+	}
+	// handler
+	return func(w http.ResponseWriter, r *http.Request) {
+		respondTemplate(w, r, http.StatusOK, template, d)
+	}
+}
+
 // handleDocs responds to a request with USAGE.md parsed to html.
 // It also inlines some rudimentary css.
 func (srv *server) handleDocs() http.HandlerFunc {
@@ -63,7 +99,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 
 	// time the handler initialization
 	defer func(t time.Time) {
-		l.Debug("docs rendered and redy to be served", "time", time.Since(t))
+		l.Debug("docs rendered and ready to be served", "time", time.Since(t))
 	}(time.Now())
 
 	md := markdown.New(markdown.XHTMLOutput(true))
@@ -199,6 +235,12 @@ func (srv *server) handleNotAllowed() http.HandlerFunc {
 }
 
 // RESPONDERS
+
+func respondTemplate(w http.ResponseWriter, r *http.Request, code int, tmpl *template.Template, data interface{}) {
+	w.WriteHeader(code)
+	tmpl.Execute(w, data)
+}
+
 func respondJson(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
