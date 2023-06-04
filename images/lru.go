@@ -1,7 +1,6 @@
 package images
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -66,7 +65,6 @@ type node struct {
 }
 
 func (l *lru) Contains(filepath string) bool {
-	defer printLookups(l, fmt.Sprintf("contains(%s)", filepath))
 	if _, ok := l.lookupNode(filepath); ok {
 		return true
 	} else {
@@ -75,17 +73,13 @@ func (l *lru) Contains(filepath string) bool {
 }
 
 func (l *lru) AddOrUpdate(id int, filepath string) bool {
-	defer printLookups(l, fmt.Sprintf("addOrUpdate(%d, %s)", id, filepath))
 
-	// fmt.Println("DEBUG: lru.AddOrUpdate(id) filepath:", filepath, "id:", id)
 	if n, ok := l.lookupNode(filepath); ok {
-		// fmt.Println("DEBUG: lru.AddOrUpdate(id) moveToFront, n:", n)
 		l.moveToFront(n)
 		return true
 	} else {
 		// create new node
 		n := &node{id: id, path: filepath}
-		// fmt.Println("DEBUG: lru.AddOrUpdate(id) addToFront, n:", n)
 		// set lookups
 		l.addToLookup(n, filepath)
 		// add to front
@@ -98,8 +92,6 @@ func (l *lru) AddOrUpdate(id int, filepath string) bool {
 }
 
 func (l *lru) Delete(id int) int {
-	defer printLookups(l, fmt.Sprintf("delete(%d)", id))
-	fmt.Println("DEBUG: lru.Delete(id) id:", id)
 	var (
 		numDeleted int
 		curr       *node
@@ -110,22 +102,13 @@ func (l *lru) Delete(id int) int {
 		next = curr.next
 	}
 
-	// fmt.Println("DEBUG: lru.Delete(id) head:", l.head)
-	// fmt.Println("DEBUG: lru.Delete(id) next:", next)
-
-	// fmt.Println("DEBUG: lru.Delete(id) id:", id)
 	for curr != nil {
-		// fmt.Print("DEBUG: \n____________ loop ____________\n")
-		// fmt.Println("DEBUG: curr.id == id", curr.id == id)
 		if curr.id == id {
 			path, ok := l.lookupPath(curr)
 			if !ok {
-				// fmt.Println("DEBUG: lru.Delete(id) id:", id)
-				// fmt.Println("DEBUG: lru.Delete(id) node:", curr)
 				panic("lru.Remove(id): node not found in lookup")
 			}
 
-			// fmt.Println("DEBUG: lru.Delete(id) path ok:", path)
 			l.detatchNode(curr)
 			l.removeFromLookup(curr, path)
 			numDeleted++
@@ -275,14 +258,4 @@ func (l *lru) removeFromLookup(n *node, path string) {
 	delete(l.reverseLookup, n)
 	l.lMutex.Unlock()
 	l.rlMutex.Unlock()
-}
-
-func printLookups(l *lru, name string) {
-	fmt.Println("DEBUG: ", name, "lookups:")
-	for _, n := range l.lookup {
-		fmt.Println("DEBUG: lookup:", n)
-	}
-	for _, p := range l.reverseLookup {
-		fmt.Println("DEBUG: reverseLookup:", p)
-	}
 }
