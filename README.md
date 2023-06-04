@@ -109,6 +109,9 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] add cache reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
+- [ ] consider storing image-ids in a lookup table for quick "exists" checks.
+- [ ] consider storing loaded images (`type Image` from image package) in memory for quick access when creating multiple new sizes
+- [ ] consider storing image-files in memory for quicker responses (relly on config max or maybe use resource monitoring to not run out of memory?)
 
 ### log
 - 2023-06-01: wip. refactoring logging and config. Banchmarks are a lot worse than before. Need to investigate.
