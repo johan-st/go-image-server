@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"strconv"
 	"time"
 
 	"net/http"
@@ -82,19 +83,35 @@ func (srv *server) handleApiImageDelete() http.HandlerFunc {
 	// setup
 	l := srv.errorLogger.With("handler", "handleApiImageDelete")
 
+	type badReqResp struct {
+		Error string `json:"error"`
+		Got   string `json:"got"`
+		Want  string `json:"want"`
+	}
+
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := way.Param(r.Context(), "id")
-		l.Debug("handling delete image request", "id", id)
+		id_str := way.Param(r.Context(), "id")
+		l.Debug("handling delete image request", "id", id_str)
 
-		// err = srv.ih.Delete(req.Id)
-		// if err != nil {
-		// l.Error("error while deleting image", "id", req.Id, "ImageHandlerError", err)
-		// 	respondCode(w, r, http.StatusInternalServerError)
-		// 	return
-		// }
-		// respondCode(w, r, http.StatusOK)
-		respondCode(w, r, http.StatusNotImplemented)
+		id, err := strconv.Atoi(id_str)
+		if err != nil {
+			l.Error("error while parsing id", "id", id_str, "ParseIntError", err)
+			respondJson(w, r, http.StatusBadRequest, badReqResp{
+				Error: err.Error(),
+				Got:   id_str,
+				Want:  "int > 0",
+			})
+			return
+		}
+
+		err = srv.ih.Delete(id)
+		if err != nil {
+			l.Error("error while deleting image", "id", id, "ImageHandlerError", err)
+			respondCode(w, r, http.StatusInternalServerError)
+			return
+		}
+		respondCode(w, r, http.StatusOK)
 	}
 }
 

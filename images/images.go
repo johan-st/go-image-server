@@ -122,7 +122,7 @@ func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 
 	// Look for the image in the cache, return it if it does
 	if inCache := h.cache.Contains(cachePath); inCache {
-		h.cache.AddOrUpdate(cachePath)
+		h.cache.AddOrUpdate(params.Id, cachePath)
 		return cachePath, nil
 	}
 
@@ -136,7 +136,7 @@ func (h *ImageHandler) Get(params ImageParameters) (string, error) {
 	}
 
 	// file was created, adding to cache.
-	h.cache.AddOrUpdate(cachePath)
+	h.cache.AddOrUpdate(params.Id, cachePath)
 	h.opts.l.Debug("Cachefile Created", "path", cachePath, "size", size)
 	return cachePath, nil
 }
@@ -234,6 +234,21 @@ func (h *ImageHandler) GetPreset(preset string) (ImagePreset, bool) {
 		return ImagePreset{}, false
 	}
 	return p, true
+}
+
+func (h *ImageHandler) Delete(id int) error {
+	h.opts.l.Debug("Delete", "id", id)
+	// TODO: lock while deleting?
+	oPath := h.originalPath(id)
+	err := os.Remove(oPath)
+	if err != nil {
+		return err
+	}
+
+	numDeleted := h.cache.Delete(id)
+	h.opts.l.Debug("Delete", "cache entries removed", numDeleted)
+
+	return nil
 }
 
 func (h *ImageHandler) findLatestId() (int, error) {
@@ -612,7 +627,8 @@ func (ip *ImageParameters) apply(def ImageDefaults) {
 // NOTE: cache should send evicted paths through a channel to the image handler to be deleted from disk.
 type cache interface {
 	Contains(path string) bool
-	AddOrUpdate(path string) bool
+	AddOrUpdate(id int, path string) bool
+	Delete(id int) int
 }
 
 // CONFIGURATION

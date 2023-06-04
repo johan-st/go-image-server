@@ -115,6 +115,8 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-02: update README.md
 - 2023-06-02: apply logging and config changes
 - 2023-06-03: add docs to API
+- 2023-06-03: set up endpoint for DELETE /images/:id
+- 2023-06-04: bugfix for lru
 
 ## April & May 2023
 _(#backatit)_
