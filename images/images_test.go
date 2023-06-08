@@ -166,3 +166,36 @@ func Test_SizeFromString(t *testing.T) {
 		})
 	}
 }
+
+func Test_ratioToPixels(t *testing.T) {
+	type args struct {
+		ratio  float64
+		width  float64
+		height float64
+	}
+	tests := []struct {
+		name  string
+		args  args
+		wantW int
+		wantH int
+	}{
+		{"trivial case", args{1, 0, 0}, 0, 0},
+		{"return same", args{2, 100, 50}, 100, 50},
+		{"return cropped, quadratic", args{1, 100, 41}, 41, 41},
+		{"height bound portrait", args{0.5, 100, 40}, 20, 40},
+		{"width bound portrait", args{0.5, 50, 120}, 50, 100},
+		{"height bound landscape", args{1.5, 100, 60}, 90, 60},
+		{"width bound landscape", args{3, 300, 150}, 300, 100},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotW, gotH := ratioToPixels(tt.args.ratio, tt.args.width, tt.args.height)
+			if gotW != tt.wantW {
+				t.Errorf("ratioToPixels() gotW = %v, want %v", gotW, tt.wantW)
+			}
+			if gotH != tt.wantH {
+				t.Errorf("ratioToPixels() gotH = %v, want %v", gotH, tt.wantH)
+			}
+		})
+	}
+}

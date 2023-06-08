@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"io"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -281,6 +282,10 @@ func (h *ImageHandler) createImage(params ImageParameters, cachePath string) (Si
 	}
 	defer file.Close()
 
+	if params.Width != 0 && params.Height != 0 {
+		oImg = cropToRatio(oImg, int(params.Width), int(params.Height))
+	}
+
 	img := resize.Resize(params.Width, params.Height, oImg, resize.Lanczos3)
 
 	switch params.Format {
@@ -331,6 +336,44 @@ func (h *ImageHandler) cachePath(params ImageParameters) string {
 }
 
 // HELPER
+
+type SubImager interface {
+	SubImage(r image.Rectangle) image.Image
+}
+
+// TODO: IMPLEMENT
+func cropToRatio(i image.Image, width int, height int) image.Image {
+	dx := i.Bounds().Dx()
+	dy := i.Bounds().Dy()
+	r := float64(width) / float64(height)
+	w, h := ratioToPixels(
+		r,
+		float64(dx),
+		float64(dy),
+	)
+	cropX := (dx - w) / 2
+	cropY := (dy - h) / 2
+
+	subRect := image.Rect(cropX, cropY, w+cropX, h+cropY)
+	if subI, ok := i.(SubImager); ok {
+		return subI.SubImage(subRect)
+	} else {
+		// TODO: need to be looked over when we add imagetypes..
+		// Assumption is tha we do not use any format that does not implement SubImages
+		panic("image was not of type SubImager")
+	}
+}
+
+func ratioToPixels(ratioWH, width, height float64) (w int, h int) {
+	if width < 1 || height < 1 || ratioWH <= 0 {
+		return 0, 0
+	}
+	if height*ratioWH <= width {
+		return int(math.Round(height * ratioWH)), int(math.Round(height))
+	} else {
+		return int(math.Round(width)), int(math.Round(width / ratioWH))
+	}
+}
 
 // retunes the image specified by the path
 func loadImage(path string) (image.Image, error) {

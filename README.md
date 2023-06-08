@@ -75,13 +75,13 @@ Requirements not mentioned should be regarded as **WONT**
 - [x] **MUST** have prototype admin for uploading images
 - [x] **MUST** have prototype admin for viewing and deleting images
 - [ ] **SHOULD** have prototype info page for viewing server status, uptime, cache size etc
-- [ ] **SHOULD** keep aspect ratio when cropping 
+- [x] **SHOULD** keep aspect ratio when cropping 
 - [ ] **COULD** have prototype admin for viewing and deleting cached images
 - [ ] **COULD** be benchmarked for performance
 
 ### todo
 - [ ] decide on how to handle handle requests for images larger than original?
-- [ ] crop should keep aspect ratio
+- [x] crop should keep aspect ratio
 - [X] handle folder creation and permissions
   - [ ] win
   - [ ] linux
@@ -105,10 +105,10 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] add cacnelation context to "add folder on startup" and "load images and cache from disk on startup"?
 - [ ] decide on benchmark-method for single images
 - [X] asking for a non-exsistant id should give 404 (not 500)
-- [ ] add usage log 
+- [x] add usage log 
 - [x] add cache reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
-- [ ] crop should keep aspect ratio
+- [x] crop should keep aspect ratio
 - [ ] consider storing image-ids in a lookup table for quick "exists" checks.
 - [ ] consider storing loaded images (`type Image` from image package) in memory for quick access when creating multiple new sizes
 - [ ] consider storing image-files in memory for quicker responses (relly on config max or maybe use resource monitoring to not run out of memory?)
@@ -130,6 +130,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-04: bugfix for lru
 - 2023-06-08: Learn template basics and create admin page prototype.
 - 2023-06-09: update README.md
+- 2023-06-09: crop instead of stretch images
 
 ## April & May 2023
 _(#backatit)_
