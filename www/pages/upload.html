@@ -1,0 +1,36 @@
+{{define "main"}}
+
+
+<h2>Upload</h2>
+<form id="upload-form">
+    <input type="file" name="image" />
+    <input type="submit" value="upload" />
+</form>
+<output id="upload-result"></output>
+
+<script>
+    const uploadForm = document.getElementById("upload-form");
+    const uploadResult = document.getElementById("upload-result");
+
+    uploadForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        console.debug("uploadForm submit");
+        const formData = new FormData(uploadForm);
+        fetch("/api/image", {
+            method: "POST",
+            body: formData,
+        }).then(function (response) {
+            if (response.ok) {
+                uploadResult.innerHTML = response.status + ":\n" + JSON.stringify(response.body)
+                uploadForm.reset();
+            } else {
+                console.log(this);
+                console.error("upload image", response);
+                uploadResult.innerHTML = response.status + ":\n" + JSON.stringify(response.body)
+            }
+        });
+    });
+
+</script>
+
+{{end}}

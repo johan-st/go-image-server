@@ -72,8 +72,8 @@ Requirements not mentioned should be regarded as **WONT**
 
 ## June 2023
 
-- [ ] **MUST** have prototype admin for uploading images
-- [ ] **MUST** have prototype admin for viewing and deleting images
+- [x] **MUST** have prototype admin for uploading images
+- [x] **MUST** have prototype admin for viewing and deleting images
 - [ ] **SHOULD** have prototype info page for viewing server status, uptime, cache size etc
 - [ ] **SHOULD** keep aspect ratio when cropping 
 - [ ] **COULD** have prototype admin for viewing and deleting cached images
@@ -89,12 +89,12 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] app need to be able to run as binary with no setup (maybe sane default conf is created?)
 - [ ] support webp
 - [ ] safe concurrency
-- [ ] switch to disable docs
+- [x] switch to disable docs
 - [ ] decide on pathing when calling from a different folder than the binary
 - [ ] inplement interpolation function
 - [ ] load images and cache from disk on startup
 - [ ] investigate hardcoding docs into binary
-- [ ] Add folder on startup should be reccursive?
+- [ ] "Add folder" on startup should be reccursive?
 - [ ] Strip images package to bare minimum. Move unnecessary stuff to main package
 - [ ] update USAGE.md
 - [ ] make the creation of a default config file when no conf was found an opt-in feature
@@ -104,14 +104,22 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] consider commiting to single executable? as of now I need docs folder and config file
 - [ ] add cacnelation context to "add folder on startup" and "load images and cache from disk on startup"?
 - [ ] decide on benchmark-method for single images
-- [ ] asking for a non-exsistant id should give 404 (not 500)
+- [X] asking for a non-exsistant id should give 404 (not 500)
 - [ ] add usage log 
-- [ ] add cache reclaimation
+- [x] add cache reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
 - [ ] consider storing image-ids in a lookup table for quick "exists" checks.
 - [ ] consider storing loaded images (`type Image` from image package) in memory for quick access when creating multiple new sizes
 - [ ] consider storing image-files in memory for quicker responses (relly on config max or maybe use resource monitoring to not run out of memory?)
+- [ ] log an info level message when deleting an image
+- [ ] BUG: delete requests to a non-existant id causes a 500-response
+  - [ ] response should probably be a 400
+  - [ ] logging as error in handler. should be info or warn
+- [ ] PROBLEM: benchmarks are broken...
+- [ ] consider migrating docs to templates instead of markdown?
+
+
 
 ### log
 - 2023-06-01: wip. refactoring logging and config. Banchmarks are a lot worse than before. Need to investigate.
@@ -120,6 +128,8 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-03: add docs to API
 - 2023-06-03: set up endpoint for DELETE /images/:id
 - 2023-06-04: bugfix for lru
+- 2023-06-08: Learn template basics and create admin page prototype.
+- 2023-06-09: update README.md
 
 ## April & May 2023
 _(#backatit)_

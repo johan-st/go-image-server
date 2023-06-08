@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -36,16 +37,23 @@ func (srv *server) routes() {
 		srv.router.HandleFunc("GET", "", srv.handleDocs())
 	}
 
+	// STATIC ASSETS
+	srv.router.HandleFunc("GET", "/assets/", srv.handleAssets())
+
 	// API
 	srv.router.HandleFunc("GET", "/api", srv.handleApiDocs())
-
 	srv.router.HandleFunc("GET", "/api/image", srv.handleApiImageGet())
 	srv.router.HandleFunc("POST", "/api/image", srv.handleApiImagePost())
 	srv.router.HandleFunc("DELETE", "/api/image/:id", srv.handleApiImageDelete())
-	srv.router.HandleFunc("*", "/api/image/", srv.handleNotAllowed())
+	srv.router.HandleFunc("*", "/api/", srv.handleNotAllowed())
 
 	// Admin
-	srv.router.HandleFunc("GET", "/admin", srv.handleAdminLive())
+	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
+	srv.router.HandleFunc("GET", "/admin/:template", srv.handleAdmin())
+
+	// dev-admin
+	srv.router.HandleFunc("GET", "/dev-admin", srv.handleAdminLive())
+	srv.router.HandleFunc("GET", "/dev-admin/:template", srv.handleAdminLive())
 
 	// Serve Images
 	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())
@@ -57,39 +65,181 @@ func (srv *server) routes() {
 
 // HANDLERS
 
+// template datatypes
+type pageData struct {
+	Title    string
+	MainData any
+}
+type dataImages struct {
+	Ids []int
+}
+
+func (srv *server) handleAdmin() http.HandlerFunc {
+	// setup
+	l := srv.errorLogger.With("handler", "handleAdmin")
+	defer func(t time.Time) {
+		l.Debug("teplates parsed and ready to be served", "time", time.Since(t))
+	}(time.Now())
+
+	// files, err := filepath.Glob("www/layouts/*.html")
+	// if err != nil {
+	// 	l.Fatal("could not list layout-files", "error", err)
+	// }
+
+	// _, err := template.ParseGlob("www/layouts/*.html")
+	// if err != nil {
+	// 	l.Fatal(err)
+	// }
+
+	files := []string{"www/layouts/base.html"}
+
+	mainTpl, err := template.ParseFiles(append(files, "www/pages/admin.html")...)
+	if err != nil {
+		l.Fatal("Could not parse admin template", "error", err)
+	}
+
+	uploadTpl, err := template.ParseFiles(append(files, "www/pages/upload.html")...)
+	if err != nil {
+		l.Fatal("Could not parse admin template", "error", err)
+	}
+
+	imagesTpl, err := template.ParseFiles(append(files, "www/pages/images.html")...)
+	if err != nil {
+		l.Fatal("Could not parse admin template", "error", err)
+	}
+
+	// handler
+	return func(w http.ResponseWriter, r *http.Request) {
+		l.Debug("handling request", "path", r.URL.Path)
+		switch way.Param(r.Context(), "template") {
+		case "add":
+			data := pageData{
+				Title:    "Add Image",
+				MainData: nil,
+			}
+			uploadTpl.Execute(w, data)
+			if err != nil {
+				l.Fatal("Could not render template", "error", err)
+			}
+		case "images":
+			ids, err := srv.ih.Ids()
+			if err != nil {
+				l.Fatal("Could not get image ids", "error", err)
+				respondCode(w, r, http.StatusInternalServerError)
+			}
+
+			sort.Ints(ids)
+
+			data := pageData{
+				Title: "Images",
+				MainData: dataImages{
+					Ids: ids,
+				},
+			}
+			imagesTpl.Execute(w, data)
+			if err != nil {
+				l.Fatal("Could not render template", "error", err)
+				respondCode(w, r, http.StatusInternalServerError)
+			}
+		default:
+			data := pageData{
+				Title:    "Admin",
+				MainData: nil,
+			}
+			mainTpl.Execute(w, data)
+			if err != nil {
+				l.Fatal("Could not render template", "error", err)
+			}
+		}
+	}
+}
+
 func (srv *server) handleAdminLive() http.HandlerFunc {
 	// setup
 	l := srv.errorLogger.With("handler", "handleAdmin")
-	// time the handler initialization
-	l.Warn("parsing admin page on request (and not startup for ease of development)")
+
+	l.Warn("parsing admin page on request (development mode)")
+
 	return func(w http.ResponseWriter, r *http.Request) {
+		// time the handler initialization
 		defer func(t time.Time) {
 			l.Debug("admin page parsed and served", "time", time.Since(t))
 		}(time.Now())
 
-		ts, err := template.ParseFiles("www/admin.html")
-		if err != nil {
-			l.Fatalf("Could not parse admin template\n%s", err)
+		l.Debug("handling request", "path", r.URL.Path)
+
+		files := []string{"www/layouts/base.html"}
+
+		switch way.Param(r.Context(), "template") {
+		case "add":
+			files = append(files, "www/pages/upload.html")
+
+			data := pageData{
+				Title:    "Add Image",
+				MainData: nil,
+			}
+			tpl, err := template.ParseFiles(files...)
+			if err != nil {
+				l.Fatal("Could not parse files", "files", files, "err", err)
+			}
+			err = tpl.Execute(w, data)
+			if err != nil {
+				l.Fatal("Could not execute template", "files", files, "err", err)
+			}
+		case "images":
+			files = append(files, "www/pages/images.html")
+
+			ids, err := srv.ih.Ids()
+			if err != nil {
+				l.Fatal("Could not get image ids", "error", err)
+			}
+
+			data := pageData{
+				Title: "Images",
+				MainData: dataImages{
+					Ids: ids,
+				},
+			}
+			tpl, err := template.ParseFiles(files...)
+			if err != nil {
+				l.Fatal("Could not parse files", "files", files, "err", err)
+			}
+			err = tpl.Execute(w, data)
+			if err != nil {
+				l.Fatal("Could not execute template", "files", files, "err", err)
+			}
+		default:
+			files = append(files, "www/pages/admin.html")
+			data := pageData{
+				Title:    "Admin",
+				MainData: nil,
+			}
+			tpl, err := template.ParseFiles(files...)
+			if err != nil {
+				l.Fatal("Could not parse files", "files", files, "err", err)
+			}
+			err = tpl.Execute(w, data)
+			if err != nil {
+				l.Fatal("Could not execute template", "files", files, "err", err)
+			}
 		}
 
-		type data struct {
-			Name string
-			Ids  []int
-		}
-
-		ids, err := srv.ih.Ids()
-		if err != nil {
-			l.Fatalf("Could not get image ids\n%s", err)
-		}
-
-		d := data{
-			Name: "Mr Admin",
-			Ids:  ids,
-		}
-		// handler
-		// return func(w http.ResponseWriter, r *http.Request) {
-		respondTemplate(w, r, http.StatusOK, ts.Lookup("admin.html"), d)
 	}
+}
+
+func (srv *server) handleAssets() http.HandlerFunc {
+	// setup
+	l := srv.errorLogger.With("handler", "handleAssets")
+	return func(w http.ResponseWriter, r *http.Request) {
+		l.Debug("handling request", "path", r.URL.Path)
+		file := strings.TrimPrefix(r.URL.Path, "/assets/")
+		if file == "" {
+			srv.respondError(w, r, "not found", http.StatusNotFound)
+			return
+		}
+		http.ServeFile(w, r, "www/assets/"+file)
+	}
+
 }
 
 // handleDocs responds to a request with USAGE.md parsed to html.
@@ -118,7 +268,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Debug("handling request", "method", r.Method, "path", r.URL.Path)
+		l.Debug("handling request", "path", r.URL.Path)
 		if r.Method != http.MethodGet {
 			srv.respondError(w, r, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -143,7 +293,7 @@ func (srv *server) handleImg() http.HandlerFunc {
 
 		id, err := strconv.Atoi(id_str)
 		if err != nil {
-			l.Warn("count not parse image id")
+			l.Warn("count not parse image id", "id", id_str)
 			srv.respondError(w, r, fmt.Sprintf("Could not parse image id.\nGOT: %s\nID MUST BE AN INTEGER GREATER THAN ZERO", id_str), http.StatusBadRequest)
 			return
 		}
@@ -166,7 +316,7 @@ func (srv *server) handleImgWithPreset() http.HandlerFunc {
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-		l.Debug("handling request", "method", r.Method, "path", r.URL.Path, "query", query)
+		l.Debug("handling request", "method", r.Method, "path", r.URL.Path, "query", r.URL.Query())
 
 		id_str := way.Param(r.Context(), "id")
 		id, err := strconv.Atoi(id_str)
@@ -211,8 +361,8 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Debug("handling request", "method", r.Method, "path", r.URL.Path)
-		http.ServeFile(w, r, "assets/favicon.ico")
+		l.Debug("handling request", "path", r.URL.Path)
+		http.ServeFile(w, r, "www/assets/favicon.ico")
 	}
 }
 
@@ -221,7 +371,7 @@ func (srv *server) handleNotFound() http.HandlerFunc {
 	l := srv.errorLogger.With("handler", "handleNotFound")
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Debug("handling request", "method", r.Method, "path", r.URL.Path)
+		l.Debug("handling request", "path", r.URL.Path)
 		srv.respondError(w, r, "not found", http.StatusNotFound)
 	}
 }
@@ -230,17 +380,12 @@ func (srv *server) handleNotAllowed() http.HandlerFunc {
 	l := srv.errorLogger.With("handler", "handleNotAllowed")
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Info("Method not allowed", "method", r.Method, "path", r.URL.Path)
+		l.Info("Method not allowed", "path", r.URL.Path)
 		respondCode(w, r, http.StatusMethodNotAllowed)
 	}
 }
 
 // RESPONDERS
-
-func respondTemplate(w http.ResponseWriter, r *http.Request, code int, tmpl *template.Template, data interface{}) {
-	w.WriteHeader(code)
-	tmpl.Execute(w, data)
-}
 
 func respondJson(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")

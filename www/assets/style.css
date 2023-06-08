@@ -1,0 +1,93 @@
+:root {
+  --clr-primary: #f90;
+  --clr-primary-alt: #fa3;
+  --clr-background: #333;
+}
+
+body {
+  background-color: var(--clr-background);
+  color: #ccc;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  font-size: 18px;
+  margin: 0 auto;
+  padding: 0 1rem 50vh;
+}
+
+code {
+  background-color: #444;
+  color: #ccc;
+  padding: 0.1rem 0.3rem;
+  font-family: "Courier New", Courier, monospace;
+  font-size: .9em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--clr-primary);
+}
+
+h1 {
+  font-size: 3rem;
+}
+
+h2 {
+  font-size: 1.8rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+}
+
+a {
+  color: var(--clr-primary);
+}
+
+a:visited {
+  color: var(--clr-primary-alt);
+}
+
+.images {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: start;
+}
+
+.image {
+  display: flex;
+  flex-direction: column;
+  margin: 0 2rem 1rem;
+}
+
+.image__id {
+  margin: .2rem;
+}
+
+.image__actions {
+  height: 2rem;
+  margin-top: .5rem;
+}
+
+.image__actions>* {
+  color: var(--clr-primary-alt);
+  background-color: var(--clr-background);
+  border: 1px solid var(--clr-primary);
+  margin-right: .2rem;
+  width: 100%;
+  height: 100%;
+}
+
+.image__actions>*:hover {
+  background-color: #f90;
+  color: #333;
+  cursor: pointer;
+}
+
+.image__actions>*:last-child {
+  margin-right: 0
+}

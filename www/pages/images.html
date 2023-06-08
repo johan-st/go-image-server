@@ -1,0 +1,43 @@
+{{define "title"}}list images{{end}}
+
+{{define "main"}}
+<h2>Images</h2>
+<section class="images">
+    {{range .MainData.Ids}}
+    <div class="image">
+        <p class="image__id">id: {{.}}</p>
+        <img src="/{{.}}?h=200" />
+        <div class="image__actions">
+            <input class="image__delete" data-image_id="{{.}}" type="submit" value="delete" />
+        </div>
+    </div>
+    {{end}}
+
+</section>
+<script>
+    const deleteButtons = document.querySelectorAll(".image__delete");
+
+    deleteButtons.forEach(function (button) {
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            console.debug("deleteButtons click");
+            const imageId = button.dataset.image_id;
+            fetch("/api/image/" + imageId, {
+                method: "DELETE",
+            }).then(function (response) {
+                if (response.ok) {
+                    window.location.reload();
+                    console.debug("image deleted");
+
+                } else {
+                    console.error("error while deleting image", response);
+                    window.location.reload();
+                }
+            });
+        });
+    });
+
+
+</script>
+
+{{end}}
