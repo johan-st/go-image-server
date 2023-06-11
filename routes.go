@@ -33,15 +33,15 @@ func (srv *server) routes() {
 
 	// Docs / root
 	if srv.conf.Docs {
-		srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
 		srv.router.HandleFunc("GET", "", srv.handleDocs())
+		srv.router.HandleFunc("GET", "/api", srv.handleApiDocs())
 	}
 
 	// STATIC ASSETS
+	srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
 	srv.router.HandleFunc("GET", "/assets/", srv.handleAssets())
 
 	// API
-	srv.router.HandleFunc("GET", "/api", srv.handleApiDocs())
 	srv.router.HandleFunc("GET", "/api/image", srv.handleApiImageGet())
 	srv.router.HandleFunc("POST", "/api/image", srv.handleApiImagePost())
 	srv.router.HandleFunc("DELETE", "/api/image/:id", srv.handleApiImageDelete())
