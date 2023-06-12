@@ -6,7 +6,6 @@ Idea is to be able to upload a an image in high resolution and quality and have 
 
 Idealy image workflow should be significantly simplified. Workflow could be to upload a single high-res version of each image to the image-server and let all teams fetch the sizes, qualities and formats they require for each application. Once a specific image has been requested it will be cached and instantly available on subsequent requests.
 
-
 ## Proof of concept
 
 A proof of concept **MUST** be able to serve images in the requested pixel-size.
@@ -16,36 +15,38 @@ It **SHOULD** have at least two (2) quality levels and **SHOULD** be able to cac
 
 A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD** have rudimentary authentication/domain restrictions.
 
-# Table Of Contents
+## Table Of Contents
+
 - [go-image-server](#go-image-server)
   - [Proof of concept](#proof-of-concept)
   - [Minimum Viable Product](#minimum-viable-product)
-- [Table Of Contents](#table-of-contents)
-  - [Project Requirements](#project-requirements)
-    - [Server](#server)
-- [Sprints](#sprints)
-  - [MoSCoW](#moscow)
-  - [June 2023](#june-2023)
-    - [todo](#todo)
-    - [log](#log)
-  - [April \& May 2023](#april--may-2023)
-    - [todo](#todo-1)
-    - [log](#log-1)
-  - [Februari 2022](#februari-2022)
-    - [todo](#todo-2)
-    - [log](#log-2)
-- [Requirements](#requirements)
-- [Questions to answer](#questions-to-answer)
-  - [structure of request](#structure-of-request)
-  - [Caching](#caching)
-- [thoughts](#thoughts)
-  - [images package API (DRAFT)](#images-package-api-draft)
-  - [Performance](#performance)
-- [Known issues](#known-issues)
+  - [Table Of Contents](#table-of-contents)
+    - [Project Requirements](#project-requirements)
+      - [Server](#server)
+  - [Sprints](#sprints)
+    - [MoSCoW](#moscow)
+    - [June 2023](#june-2023)
+      - [todo (june 2023)](#todo-june-2023)
+      - [log (june 2023)](#log-june-2023)
+    - [April \& May 2023](#april--may-2023)
+      - [todo (april \& may 2023)](#todo-april--may-2023)
+      - [log (april \& may 2023)](#log-april--may-2023)
+    - [Februari 2022](#februari-2022)
+      - [todo (februari 2022)](#todo-februari-2022)
+      - [log (februari 2022)](#log-februari-2022)
+  - [Requirements](#requirements)
+  - [Questions to answer](#questions-to-answer)
+    - [structure of request](#structure-of-request)
+    - [Caching](#caching)
+  - [thoughts](#thoughts)
+    - [images package API (DRAFT)](#images-package-api-draft)
+    - [Performance](#performance)
+  - [Known issues](#known-issues)
 
-## Project Requirements 
+### Project Requirements
 
-### Server 
+#### Server
+
 Server **MUST** have sufficient authorization and domain restrictions to avoid abuse.
 Server **SHOULD** have a mechanism for finding errors and possible abuse.
 Server **MUST** be able to add images while running.
@@ -53,7 +54,7 @@ Server **MUST** be able to add images from a folder on startup.
 Server **COULD** monitor a folder for new images and add them automatically.
 Server **COULD** serve thumbnail of image while creating a new cached version.
 Images requested **SHOULD** be served within 500ms on first request and **MUST** be served within 25ms on subsequent requests.
-Images **MUST** be served in the size requested. 
+Images **MUST** be served in the size requested.
 Images **MUST** not be stretched or distorted.
 Images **SHOULD** not be scaled up from original.
 Images **SHUOLD** have quality-options
@@ -64,22 +65,25 @@ Code **SHOULD** be benchmarked for performance
 Code **COULD** be profiled for cpu and memory usage
 Code **SHOULD** be maintainable and easy to understand.
 
-# Sprints
-## [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method)
+## Sprints
+
+### [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method)
+
 Planing and prioritization of features and requirements to be implemented during each sprint.
 
 Requirements not mentioned should be regarded as **WONT**
 
-## June 2023
+### June 2023
 
 - [x] **MUST** have prototype admin for uploading images
 - [x] **MUST** have prototype admin for viewing and deleting images
 - [ ] **SHOULD** have prototype info page for viewing server status, uptime, cache size etc
-- [x] **SHOULD** keep aspect ratio when cropping 
+- [x] **SHOULD** keep aspect ratio when cropping
 - [ ] **COULD** have prototype admin for viewing and deleting cached images
 - [ ] **COULD** be benchmarked for performance
 
-### todo
+#### todo (june 2023)
+
 - [ ] decide on how to handle handle requests for images larger than original?
 - [x] crop should keep aspect ratio
 - [X] handle folder creation and permissions
@@ -105,7 +109,7 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] add cacnelation context to "add folder on startup" and "load images and cache from disk on startup"?
 - [ ] decide on benchmark-method for single images
 - [X] asking for a non-exsistant id should give 404 (not 500)
-- [x] add usage log 
+- [x] add usage log
 - [x] add cache reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [x] crop should keep aspect ratio
@@ -119,9 +123,8 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] PROBLEM: benchmarks are broken...
 - [ ] consider migrating docs to templates instead of markdown?
 
+#### log (june 2023)
 
-
-### log
 - 2023-06-01: wip. refactoring logging and config. Banchmarks are a lot worse than before. Need to investigate.
 - 2023-06-02: update README.md
 - 2023-06-02: apply logging and config changes
@@ -132,11 +135,12 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-09: update README.md
 - 2023-06-09: crop instead of stretch images
 
-## April & May 2023
-_(#backatit)_
+### April & May 2023
+
+(#backatit)
 
 - [x] **MUST** have tests working and passing on linux and windows
-  - [x] linux 
+  - [x] linux
   - [X] windows
 - [x] **SHOULD** error on startup if file permissions are wrong
   - Decided to have the server try to set the permissions for image and cache folder itself if they are not permissive enough. It will only extend permissions, never reduce them.
@@ -145,8 +149,8 @@ _(#backatit)_
 - [ ] **COULD** have a webpage for uploading images
 - [ ] **COULD** have a webpage for viewing and deleting images
 
+#### todo (april & may 2023)
 
-### todo
 - [X] Fix tests
 - [X] asking for a non-exsistant id should give 404 (not 500)
   - was already fixed in previous sprint
@@ -154,7 +158,7 @@ _(#backatit)_
 - [X] Refactor tests to work on the image modules API (not as part of the module)  
 - [X] decide on benchmark-method for single images
   - I will use the `go test -bench=. -benchmem` method
-- [x] add usage log 
+- [x] add usage log
 - [X] add simple cache retention and reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
@@ -166,10 +170,10 @@ _(#backatit)_
 - [ ] support webp
 - [ ] safe concurrency
 - [ ] switch to disable docs
-- [x] consider using OptFunc pattern for config. 
+- [x] consider using OptFunc pattern for config.
   - e.g: `NewServer(withPort(8080), withCacheSize(1000), withImageDefaults(imgDef), withImagePreset(imgPresetSmall), withImagePreset(imgPresetThumb))` etc...
-  - https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
-  - Anthony GG video: https://www.youtube.com/watch?v=MDy7JQN5MN4
+  - [https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis](https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis)
+  - Anthony GG video: [https://www.youtube.com/watch?v=MDy7JQN5MN4](https://www.youtube.com/watch?v=MDy7JQN5MN4)
 - [X] Stricter checks when adding images. Should be imposible to add a file that can not be parsed as an image.
 - [ ] decide on pathing when calling from a different folder than the binary
 - [X] docs should be opt-in with a flag and config-file
@@ -188,7 +192,8 @@ _(#backatit)_
 - [ ] consider commiting to single executable? as of now I need docs folder and config file
 - [ ] add cacnelation context to "add folder on startup" and "load images and cache from disk on startup"?
 
-### log
+#### log (april & may 2023)
+
 - 2023-04-25: look over code and tests. Plan future work
 - 2023-04-26: Fix permission issues with cache and image folders. Tests now pass on linux
 - 2023-04-26: slight restructure of README.md
@@ -207,16 +212,15 @@ _(#backatit)_
 - 2023-05-17: hook in bespoke LRU (least recently used) cache
 - 2023-05-18: implement defaults for ImageHadler and ImageParameters
 - 2023-05-18: set up basics for yaml config. this will supercede the defaults when implemented
-- 2023-05-19: hook in yaml config. All settings are not yet used. 
+- 2023-05-19: hook in yaml config. All settings are not yet used.
 - 2023-05-19: create branch for working on a new config pattern for images package
-- 2023-05-24: branch: conf another way. refactoring and hook in config file   
+- 2023-05-24: branch: conf another way. refactoring and hook in config file
 - 2023-05-25: work on conf and update todos
 - 2023-05-26: work on conf and check a few todos
 - 2023-05-28: Fix bug and add access log as file
 - 2023-05-31: create image upload endpoint.
 
-## Februari 2022
-
+### Februari 2022
 
 - [x] **MUST** store and serve images
 - [x] **SHOULD** preprocess images on demand
@@ -225,7 +229,7 @@ _(#backatit)_
 - [X] **COULD** cache processed images for future releases
 - [ ] **COULD** be fast
 
-### todo
+#### todo (februari 2022)
 
 - [x] Planing
 - [x] Basic http server
@@ -235,11 +239,12 @@ _(#backatit)_
 - [x] Cache requested images for future requests
 - [ ] decide on benchmark-method for single images
 - [ ] asking for a non-exsistant id should give 404 (not 500)
-- [ ] add usage log 
+- [ ] add usage log
 - [ ] add cache reclaimation
 - [ ] decide on how to handle handle requests for images larger than original?
 - [ ] crop should keep aspect ratio
-### log
+
+#### log (februari 2022)
 
 - 2022-02-08: create repo and brain-dump requirements etc
 - 2022-02-11: try out routing setups and settle on matryan/way routing and implement
@@ -254,7 +259,7 @@ _(#backatit)_
 - 2022-02-28: have quality for gif be specifc fr gif (1-256)
 - 2022-02-28: make images a package
 
-# Requirements
+## Requirements
 
 - store and serve images
 - preprocess images on demand
@@ -278,9 +283,9 @@ _(#backatit)_
 - select focus point for crop
 - be horizontaly scalable (originals storage and cache layer?)
 
-# Questions to answer
+## Questions to answer
 
-## structure of request
+### structure of request
 
 - Do html and css limit query parameters?
 - path or query for preprocessing
@@ -294,25 +299,29 @@ _(#backatit)_
   - middle ground?
 - Should I handle alt-texts?
 
-## Caching
+### Caching
+
 - after thinking and trying things out for a bit I am leennig towards using the filesystem as a cache. Maybe save some metadata in a datastructure of some kind.
 - misses are very disruptive since we go from ~400us processing to ~400ms. About a 1000 times slower. 400ms impacts UX.
   - I will allways know the path a certain id + parameter combo will have by naming the files according approprtly.
   - on hits I will want to read from disk regardless so I might as well try to open the path
-  - on miss it will not be a noticeble cost 
+  - on miss it will not be a noticeble cost
 - I decided to implement my own LRU cache. It should be thread safe but needs further verification.
 
-# thoughts
+## thoughts
+
 - if used as a cdn a simple rsync could keep all cahces in sync and restore cache from master or other source on boot. Possibly even clone cache from all peers.
 - set default return per image?
 - should be able to use aritrary folders for images (linked by cache)
-- 
-## images package API (DRAFT)
 
-## Performance
+### images package API (DRAFT)
+
+### Performance
+
 example benchmarks run on my laptop
+
 ```bash
-# 2023-05-19
+## 2023-05-19
 goos: linux
 goarch: amd64
 pkg: github.com/johan-st/go-image-server
@@ -323,7 +332,7 @@ Benchmark_HandleImg_notCached-8                3         399386964 ns/op        
 PASS
 ok      github.com/johan-st/go-image-server     16.047s
 
-# 2023-06-01
+## 2023-06-01
 goos: linux
 goarch: amd64
 pkg: github.com/johan-st/go-image-server
@@ -333,7 +342,7 @@ Benchmark_HandleImg_notCached-8                2         605024558 ns/op        
 PASS
 ok      github.com/johan-st/go-image-server     17.842s
 
-# 2023-06-02
+## 2023-06-02
 goos: linux
 goarch: amd64
 pkg: github.com/johan-st/go-image-server
@@ -345,9 +354,9 @@ PASS
 ok      github.com/johan-st/go-image-server     38.109s
 ```
 
+## Known issues
 
-
-# Known issues
 - imagecache is not persisted between starts
 - format bug: if you request a png and then a jpg of with the same parameter png will be served
 - lru cache max size of 0 is not handled propperly
+  
