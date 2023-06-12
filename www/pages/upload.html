@@ -1,6 +1,4 @@
 {{define "main"}}
-
-
 <h2>Upload</h2>
 <form id="upload-form">
     <input type="file" name="image" />
@@ -8,10 +6,10 @@
 </form>
 <output id="upload-result"></output>
 
+
 <script>
     const uploadForm = document.getElementById("upload-form");
     const uploadResult = document.getElementById("upload-result");
-
     uploadForm.addEventListener("submit", function (e) {
         e.preventDefault();
         console.debug("uploadForm submit");
@@ -30,7 +28,5 @@
             }
         });
     });
-
 </script>
-
 {{end}}

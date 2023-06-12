@@ -26,10 +26,20 @@ type server struct {
 	conf   confHttp
 	ih     *images.ImageHandler
 	router way.Router
+
+	// TODO: make concurrent safe
+	Stats struct {
+		StartTime    time.Time
+		Requests     int
+		Errors       int
+		ImagesServed int
+	}
 }
 
 // Register handlers for routes
 func (srv *server) routes() {
+
+	srv.Stats.StartTime = time.Now()
 
 	// Docs / root
 	if srv.conf.Docs {
@@ -51,10 +61,6 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
 	srv.router.HandleFunc("GET", "/admin/:template", srv.handleAdmin())
 
-	// dev-admin
-	srv.router.HandleFunc("GET", "/dev-admin", srv.handleAdminLive())
-	srv.router.HandleFunc("GET", "/dev-admin/:template", srv.handleAdminLive())
-
 	// Serve Images
 	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())
 	srv.router.HandleFunc("GET", "/:id/", srv.handleImg())
@@ -65,31 +71,34 @@ func (srv *server) routes() {
 
 // HANDLERS
 
-// template datatypes
-type pageData struct {
-	Title    string
-	MainData any
-}
-type dataImages struct {
-	Ids []int
-}
-
 func (srv *server) handleAdmin() http.HandlerFunc {
+	// template datatypes
+	type pageData struct {
+		Title    string
+		MainData any
+	}
+	type dataImages struct {
+		Ids []int
+	}
+	type dataInfo struct {
+		Uptime         time.Duration
+		Requests       int
+		Errors         int
+		ImagesServed   int
+		Originals      int
+		OriginalsSize  images.Size
+		CachedNum      int
+		CacheCapacity  int
+		CacheSize      images.Size
+		CacheHits      int
+		CacheMisses    int
+		CacheEvictions int
+	}
 	// setup
 	l := srv.errorLogger.With("handler", "handleAdmin")
 	defer func(t time.Time) {
 		l.Debug("teplates parsed and ready to be served", "time", time.Since(t))
 	}(time.Now())
-
-	// files, err := filepath.Glob("www/layouts/*.html")
-	// if err != nil {
-	// 	l.Fatal("could not list layout-files", "error", err)
-	// }
-
-	// _, err := template.ParseGlob("www/layouts/*.html")
-	// if err != nil {
-	// 	l.Fatal(err)
-	// }
 
 	files := []string{"www/layouts/base.html"}
 
@@ -100,12 +109,17 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 
 	uploadTpl, err := template.ParseFiles(append(files, "www/pages/upload.html")...)
 	if err != nil {
-		l.Fatal("Could not parse admin template", "error", err)
+		l.Fatal("Could not parse admin/upload template", "error", err)
 	}
 
 	imagesTpl, err := template.ParseFiles(append(files, "www/pages/images.html")...)
 	if err != nil {
-		l.Fatal("Could not parse admin template", "error", err)
+		l.Fatal("Could not parse admin/images template", "error", err)
+	}
+
+	infoTpl, err := template.ParseFiles(append(files, "www/pages/info.html")...)
+	if err != nil {
+		l.Fatal("Could not parse admin/info template", "error", err)
 	}
 
 	// handler
@@ -120,12 +134,14 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 			uploadTpl.Execute(w, data)
 			if err != nil {
 				l.Fatal("Could not render template", "error", err)
+				srv.respondError(w, r, "err", http.StatusInternalServerError)
+
 			}
 		case "images":
 			ids, err := srv.ih.Ids()
 			if err != nil {
 				l.Fatal("Could not get image ids", "error", err)
-				respondCode(w, r, http.StatusInternalServerError)
+				srv.respondError(w, r, "err", http.StatusInternalServerError)
 			}
 
 			sort.Ints(ids)
@@ -139,8 +155,40 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 			imagesTpl.Execute(w, data)
 			if err != nil {
 				l.Fatal("Could not render template", "error", err)
-				respondCode(w, r, http.StatusInternalServerError)
+				srv.respondError(w, r, "err", http.StatusInternalServerError)
 			}
+		case "info":
+
+			originals, err := srv.ih.Ids()
+			if err != nil {
+				l.Fatal("Could not get image ids", "error", err)
+				srv.respondError(w, r, "err", http.StatusInternalServerError)
+			}
+
+			data := pageData{
+				Title: "Info",
+				MainData: dataInfo{
+					Uptime:         time.Since(srv.Stats.StartTime).Round(time.Second),
+					Requests:       srv.Stats.Requests,
+					Errors:         srv.Stats.Errors,
+					ImagesServed:   srv.Stats.ImagesServed,
+					Originals:      len(originals),
+					OriginalsSize:  0,
+					CachedNum:      0,
+					CacheCapacity:  0,
+					CacheSize:      0,
+					CacheHits:      0,
+					CacheMisses:    0,
+					CacheEvictions: 0,
+				},
+			}
+			infoTpl.Execute(w, data)
+			if err != nil {
+				l.Fatal("Could not render template", "error", err)
+				srv.respondError(w, r, "err", http.StatusInternalServerError)
+
+			}
+
 		default:
 			data := pageData{
 				Title:    "Admin",
@@ -149,81 +197,9 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 			mainTpl.Execute(w, data)
 			if err != nil {
 				l.Fatal("Could not render template", "error", err)
+				srv.respondError(w, r, "err", http.StatusInternalServerError)
 			}
 		}
-	}
-}
-
-func (srv *server) handleAdminLive() http.HandlerFunc {
-	// setup
-	l := srv.errorLogger.With("handler", "handleAdmin")
-
-	l.Warn("parsing admin page on request (development mode)")
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		// time the handler initialization
-		defer func(t time.Time) {
-			l.Debug("admin page parsed and served", "time", time.Since(t))
-		}(time.Now())
-
-		l.Debug("handling request", "path", r.URL.Path)
-
-		files := []string{"www/layouts/base.html"}
-
-		switch way.Param(r.Context(), "template") {
-		case "add":
-			files = append(files, "www/pages/upload.html")
-
-			data := pageData{
-				Title:    "Add Image",
-				MainData: nil,
-			}
-			tpl, err := template.ParseFiles(files...)
-			if err != nil {
-				l.Fatal("Could not parse files", "files", files, "err", err)
-			}
-			err = tpl.Execute(w, data)
-			if err != nil {
-				l.Fatal("Could not execute template", "files", files, "err", err)
-			}
-		case "images":
-			files = append(files, "www/pages/images.html")
-
-			ids, err := srv.ih.Ids()
-			if err != nil {
-				l.Fatal("Could not get image ids", "error", err)
-			}
-
-			data := pageData{
-				Title: "Images",
-				MainData: dataImages{
-					Ids: ids,
-				},
-			}
-			tpl, err := template.ParseFiles(files...)
-			if err != nil {
-				l.Fatal("Could not parse files", "files", files, "err", err)
-			}
-			err = tpl.Execute(w, data)
-			if err != nil {
-				l.Fatal("Could not execute template", "files", files, "err", err)
-			}
-		default:
-			files = append(files, "www/pages/admin.html")
-			data := pageData{
-				Title:    "Admin",
-				MainData: nil,
-			}
-			tpl, err := template.ParseFiles(files...)
-			if err != nil {
-				l.Fatal("Could not parse files", "files", files, "err", err)
-			}
-			err = tpl.Execute(w, data)
-			if err != nil {
-				l.Fatal("Could not execute template", "files", files, "err", err)
-			}
-		}
-
 	}
 }
 
@@ -323,6 +299,7 @@ func (srv *server) handleImgWithPreset() http.HandlerFunc {
 		if err != nil {
 			l.Warn("count not parse image id")
 			srv.respondError(w, r, fmt.Sprintf("Could not parse image id.\nGOT: %s\nID MUST BE AN INTEGER GREATER THAN ZERO", id_str), http.StatusBadRequest)
+			srv.Stats.Errors++
 			return
 		}
 
@@ -334,6 +311,7 @@ func (srv *server) handleImgWithPreset() http.HandlerFunc {
 			if err != nil {
 				l.Warn("could not parse image parameters", "err", err, "query", query)
 				srv.respondError(w, r, err.Error(), http.StatusBadRequest)
+				srv.Stats.Errors++
 				return
 			}
 			srv.respondWithImage(w, r, l, imgPar)
@@ -381,26 +359,33 @@ func (srv *server) handleNotAllowed() http.HandlerFunc {
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Info("Method not allowed", "path", r.URL.Path)
-		respondCode(w, r, http.StatusMethodNotAllowed)
+		srv.respondCode(w, r, http.StatusMethodNotAllowed)
 	}
 }
 
 // RESPONDERS
 
-func respondJson(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
+func (srv *server) respondJson(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(data)
+	if code != http.StatusOK && code != http.StatusCreated {
+		srv.Stats.Errors++
+	}
 }
 
-func respondCode(w http.ResponseWriter, r *http.Request, code int) {
+func (srv *server) respondCode(w http.ResponseWriter, r *http.Request, code int) {
 	w.WriteHeader(code)
+	if code != http.StatusOK && code != http.StatusCreated {
+		srv.Stats.Errors++
+	}
 }
 
 // respondError sends out a respons containing an error. This helper function is meant to be generic enough to serve most needs to communicate errors to the users
 func (srv *server) respondError(w http.ResponseWriter, r *http.Request, msg string, statusCode int) {
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, "<html><h1>%d</h1><pre>%s</pre></html>", statusCode, msg)
+	srv.Stats.Errors++
 }
 
 //  HELPERS
@@ -419,6 +404,7 @@ func (srv *server) respondWithImage(w http.ResponseWriter, r *http.Request, l *l
 	}
 	l.Debug("serving image", "id", imgPar.Id, "ImageParameters", imgPar, "file", path)
 	http.ServeFile(w, r, path)
+	srv.Stats.ImagesServed++
 }
 
 func parseImageParameters(id int, val url.Values) (images.ImageParameters, error) {
@@ -612,6 +598,9 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	t := time.Now()
+
+	srv.Stats.Requests++
+
 	srv.router.ServeHTTP(w, r)
 	srv.accessLogger.Print(t.UTC().Local(),
 		"method", r.Method,
