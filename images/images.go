@@ -558,19 +558,19 @@ func (s Size) String() string {
 		return "0 B"
 	}
 	if s >= Petabyte {
-		return sizeStringHelper(Petabyte, Terabyte, s, " PB")
+		return sizeStringHelper(Petabyte, "PB", uint64(s))
 	}
 	if s >= Terabyte {
-		return sizeStringHelper(Terabyte, Gigabyte, s, " TB")
+		return sizeStringHelper(Terabyte, "TB", uint64(s))
 	}
 	if s >= Gigabyte {
-		return sizeStringHelper(Gigabyte, Megabyte, s, " GB")
+		return sizeStringHelper(Gigabyte, "GB", uint64(s))
 	}
 	if s >= Megabyte {
-		return sizeStringHelper(Megabyte, Kilobyte, s, " MB")
+		return sizeStringHelper(Megabyte, "MB", uint64(s))
 	}
 	if s >= Kilobyte {
-		return sizeStringHelper(Kilobyte, 1, s, " KB")
+		return sizeStringHelper(Kilobyte, "KB", uint64(s))
 	}
 	return fmt.Sprintf("%d B", s)
 
@@ -578,28 +578,12 @@ func (s Size) String() string {
 
 // sizeStringHelper returnes a string representing the size with two decimals.
 // If the amount is exact then it will not show any decimals.
-func sizeStringHelper(divInteger, divRemainder, s Size, suffix string) string {
-	if s%divInteger == 0 {
-		return fmt.Sprintf("%d%s", s/divInteger, suffix)
+func sizeStringHelper(divInteger int, suffix string, s uint64) string {
+	if s%uint64(divInteger) == 0 {
+		return fmt.Sprintf("%d %s", s/uint64(divInteger), suffix)
 	}
-
-	whole := s / divInteger
-	rem := (s % divInteger) / divRemainder
-	return signi3(int(whole), int(rem)) + suffix
-}
-
-// signi3 rounds to three significant digits given wholes and thousands
-func signi3(whole, remainder int) string {
-	if remainder < 5 {
-		return fmt.Sprintf("%d.00", whole)
-	}
-
-	if remainder%10 >= 5 {
-		remainder = (remainder + 5) / 10
-	} else {
-		remainder = remainder / 10
-	}
-	return fmt.Sprintf("%d.%d", whole, remainder)
+	f := float64(s) / float64(divInteger)
+	return fmt.Sprintf("%.2f %s", f, suffix)
 }
 
 func fileRemover(l *log.Logger, pathChan <-chan string) {

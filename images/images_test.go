@@ -13,14 +13,17 @@ func TestSize_String(t *testing.T) {
 	}{
 		{"0", Size(0), "0 B"},
 		{"7 B", Size(7), "7 B"},
-		{"7.78 KB", Size(7*Kilobyte + 777), "7.78 KB"},
+		{"7.76 KB", Size(7*Kilobyte + 777), "7.76 KB"},
 		{"7.00 MB", Size(7*Megabyte + 77), "7.00 MB"},
-		{"7.75 MB round up", Size(7*Megabyte + 745*Kilobyte), "7.75 MB"},
-		{"7.75 MB round down", Size(7*Megabyte + 754*Kilobyte), "7.75 MB"},
+		{"7.73 MB round up", Size(7*Megabyte + 752*Kilobyte), "7.73 MB"},
+		{"7.74 MB round down", Size(7*Megabyte + 754*Kilobyte), "7.74 MB"},
 		{"900 GB", Size(900 * Gigabyte), "900 GB"},
 		{"900.00 GB", Size(900*Gigabyte + 1), "900.00 GB"},
-		{"12 TB", Size(12*Terabyte + 1*Gigabyte + 777*Megabyte + 7*Kilobyte + 42), "12.00 TB"},
-		{"12.70 PB", Size(12*Petabyte + 695*Terabyte), "12.70 PB"},
+		{"12.00 TB", Size(12*Terabyte + 1*Gigabyte + 777*Megabyte + 7*Kilobyte + 42), "12.00 TB"},
+		{"12.68 PB", Size(12*Petabyte + 695*Terabyte), "12.68 PB"},
+
+		// Observed issues
+		{"3 decimal bug", Size(4*Megabyte + 1023*Kilobyte), "5.00 MB"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
