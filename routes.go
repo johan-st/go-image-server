@@ -90,8 +90,8 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 		CachedNum      int
 		CacheCapacity  int
 		CacheSize      images.Size
-		CacheHits      int
-		CacheMisses    int
+		CacheHit       int
+		CacheMiss      int
 		CacheEvictions int
 	}
 	// setup
@@ -158,10 +158,9 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 				srv.respondError(w, r, "err", http.StatusInternalServerError)
 			}
 		case "info":
-
-			originals, err := srv.ih.Ids()
+			stat, err := srv.ih.Stat()
 			if err != nil {
-				l.Fatal("Could not get image ids", "error", err)
+				l.Fatal("Could not get stats from imagehandler", "error", err)
 				srv.respondError(w, r, "err", http.StatusInternalServerError)
 			}
 
@@ -172,14 +171,14 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 					Requests:       srv.Stats.Requests,
 					Errors:         srv.Stats.Errors,
 					ImagesServed:   srv.Stats.ImagesServed,
-					Originals:      len(originals),
-					OriginalsSize:  0,
-					CachedNum:      0,
-					CacheCapacity:  0,
-					CacheSize:      0,
-					CacheHits:      0,
-					CacheMisses:    0,
-					CacheEvictions: 0,
+					Originals:      len(stat.Ids),
+					OriginalsSize:  stat.SizeOrig,
+					CachedNum:      stat.Cache.NumItems,
+					CacheCapacity:  stat.Cache.Capacity,
+					CacheSize:      stat.Cache.Size,
+					CacheHit:       int(stat.Cache.Hit),
+					CacheMiss:      int(stat.Cache.Miss),
+					CacheEvictions: int(stat.Cache.Evictions),
 				},
 			}
 			infoTpl.Execute(w, data)

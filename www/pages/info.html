@@ -6,13 +6,13 @@
     <li>errors: {{ .MainData.Errors }}</li>
     <li>images served: {{ .MainData.ImagesServed }}</li>
     <li>Originals: {{ .MainData.Originals }}</li>
-    <li>*Originals Size: {{ .MainData.OriginalsSize }}</li>
-    <li>*Cached Images: {{ .MainData.CachedNum }}</li>
-    <li>*Cache Capacity: {{ .MainData.CacheCapacity }}</li>
+    <li>Originals Size: {{ .MainData.OriginalsSize }}</li>
+    <li>Cached Images: {{ .MainData.CachedNum }}</li>
+    <li>Cache Capacity: {{ .MainData.CacheCapacity }}</li>
     <li>*Cache Size: {{ .MainData.CacheSize }}</li>
-    <li>*Cache Hits: {{ .MainData.CacheHits }}</li>
-    <li>*Cache Misses: {{ .MainData.CacheMisses }}</li>
-    <li>*Cache Evictions: {{ .MainData.CacheEvictions }}</li>
+    <li>Cache Hits: {{ .MainData.CacheHit }}</li>
+    <li>Cache Misses: {{ .MainData.CacheMiss }}</li>
+    <li>Cache Evictions: {{ .MainData.CacheEvictions }}</li>
 </ul>
 <p>*: not yet implemeted</p>
 {{end}}

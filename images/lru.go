@@ -2,6 +2,7 @@ package images
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 // TimeSource is an interface to facilitate test
@@ -26,6 +27,10 @@ type lru struct {
 	// timeSource    TimeSource
 	cap           int
 	len           int
+	evictions     atomic.Uint32
+	diskSize      atomic.Uint64
+	hits          atomic.Uint32
+	misses        atomic.Uint32
 	head          *node
 	tail          *node
 	lookup        map[string]*node
@@ -67,6 +72,7 @@ type node struct {
 func (l *lru) Contains(filepath string) bool {
 	if _, ok := l.lookupNode(filepath); ok {
 		return true
+
 	} else {
 		return false
 	}
@@ -76,6 +82,7 @@ func (l *lru) AddOrUpdate(id int, filepath string) bool {
 
 	if n, ok := l.lookupNode(filepath); ok {
 		l.moveToFront(n)
+		l.hits.Add(1)
 		return true
 	} else {
 		// create new node
@@ -87,6 +94,7 @@ func (l *lru) AddOrUpdate(id int, filepath string) bool {
 		// trim if needed
 		l.trim()
 
+		l.misses.Add(1)
 		return false
 	}
 }
@@ -114,6 +122,7 @@ func (l *lru) Delete(id int) int {
 			numDeleted++
 
 			l.trimChan <- path
+			l.evictions.Add(1)
 		}
 		curr = next
 		if curr != nil {
@@ -122,6 +131,17 @@ func (l *lru) Delete(id int) int {
 	}
 
 	return numDeleted
+}
+
+func (l *lru) Stat() CacheStat {
+	return CacheStat{
+		NumItems:  l.len,
+		Capacity:  l.cap,
+		Size:      Size(l.diskSize.Load()),
+		Hit:       l.hits.Load(),
+		Miss:      l.misses.Load(),
+		Evictions: l.evictions.Load(),
+	}
 }
 
 // func (l *lru) LoadDir(dirpath string) error {
@@ -139,6 +159,7 @@ func (l *lru) trim() {
 		l.removeFromLookup(node, key)
 
 		l.trimChan <- key
+		l.evictions.Add(1)
 	}
 	//     TODO: consider handling deletion in this function
 }

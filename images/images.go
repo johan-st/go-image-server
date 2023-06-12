@@ -42,6 +42,12 @@ type ImageHandler struct {
 	presets map[string]ImagePreset
 }
 
+type ImageStat struct {
+	Ids      []int
+	SizeOrig Size
+	Cache    CacheStat
+}
+
 type ImageParameters struct {
 	Id int
 
@@ -250,6 +256,35 @@ func (h *ImageHandler) Delete(id int) error {
 	h.opts.l.Debug("Delete", "cache entries removed", numDeleted)
 
 	return nil
+}
+
+func (h *ImageHandler) Stat() (ImageStat, error) {
+
+	ids, err := h.Ids()
+	if err != nil {
+		return ImageStat{}, err
+	}
+	var sizeOrig Size
+	for _, i := range ids {
+		size, err := sizeFile(h.originalPath(i))
+		if err != nil {
+			return ImageStat{}, err
+		}
+		sizeOrig += size
+	}
+	return ImageStat{
+		Ids:      ids,
+		SizeOrig: sizeOrig,
+		Cache:    h.cache.Stat(),
+	}, err
+}
+
+func sizeFile(p string) (Size, error) {
+	info, err := os.Stat(p)
+	if err != nil {
+		return 0, err
+	}
+	return Size(info.Size()), nil
 }
 
 func (h *ImageHandler) findLatestId() (int, error) {
@@ -672,6 +707,16 @@ type cache interface {
 	Contains(path string) bool
 	AddOrUpdate(id int, path string) bool
 	Delete(id int) int
+	Stat() CacheStat
+}
+
+type CacheStat struct {
+	NumItems  int
+	Capacity  int
+	Size      Size
+	Hit       uint32
+	Miss      uint32
+	Evictions uint32
 }
 
 // CONFIGURATION
