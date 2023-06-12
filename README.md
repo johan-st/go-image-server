@@ -1,4 +1,4 @@
-# go-image-server
+****# go-image-server
 
 one stop shop for serving the images you need in the formate you want.
 
@@ -17,31 +17,30 @@ A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD*
 
 ## Table Of Contents
 
-- [go-image-server](#go-image-server)
-  - [Proof of concept](#proof-of-concept)
-  - [Minimum Viable Product](#minimum-viable-product)
-  - [Table Of Contents](#table-of-contents)
-    - [Project Requirements](#project-requirements)
-      - [Server](#server)
-  - [Sprints](#sprints)
-    - [MoSCoW](#moscow)
-    - [June 2023](#june-2023)
-      - [todo (june 2023)](#todo-june-2023)
-      - [log (june 2023)](#log-june-2023)
-    - [April \& May 2023](#april--may-2023)
-      - [todo (april \& may 2023)](#todo-april--may-2023)
-      - [log (april \& may 2023)](#log-april--may-2023)
-    - [Februari 2022](#februari-2022)
-      - [todo (februari 2022)](#todo-februari-2022)
-      - [log (februari 2022)](#log-februari-2022)
-  - [Requirements](#requirements)
-  - [Questions to answer](#questions-to-answer)
-    - [structure of request](#structure-of-request)
-    - [Caching](#caching)
-  - [thoughts](#thoughts)
-    - [images package API (DRAFT)](#images-package-api-draft)
-    - [Performance](#performance)
-  - [Known issues](#known-issues)
+- [Proof of concept](#proof-of-concept)
+- [Minimum Viable Product](#minimum-viable-product)
+- [Table Of Contents](#table-of-contents)
+  - [Project Requirements](#project-requirements)
+    - [Server](#server)
+- [Sprints](#sprints)
+  - [MoSCoW](#moscow)
+  - [June 2023](#june-2023)
+    - [todo (june 2023)](#todo-june-2023)
+    - [log (june 2023)](#log-june-2023)
+  - [April \& May 2023](#april--may-2023)
+    - [todo (april \& may 2023)](#todo-april--may-2023)
+    - [log (april \& may 2023)](#log-april--may-2023)
+  - [Februari 2022](#februari-2022)
+    - [todo (februari 2022)](#todo-februari-2022)
+    - [log (februari 2022)](#log-februari-2022)
+- [Requirements](#requirements)
+- [Questions to answer](#questions-to-answer)
+  - [structure of request](#structure-of-request)
+  - [Caching](#caching)
+- [thoughts](#thoughts)
+  - [images package API (DRAFT)](#images-package-api-draft)
+  - [Performance](#performance)
+- [Known issues](#known-issues)
 
 ### Project Requirements
 
@@ -77,7 +76,7 @@ Requirements not mentioned should be regarded as **WONT**
 
 - [x] **MUST** have prototype admin for uploading images
 - [x] **MUST** have prototype admin for viewing and deleting images
-- [ ] **SHOULD** have prototype info page for viewing server status, uptime, cache size etc
+- [X] **SHOULD** have prototype info page for viewing server status, uptime, cache size etc
 - [x] **SHOULD** keep aspect ratio when cropping
 - [ ] **COULD** have prototype admin for viewing and deleting cached images
 - [ ] **COULD** be benchmarked for performance
@@ -95,7 +94,8 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] safe concurrency
 - [x] switch to disable docs
 - [ ] decide on pathing when calling from a different folder than the binary
-- [ ] inplement interpolation function
+- [ ] implement interpolation function
+  - [ ] benchmark functions and make a note in the docs
 - [ ] load images and cache from disk on startup
 - [ ] investigate hardcoding docs into binary
 - [ ] "Add folder" on startup should be reccursive?
@@ -134,6 +134,8 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-08: Learn template basics and create admin page prototype.
 - 2023-06-09: update README.md
 - 2023-06-09: crop instead of stretch images
+- 2023-06-12: add info page and have lru keep basic stats
+- 2023-06-12: fix bug with Size.String()
 
 ### April & May 2023
 
