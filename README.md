@@ -1,4 +1,4 @@
-****# go-image-server
+# go-image-server
 
 one stop shop for serving the images you need in the formate you want.
 
@@ -17,30 +17,31 @@ A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD*
 
 ## Table Of Contents
 
-- [Proof of concept](#proof-of-concept)
-- [Minimum Viable Product](#minimum-viable-product)
-- [Table Of Contents](#table-of-contents)
-  - [Project Requirements](#project-requirements)
-    - [Server](#server)
-- [Sprints](#sprints)
-  - [MoSCoW](#moscow)
-  - [June 2023](#june-2023)
-    - [todo (june 2023)](#todo-june-2023)
-    - [log (june 2023)](#log-june-2023)
-  - [April \& May 2023](#april--may-2023)
-    - [todo (april \& may 2023)](#todo-april--may-2023)
-    - [log (april \& may 2023)](#log-april--may-2023)
-  - [Februari 2022](#februari-2022)
-    - [todo (februari 2022)](#todo-februari-2022)
-    - [log (februari 2022)](#log-februari-2022)
-- [Requirements](#requirements)
-- [Questions to answer](#questions-to-answer)
-  - [structure of request](#structure-of-request)
-  - [Caching](#caching)
-- [thoughts](#thoughts)
-  - [images package API (DRAFT)](#images-package-api-draft)
-  - [Performance](#performance)
-- [Known issues](#known-issues)
+- [go-image-server](#go-image-server)
+  - [Proof of concept](#proof-of-concept)
+  - [Minimum Viable Product](#minimum-viable-product)
+  - [Table Of Contents](#table-of-contents)
+    - [Project Requirements](#project-requirements)
+      - [Server](#server)
+  - [Sprints](#sprints)
+    - [MoSCoW](#moscow)
+    - [June 2023](#june-2023)
+      - [todo (june 2023)](#todo-june-2023)
+      - [log (june 2023)](#log-june-2023)
+    - [April \& May 2023](#april--may-2023)
+      - [todo (april \& may 2023)](#todo-april--may-2023)
+      - [log (april \& may 2023)](#log-april--may-2023)
+    - [Februari 2022](#februari-2022)
+      - [todo (februari 2022)](#todo-februari-2022)
+      - [log (februari 2022)](#log-februari-2022)
+  - [Requirements](#requirements)
+  - [Questions to answer](#questions-to-answer)
+    - [structure of request](#structure-of-request)
+    - [Caching](#caching)
+  - [thoughts](#thoughts)
+    - [images package API (DRAFT)](#images-package-api-draft)
+    - [Performance](#performance)
+  - [Known issues](#known-issues)
 
 ### Project Requirements
 
