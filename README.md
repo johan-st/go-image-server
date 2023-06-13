@@ -122,6 +122,7 @@ Requirements not mentioned should be regarded as **WONT**
   - [ ] logging as error in handler. should be info or warn
 - [ ] PROBLEM: benchmarks are broken...
 - [ ] consider migrating docs to templates instead of markdown?
+- [ ] refactor imagres package
 
 #### log (june 2023)
 
