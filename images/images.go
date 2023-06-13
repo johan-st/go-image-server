@@ -42,10 +42,17 @@ type ImageHandler struct {
 	presets map[string]ImagePreset
 }
 
-type ImageStat struct {
+type Stat struct {
 	Ids      []int
 	SizeOrig Size
 	Cache    CacheStat
+}
+
+type ImageStat struct {
+	Id           int
+	OriginalSize Size
+	CacheSize    Size
+	CacheNum     int
 }
 
 type ImageParameters struct {
@@ -258,27 +265,56 @@ func (h *ImageHandler) Delete(id int) error {
 	return nil
 }
 
-func (h *ImageHandler) Stat() (ImageStat, error) {
+func (h *ImageHandler) Stat() (Stat, error) {
 
 	ids, err := h.Ids()
 	if err != nil {
-		return ImageStat{}, err
+		return Stat{}, err
 	}
 	var sizeOrig Size
 	for _, i := range ids {
 		size, err := sizeFile(h.originalPath(i))
 		if err != nil {
-			return ImageStat{}, err
+			return Stat{}, err
 		}
 		sizeOrig += size
 	}
-	return ImageStat{
+	return Stat{
 		Ids:      ids,
 		SizeOrig: sizeOrig,
 		Cache:    h.cache.Stat(),
 	}, err
 }
 
+func (h *ImageHandler) StatId(id int) (ImageStat, error) {
+	h.opts.l.Debug("StatId", "id", id)
+
+	oPath := h.originalPath(id)
+	oSize, err := sizeFile(oPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ImageStat{}, ErrIdNotFound{IdGiven: id, Err: err}
+		}
+		return ImageStat{}, err
+	}
+
+	cPaths := h.cache.Get(id)
+	cSize := Size(0)
+	for _, p := range cPaths {
+		size, err := sizeFile(p)
+		if err != nil {
+			return ImageStat{}, err
+		}
+		cSize += size
+	}
+
+	return ImageStat{
+		Id:           id,
+		OriginalSize: oSize,
+		CacheSize:    cSize,
+		CacheNum:     len(cPaths),
+	}, nil
+}
 func sizeFile(p string) (Size, error) {
 	info, err := os.Stat(p)
 	if err != nil {
@@ -692,6 +728,7 @@ type cache interface {
 	AddOrUpdate(id int, path string) bool
 	Delete(id int) int
 	Stat() CacheStat
+	Get(id int) []string //returns a slice of paths to cached images with given ID
 }
 
 type CacheStat struct {

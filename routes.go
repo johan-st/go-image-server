@@ -60,6 +60,7 @@ func (srv *server) routes() {
 	// Admin
 	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
 	srv.router.HandleFunc("GET", "/admin/:template", srv.handleAdmin())
+	srv.router.HandleFunc("GET", "/admin/image/:id", srv.handleAdminImage())
 
 	// Serve Images
 	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())
@@ -199,6 +200,66 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 				srv.respondError(w, r, "err", http.StatusInternalServerError)
 			}
 		}
+	}
+}
+func (srv *server) handleAdminImage() http.HandlerFunc {
+	// setup
+	l := srv.errorLogger.With("handler", "handleAdminImage")
+	// template datatypes
+	type pageData struct {
+		Title    string
+		MainData any
+	}
+	type imageData struct {
+		Id            int
+		OriginalsSize images.Size
+		CachedNum     int
+		CacheSize     images.Size
+	}
+
+	tpl, err := template.ParseFiles("www/layouts/base.html", "www/pages/image.html")
+	if err != nil {
+		l.Fatal("Could not parse admin/info template", "error", err)
+	}
+
+	// handler
+	return func(w http.ResponseWriter, r *http.Request) {
+		l.Debug("handling request", "path", r.URL.Path)
+		id, err := strconv.Atoi(way.Param(r.Context(), "id"))
+		if err != nil {
+			l.Warn("Could not parse id", "error", err)
+			srv.respondError(w, r, "id not found", http.StatusNotFound)
+			return
+		}
+
+		stat, err := srv.ih.StatId(id)
+		if err != nil {
+			if errors.Is(err, images.ErrIdNotFound{}) {
+				l.Warn("id not found", "id", id, "referer", r.Referer())
+				srv.respondError(w, r, fmt.Sprintf("id '%d' was not found", id), http.StatusNotFound)
+				return
+			}
+			l.Error("Could not get stats from imagehandler", "error", err, "id", id)
+			srv.respondError(w, r, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		data := pageData{
+			Title: "Image " + strconv.Itoa(id),
+			MainData: imageData{
+				Id:            id,
+				OriginalsSize: stat.OriginalSize,
+				CachedNum:     stat.CacheNum,
+				CacheSize:     stat.CacheSize,
+			},
+		}
+
+		tpl.Execute(w, data)
+		if err != nil {
+			l.Fatal("Could not render template", "error", err)
+			srv.respondError(w, r, "err", http.StatusInternalServerError)
+		}
+
 	}
 }
 

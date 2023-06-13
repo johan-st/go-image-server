@@ -4,7 +4,9 @@
     {{range .MainData.Ids}}
     <div class="image">
         <p class="image__id">id: {{.}}</p>
-        <img src="/{{.}}?h=200" />
+        <a href="/admin/image/{{.}}" target="_blank" rel="noopener noreferrer">
+            <img src="/{{.}}?h=200" />
+        </a>
         <div class="image__actions">
             <input class="image__delete" data-image_id="{{.}}" type="submit" value="delete" />
         </div>

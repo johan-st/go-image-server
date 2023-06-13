@@ -123,7 +123,7 @@ Requirements not mentioned should be regarded as **WONT**
   - [ ] logging as error in handler. should be info or warn
 - [ ] PROBLEM: benchmarks are broken...
 - [ ] consider migrating docs to templates instead of markdown?
-- [ ] refactor imagres package
+- [ ] refactor images package
 
 #### log (june 2023)
 
@@ -138,6 +138,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-09: crop instead of stretch images
 - 2023-06-12: add info page and have lru keep basic stats
 - 2023-06-12: fix bug with Size.String()
+- 2023-06-13: update info and add info for specific image
 
 ### April & May 2023
 

@@ -1,6 +1,7 @@
 package images
 
 import (
+	"os"
 	"sync"
 	"sync/atomic"
 )
@@ -144,6 +145,34 @@ func (l *lru) Stat() CacheStat {
 	}
 }
 
+func (l *lru) Get(id int) []string {
+	var (
+		curr *node
+		next *node
+	)
+	curr = l.head
+	if curr != nil {
+		next = curr.next
+	}
+
+	var paths []string
+	for curr != nil {
+		if curr.id == id {
+			path, ok := l.lookupPath(curr)
+			if !ok {
+				panic("lru.Get(id): node not found in lookup")
+			}
+			paths = append(paths, path)
+		}
+		curr = next
+		if curr != nil {
+			next = curr.next
+		}
+	}
+	return paths
+
+}
+
 // func (l *lru) LoadDir(dirpath string) error {
 // 	// load all files in dirpath into cache
 // 	//    if cache is full, trim it
@@ -269,6 +298,11 @@ func (l *lru) addToLookup(n *node, path string) {
 	l.reverseLookup[n] = path
 	l.lMutex.Unlock()
 	l.rlMutex.Unlock()
+	stat, err := os.Stat(path)
+	if err != nil {
+		panic(err) // TODO: handle error
+	}
+	l.diskSize.Add(uint64(stat.Size()))
 
 }
 
@@ -279,4 +313,10 @@ func (l *lru) removeFromLookup(n *node, path string) {
 	delete(l.reverseLookup, n)
 	l.lMutex.Unlock()
 	l.rlMutex.Unlock()
+	stat, err := os.Stat(path)
+	if err != nil {
+		panic(err) // TODO: handle error
+	}
+	l.diskSize.Add(-uint64(stat.Size()))
+
 }
