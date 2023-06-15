@@ -357,7 +357,20 @@ Benchmark_HandleImg_cached_concurrent-8             5318            264746 ns/op
 Benchmark_HandleImg_notCached-8                        1        1010868220 ns/op        318381320 B/op      2219 allocs/op
 PASS
 ok      github.com/johan-st/go-image-server     38.109s
+
+## 2023-06-15 (average run)
+goos: linux
+goarch: amd64
+pkg: github.com/johan-st/go-image-server
+cpu: Intel(R) Core(TM) i5-10310U CPU @ 1.70GHz
+Benchmark_HandleImg_cached-8                         607           1986089 ns/op         1241894 B/op         42 allocs/op
+Benchmark_HandleImg_cached_concurrent-8             2578            458498 ns/op          657091 B/op         40 allocs/op
+Benchmark_HandleImg_notCached-8                        1        1042143820 ns/op        603311696 B/op     11525 allocs/op
+PASS
+ok      github.com/johan-st/go-image-server     32.833s
+
 ```
+
 
 ## Known issues
 
