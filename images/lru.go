@@ -4,6 +4,8 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+
+	"github.com/johan-st/go-image-server/units/size"
 )
 
 // TimeSource is an interface to facilitate test
@@ -138,7 +140,7 @@ func (l *lru) Stat() CacheStat {
 	return CacheStat{
 		NumItems:  l.len,
 		Capacity:  l.cap,
-		Size:      Size(l.diskSize.Load()),
+		Size:      size.S(l.diskSize.Load()),
 		Hit:       l.hits.Load(),
 		Miss:      l.misses.Load(),
 		Evictions: l.evictions.Load(),

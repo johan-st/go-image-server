@@ -15,6 +15,7 @@ import (
 
 	log "github.com/charmbracelet/log"
 	"github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/units/size"
 	"github.com/johan-st/go-image-server/way"
 	"gitlab.com/golang-commonmark/markdown"
 )
@@ -87,10 +88,10 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 		Errors         int
 		ImagesServed   int
 		Originals      int
-		OriginalsSize  images.Size
+		OriginalsSize  size.S
 		CachedNum      int
 		CacheCapacity  int
-		CacheSize      images.Size
+		CacheSize      size.S
 		CacheHit       int
 		CacheMiss      int
 		CacheEvictions int
@@ -212,9 +213,9 @@ func (srv *server) handleAdminImage() http.HandlerFunc {
 	}
 	type imageData struct {
 		Id            int
-		OriginalsSize images.Size
+		OriginalsSize size.S
 		CachedNum     int
-		CacheSize     images.Size
+		CacheSize     size.S
 	}
 
 	tpl, err := template.ParseFiles("www/layouts/base.html", "www/pages/image.html")
@@ -529,13 +530,13 @@ func parseImageParameters(id int, val url.Values) (images.ImageParameters, error
 	}
 
 	if val.Has("maxsize") {
-		if v, err := images.ParseSize(val.Get("maxsize")); err == nil {
+		if v, err := size.Parse(val.Get("maxsize")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)
 		}
 	} else if val.Has("s") {
-		if v, err := images.ParseSize(val.Get("s")); err == nil {
+		if v, err := size.Parse(val.Get("s")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)
@@ -615,13 +616,13 @@ func parseImageParametersWithPreset(id int, val url.Values, pre images.ImagePres
 	}
 
 	if val.Has("maxsize") {
-		if v, err := images.ParseSize(val.Get("maxsize")); err == nil {
+		if v, err := size.Parse(val.Get("maxsize")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)
 		}
 	} else if val.Has("s") {
-		if v, err := images.ParseSize(val.Get("s")); err == nil {
+		if v, err := size.Parse(val.Get("s")); err == nil {
 			p.MaxSize = v
 		} else {
 			errs = append(errs, err)

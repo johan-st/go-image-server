@@ -2,28 +2,30 @@ package images
 
 import (
 	"testing"
+
+	"github.com/johan-st/go-image-server/units/size"
 )
 
 func TestSize_String(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		s    Size
+		s    size.S
 		want string
 	}{
-		{"0", Size(0), "0 B"},
-		{"7 B", Size(7), "7 B"},
-		{"7.76 KB", Size(7*Kilobyte + 777), "7.76 KB"},
-		{"7.00 MB", Size(7*Megabyte + 77), "7.00 MB"},
-		{"7.73 MB round up", Size(7*Megabyte + 752*Kilobyte), "7.73 MB"},
-		{"7.74 MB round down", Size(7*Megabyte + 754*Kilobyte), "7.74 MB"},
-		{"900 GB", Size(900 * Gigabyte), "900 GB"},
-		{"900.00 GB", Size(900*Gigabyte + 1), "900.00 GB"},
-		{"12.00 TB", Size(12*Terabyte + 1*Gigabyte + 777*Megabyte + 7*Kilobyte + 42), "12.00 TB"},
-		{"12.68 PB", Size(12*Petabyte + 695*Terabyte), "12.68 PB"},
+		{"0", size.S(0), "0 B"},
+		{"7 B", size.S(7), "7 B"},
+		{"7.76 KB", size.S(7*size.Kilobyte + 777), "7.76 KB"},
+		{"7.00 MB", size.S(7*size.Megabyte + 77), "7.00 MB"},
+		{"7.73 MB round up", size.S(7*size.Megabyte + 752*size.Kilobyte), "7.73 MB"},
+		{"7.74 MB round down", size.S(7*size.Megabyte + 754*size.Kilobyte), "7.74 MB"},
+		{"900 GB", size.S(900 * size.Gigabyte), "900 GB"},
+		{"900.00 GB", size.S(900*size.Gigabyte + 1), "900.00 GB"},
+		{"12.00 TB", size.S(12*size.Terabyte + 1*size.Gigabyte + 777*size.Megabyte + 7*size.Kilobyte + 42), "12.00 TB"},
+		{"12.68 PB", size.S(12*size.Petabyte + 695*size.Terabyte), "12.68 PB"},
 
 		// Observed issues
-		{"3 decimal bug", Size(4*Megabyte + 1023*Kilobyte), "5.00 MB"},
+		{"3 decimal bug", size.S(4*size.Megabyte + 1023*size.Kilobyte), "5.00 MB"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -61,7 +63,7 @@ func TestImageParameters_String(t *testing.T) {
 		Width   uint
 		Height  uint
 		Quality int
-		MaxSize Size
+		MaxSize size.S
 	}
 	tests := []struct {
 		name   string
@@ -138,18 +140,18 @@ func Test_SizeFromString(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    Size
+		want    size.S
 		wantErr bool
 	}{
 		// Success
-		{"0", args{"0"}, Size(0), false},
-		{"50", args{"50"}, Size(50), false},
-		{"1 B", args{"1 B"}, Size(1), false},
-		{"5 KB", args{"5 KB"}, 5 * Kilobyte, false},
-		{"10 MB", args{"10 MB"}, 10 * Megabyte, false},
-		{"15GB", args{"15GB"}, 15 * Gigabyte, false},
-		{"20 TB", args{"20 TB"}, 20 * Terabyte, false},
-		{"25 PB", args{"25 PB"}, 25 * Petabyte, false},
+		{"0", args{"0"}, size.S(0), false},
+		{"50", args{"50"}, size.S(50), false},
+		{"1 B", args{"1 B"}, size.S(1), false},
+		{"5 KB", args{"5 KB"}, 5 * size.Kilobyte, false},
+		{"10 MB", args{"10 MB"}, 10 * size.Megabyte, false},
+		{"15GB", args{"15GB"}, 15 * size.Gigabyte, false},
+		{"20 TB", args{"20 TB"}, 20 * size.Terabyte, false},
+		{"25 PB", args{"25 PB"}, 25 * size.Petabyte, false},
 
 		// Failure
 		{"-1", args{"-1"}, 0, true},
@@ -158,7 +160,7 @@ func Test_SizeFromString(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseSize(tt.args.str)
+			got, err := size.Parse(tt.args.str)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Size.FromString() error = %v, wantErr %v", err, tt.wantErr)
 				return

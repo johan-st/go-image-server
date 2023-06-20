@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/log"
+	"github.com/johan-st/go-image-server/units/size"
 
 	"github.com/nfnt/resize"
 	//github.com/hashicorp/golang-lru/v2
@@ -44,14 +45,14 @@ type ImageHandler struct {
 
 type Stat struct {
 	Ids      []int
-	SizeOrig Size
+	SizeOrig size.S
 	Cache    CacheStat
 }
 
 type ImageStat struct {
 	Id           int
-	OriginalSize Size
-	CacheSize    Size
+	OriginalSize size.S
+	CacheSize    size.S
 	CacheNum     int
 }
 
@@ -68,7 +69,7 @@ type ImageParameters struct {
 	Height uint
 
 	// Max file-size in bytes (0 = no limit)
-	MaxSize Size
+	MaxSize size.S
 
 	// TODO: implement
 	// Interpolation function used if a new cache file is created
@@ -271,7 +272,7 @@ func (h *ImageHandler) Stat() (Stat, error) {
 	if err != nil {
 		return Stat{}, err
 	}
-	var sizeOrig Size
+	var sizeOrig size.S
 	for _, i := range ids {
 		size, err := sizeFile(h.originalPath(i))
 		if err != nil {
@@ -299,7 +300,7 @@ func (h *ImageHandler) StatId(id int) (ImageStat, error) {
 	}
 
 	cPaths := h.cache.Get(id)
-	cSize := Size(0)
+	cSize := size.S(0)
 	for _, p := range cPaths {
 		size, err := sizeFile(p)
 		if err != nil {
@@ -315,12 +316,12 @@ func (h *ImageHandler) StatId(id int) (ImageStat, error) {
 		CacheNum:     len(cPaths),
 	}, nil
 }
-func sizeFile(p string) (Size, error) {
+func sizeFile(p string) (size.S, error) {
 	info, err := os.Stat(p)
 	if err != nil {
 		return 0, err
 	}
-	return Size(info.Size()), nil
+	return size.S(info.Size()), nil
 }
 
 func (h *ImageHandler) findLatestId() (int, error) {
@@ -340,7 +341,7 @@ func (h *ImageHandler) findLatestId() (int, error) {
 
 // Create a new image with the given configuration and
 // returns the path to the cached image.
-func (h *ImageHandler) createImage(params ImageParameters, cachePath string) (Size, error) {
+func (h *ImageHandler) createImage(params ImageParameters, cachePath string) (size.S, error) {
 	oPath := h.originalPath(params.Id)
 	oImg, err := loadImage(oPath)
 	if err != nil {
@@ -389,10 +390,10 @@ func (h *ImageHandler) createImage(params ImageParameters, cachePath string) (Si
 	if err != nil {
 		return 0, err
 	}
-	size := Size(stat.Size())
+	size := size.S(stat.Size())
 	if size == 0 {
-		h.opts.l.Error("createImage", "error", "created image has size "+size.String(), "path", cachePath)
-		return 0, fmt.Errorf("created image has size 0")
+		h.opts.l.Error("createImage", "error", "created image has size.size "+size.String(), "path", cachePath)
+		return 0, fmt.Errorf("created image has size.size 0")
 	}
 	return size, nil
 }
@@ -530,98 +531,6 @@ func permAtLeast(l *log.Logger, dir os.FileMode, file os.FileMode) fs.WalkDirFun
 	}
 }
 
-// Represents file sizes:
-//   - 1 Kilobyte = 1024 bytes
-//   - 1 Megabyte = 1024 Kilobytes
-//   - 1 Gigabyte = 1024 Megabytes
-//   - 1 Terabyte = 1024 Gigabytes
-//   - 1 Petabyte = 1024 Terabytes
-type Size uint64
-
-const (
-	Kilobyte = 1024            // 1 Kilobyte = 1024 bytes
-	Megabyte = 1024 * Kilobyte // 1 Megabyte = 1024 Kilobytes
-	Gigabyte = 1024 * Megabyte // 1 Gigabyte = 1024 Megabytes
-	Terabyte = 1024 * Gigabyte // 1 Terabyte = 1024 Gigabytes
-	Petabyte = 1024 * Terabyte // 1 Petabyte = 1024 Terabytes
-)
-
-func ParseSize(str string) (Size, error) {
-	if s, ok := sizeParseHelper(str, "KB", Kilobyte); ok {
-		return s, nil
-	}
-	if s, ok := sizeParseHelper(str, "MB", Megabyte); ok {
-		return s, nil
-	}
-	if s, ok := sizeParseHelper(str, "GB", Gigabyte); ok {
-		return s, nil
-	}
-	if s, ok := sizeParseHelper(str, "TB", Terabyte); ok {
-		return s, nil
-	}
-	if s, ok := sizeParseHelper(str, "PB", Petabyte); ok {
-		return s, nil
-	}
-	if s, ok := sizeParseHelper(str, "B", 1); ok {
-		return s, nil
-	}
-
-	// no suffix, assume bytes
-	if intVal, err := strconv.Atoi(str); err == nil && intVal >= 0 {
-		return Size(intVal), nil
-	}
-
-	return Size(0), fmt.Errorf("could not parse string '%s' as a Size", str)
-}
-
-func sizeParseHelper(str string, sufix string, size Size) (Size, bool) {
-	before, found := strings.CutSuffix(str, sufix)
-	if found {
-		before = strings.Trim(before, " ")
-		intVal, err := strconv.Atoi(before)
-		if err != nil || intVal < 0 {
-			return Size(0), false
-		}
-		return Size(intVal) * size, true
-	}
-	return Size(0), false
-}
-
-// TODO: Break out size into a units package
-// Size.String()
-func (s Size) String() string {
-	if s == 0 {
-		return "0 B"
-	}
-	if s >= Petabyte {
-		return sizeStringHelper(Petabyte, "PB", uint64(s))
-	}
-	if s >= Terabyte {
-		return sizeStringHelper(Terabyte, "TB", uint64(s))
-	}
-	if s >= Gigabyte {
-		return sizeStringHelper(Gigabyte, "GB", uint64(s))
-	}
-	if s >= Megabyte {
-		return sizeStringHelper(Megabyte, "MB", uint64(s))
-	}
-	if s >= Kilobyte {
-		return sizeStringHelper(Kilobyte, "KB", uint64(s))
-	}
-	return fmt.Sprintf("%d B", s)
-
-}
-
-// sizeStringHelper returnes a string representing the size with two decimals.
-// If the amount is exact then it will not show any decimals.
-func sizeStringHelper(divInteger int, suffix string, s uint64) string {
-	if s%uint64(divInteger) == 0 {
-		return fmt.Sprintf("%d %s", s/uint64(divInteger), suffix)
-	}
-	f := float64(s) / float64(divInteger)
-	return fmt.Sprintf("%.2f %s", f, suffix)
-}
-
 func fileRemover(l *log.Logger, pathChan <-chan string) {
 	l.Debug("Running...")
 	for path := range pathChan {
@@ -734,7 +643,7 @@ type cache interface {
 type CacheStat struct {
 	NumItems  int
 	Capacity  int
-	Size      Size
+	Size      size.S
 	Hit       uint32
 	Miss      uint32
 	Evictions uint32
@@ -754,7 +663,7 @@ type options struct {
 	dirCache     string
 
 	cacheMaxNum  int
-	cacheMaxSize Size
+	cacheMaxSize size.S
 
 	imageDefaults ImageDefaults
 	imagePresets  []ImagePreset
@@ -787,7 +696,7 @@ type ImageDefaults struct {
 	QualityGif  int
 	Width       int
 	Height      int
-	MaxSize     Size
+	MaxSize     size.S
 	Interpolation
 }
 
@@ -816,7 +725,7 @@ type ImagePreset struct {
 	Quality int
 	Width   int
 	Height  int
-	MaxSize Size
+	MaxSize size.S
 	Interpolation
 }
 
@@ -851,7 +760,7 @@ func optionsDefault() options {
 
 		dirCache:     "img/cache",
 		cacheMaxNum:  1000000,
-		cacheMaxSize: 10 * Gigabyte,
+		cacheMaxSize: 10 * size.Gigabyte,
 
 		imageDefaults: ImageDefaults{
 			Format:      Jpeg,
@@ -859,7 +768,7 @@ func optionsDefault() options {
 			QualityGif:  256,
 			Width:       0,
 			Height:      800,
-			MaxSize:     10 * Megabyte,
+			MaxSize:     10 * size.Megabyte,
 		},
 
 		imagePresets: []ImagePreset{},
@@ -940,8 +849,8 @@ func WithCacheMaxNum(num int) optFunc {
 	}
 }
 
-// WithCacheMaxSize sets the cache max size option
-func WithCacheMaxSize(size Size) optFunc {
+// WithCacheMaxSize sets the cache max size.size option
+func WithCacheMaxSize(size size.S) optFunc {
 	return func(o *options) error {
 		o.cacheMaxSize = size
 		return nil

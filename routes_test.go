@@ -10,6 +10,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/units/size"
 	"github.com/johan-st/go-image-server/way"
 	"github.com/matryer/is"
 )
@@ -86,9 +87,9 @@ func Test_HandleImg(t *testing.T) {
 	sizeRes := w.Result().Header["Content-Length"][0]
 	sizeResInt, _ := strconv.Atoi(sizeRes)
 
-	s := 10 * images.Kilobyte
+	s := 10 * size.Kilobyte
 	if v, _ := strconv.Atoi(sizeRes); v < s {
-		t.Fatalf("Content-Lenghth is too small for test image, size: %s, expected at least %s", images.Size(sizeResInt), images.Size(s))
+		t.Fatalf("Content-Lenghth is too small for test image, size: %s, expected at least %s", size.S(sizeResInt), size.S(s))
 	}
 }
 

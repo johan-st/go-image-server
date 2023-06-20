@@ -382,7 +382,6 @@ ok      github.com/johan-st/go-image-server     32.833s
 
 ```
 
-
 ## Known issues
 
 - imagecache is not persisted between starts

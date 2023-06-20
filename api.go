@@ -10,7 +10,7 @@ import (
 
 	"net/http"
 
-	"github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/units/size"
 	"github.com/johan-st/go-image-server/way"
 	"gitlab.com/golang-commonmark/markdown"
 )
@@ -136,7 +136,7 @@ func (srv *server) handleApiImagePost() http.HandlerFunc {
 	// handler
 	// TODO: figure out which erorrs are client errors and which are server errors (warn/info vs error)
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := r.ParseMultipartForm(int64(15 * images.Megabyte))
+		err := r.ParseMultipartForm(int64(15 * size.Megabyte))
 		if err != nil {
 			l.Warn("Error while parsing upload", "ParseMultipartFormError", err)
 			srv.respondJson(w, r, http.StatusBadRequest, responseErr{
@@ -156,8 +156,8 @@ func (srv *server) handleApiImagePost() http.HandlerFunc {
 		defer upload.Close()
 
 		// check size
-		headerSize := images.Size(header.Size)
-		maxUploadSize, err := images.ParseSize(srv.conf.MaxUploadSize)
+		headerSize := size.S(header.Size)
+		maxUploadSize, err := size.Parse(srv.conf.MaxUploadSize)
 		if err != nil {
 			l.Fatal("Error while parsing max upload size", "ParseSizeError", err)
 			srv.respondJson(w, r, http.StatusInternalServerError, responseErr{

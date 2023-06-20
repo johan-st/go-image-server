@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/units/size"
 	"gopkg.in/yaml.v3"
 )
 
@@ -99,7 +100,7 @@ func (c *config) validate() error {
 	if c.Http.MaxUploadSize == "" {
 		c.Http.MaxUploadSize = "20MB"
 	}
-	_, err := images.ParseSize(c.Http.MaxUploadSize)
+	_, err := size.Parse(c.Http.MaxUploadSize)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("server max upload size must be a valid size (e.g. 20MB)"))
 	}
@@ -176,7 +177,7 @@ func toImageDefaults(c confImageDefault) (images.ImageDefaults, error) {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	size, err := images.ParseSize(c.MaxSize)
+	size, err := size.Parse(c.MaxSize)
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -221,14 +222,14 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 		}
 
 		// size
-		var size images.Size
+		var s size.S
 		if cip.MaxSize != "" {
-			size, err = images.ParseSize(cip.MaxSize)
+			s, err = size.Parse(cip.MaxSize)
 			if err != nil {
 				errs = append(errs, err)
 			}
 		} else {
-			size = def.MaxSize
+			s = def.MaxSize
 		}
 
 		// interpolation
@@ -250,7 +251,7 @@ func toImagePresets(conf []confImagePreset, def images.ImageDefaults) ([]images.
 			Quality:       cip.Quality,
 			Width:         cip.Width,
 			Height:        cip.Height,
-			MaxSize:       size,
+			MaxSize:       s,
 			Interpolation: interpolation,
 		}
 		presets = append(presets, p)

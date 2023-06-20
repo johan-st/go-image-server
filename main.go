@@ -14,6 +14,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/units/size"
 	"github.com/johan-st/go-image-server/way"
 )
 
@@ -117,7 +118,7 @@ func run() error {
 		return err
 	}
 
-	cacheMaxSize, err := images.ParseSize(conf.Cache.MaxSize)
+	cacheMaxSize, err := size.Parse(conf.Cache.MaxSize)
 	if err != nil {
 		return err
 	}

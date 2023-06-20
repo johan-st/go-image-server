@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/johan-st/go-image-server/images"
+	"github.com/johan-st/go-image-server/units/size"
 )
 
 const (
@@ -64,7 +65,7 @@ func Test_Add(t *testing.T) {
 	}
 	if stat.Size() == 0 {
 		t.Log("path\t", path)
-		t.Log("size\t", images.Size(stat.Size()))
+		t.Log("size\t", size.S(stat.Size()))
 		t.Log("msg\t", "file is empty")
 		t.Fail()
 	}
@@ -120,7 +121,7 @@ func Test_Get(t *testing.T) {
 		Height:  500,
 		Format:  images.Jpeg,
 		Quality: 10,
-		MaxSize: 50 * images.Megabyte,
+		MaxSize: 50 * size.Megabyte,
 	})
 	t.Logf("got path (%s)", path)
 
