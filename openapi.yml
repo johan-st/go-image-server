@@ -8,21 +8,16 @@ servers:
   - url: https://img.jst.dev
     description: demonstration server (production)
 paths:
-  /:
-    get:
-      summary: Get documentation
-      responses:
-        "200":
-          description: OK
-  /{image-id}:
+  /{id_image}:
     get:
       summary: Get image
       parameters:
-        - name: image-id
+        - name: id_image
           in: path
           required: true
           schema:
             type: string
+            format: integer
       responses:
         "200":
           description: OK
@@ -41,12 +36,6 @@ paths:
                 format: binary
         "404":
           description: Not found
-  /api:
-    get:
-      summary: api documentation
-      responses:
-        "200":
-          description: OK
   /api/images:
     post:
       description: Upload image
