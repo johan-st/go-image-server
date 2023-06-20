@@ -150,6 +150,7 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-13: update info and add info for specific image
 - 2023-06-20: add openapi yaml definition
 - 2023-06-20: refactor api/image -> api/images
+- 2023-06-20: refactor images/size into units/size (package size)
 
 ### April & May 2023
 
