@@ -23,3 +23,6 @@ img
 # runtime files
 *.log
 runningConfig.yaml
+
+# makefile
+makefile

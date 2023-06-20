@@ -1,0 +1,110 @@
+openapi: "3.0.2"
+info:
+  title: go image server
+  version: "1.0"
+servers:
+  - url: http://localhost:8080
+    description: Local server (development)
+  - url: https://img.jst.dev
+    description: demonstration server (production)
+paths:
+  /:
+    get:
+      summary: Get documentation
+      responses:
+        "200":
+          description: OK
+  /{image-id}:
+    get:
+      summary: Get image
+      parameters:
+        - name: image-id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+  /api:
+    get:
+      summary: api documentation
+      responses:
+        "200":
+          description: OK
+  /api/images:
+    post:
+      description: Upload image
+      requestBody:
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/gif:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: "File Uploaded Successfully"
+                  id:
+                    type: integer
+                    example: 4
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "File Upload Failed"
+  /api/images/{image-id}:
+    delete:
+      description: Delete image
+      parameters:
+        - name: image-id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not found
