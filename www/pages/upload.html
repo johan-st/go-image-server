@@ -14,19 +14,34 @@
         e.preventDefault();
         console.debug("uploadForm submit");
         const formData = new FormData(uploadForm);
-        fetch("/api/image", {
+        fetch("/api/images", {
             method: "POST",
             body: formData,
-        }).then(function (response) {
-            if (response.ok) {
-                uploadResult.innerHTML = response.status + ":\n" + JSON.stringify(response.body)
+        })
+            .then(response => response.json())
+            .then(data => {
+                let innerHTML = "";
+                if (data.status === 201) {
+                    innerHTML = `
+                        <h3>Upload Result</h3>
+                        <ul>
+                            <li>status: ${data.status}</li>
+                            <li>Image ID: ${data.id}</li>
+                            <li><a href="${data.url}" target="_blank" rel="noopener noreferrer">Image URL: ${data.url}</a></li>
+                        </ul>`
+                } else {
+                    innerHTML = `
+                        <h3>Upload Result</h3>
+                        <ul>
+                            <li>status: ${data.status}</li>
+                            <li>error: ${data.error}</li>
+                        </ul>`
+                }
+
+                uploadResult.innerHTML = innerHTML;
                 uploadForm.reset();
-            } else {
-                console.log(this);
-                console.error("upload image", response);
-                uploadResult.innerHTML = response.status + ":\n" + JSON.stringify(response.body)
-            }
-        });
+                console.debug(innerHTML);
+            })
     });
 </script>
 {{end}}

@@ -122,22 +122,26 @@ func (srv *server) handleApiImagePost() http.HandlerFunc {
 	l.With("version", "1")
 	l.With("method", "POST")
 
-	type response struct {
+	type responseOK struct {
 		Status  int    `json:"status"`
 		Message string `json:"message"`
-		Id      int    `json:"id,omitempty"`
+		Id      int    `json:"id"`
+		Url     string `json:"url"`
 	}
 
+	type responseErr struct {
+		Status int    `json:"status"`
+		Error  string `json:"error"`
+	}
 	// handler
 	// TODO: figure out which erorrs are client errors and which are server errors (warn/info vs error)
 	return func(w http.ResponseWriter, r *http.Request) {
-		// parse up to maxSize
 		err := r.ParseMultipartForm(int64(15 * images.Megabyte))
 		if err != nil {
 			l.Warn("Error while parsing upload", "ParseMultipartFormError", err)
-			srv.respondJson(w, r, http.StatusBadRequest, response{
-				Status:  http.StatusBadRequest,
-				Message: err.Error(),
+			srv.respondJson(w, r, http.StatusBadRequest, responseErr{
+				Status: http.StatusBadRequest,
+				Error:  err.Error(),
 			})
 			return
 		}
@@ -152,19 +156,19 @@ func (srv *server) handleApiImagePost() http.HandlerFunc {
 		defer upload.Close()
 
 		// check size
-		hs := images.Size(header.Size)
-		ms, err := images.ParseSize(srv.conf.MaxUploadSize)
+		headerSize := images.Size(header.Size)
+		maxUploadSize, err := images.ParseSize(srv.conf.MaxUploadSize)
 		if err != nil {
 			l.Fatal("Error while parsing max upload size", "ParseSizeError", err)
-			srv.respondJson(w, r, http.StatusInternalServerError, response{
-				Status:  http.StatusInternalServerError,
-				Message: "Internal Server Error",
+			srv.respondJson(w, r, http.StatusInternalServerError, responseErr{
+				Status: http.StatusInternalServerError,
+				Error:  "Internal Server Error",
 			})
 			return
 		}
-		if hs > ms {
-			l.Warn("Maximum upload size exceeded", "FileSize", hs, "MaxUploadSize", ms)
-			srv.respondJson(w, r, http.StatusBadRequest, response{Status: http.StatusBadRequest, Message: "Maximum upload size exceeded"})
+		if headerSize > maxUploadSize {
+			l.Warn("Maximum upload size exceeded", "FileSize", headerSize, "MaxUploadSize", maxUploadSize)
+			srv.respondJson(w, r, http.StatusBadRequest, responseErr{Status: http.StatusBadRequest, Error: "Maximum upload size exceeded"})
 			return
 		}
 
@@ -173,9 +177,9 @@ func (srv *server) handleApiImagePost() http.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, image.ErrFormat) {
 				l.Warn("Error while adding image to handler", "AddIOError", err)
-				srv.respondJson(w, r, http.StatusBadRequest, response{
-					Status:  http.StatusBadRequest,
-					Message: "File is not a valid image",
+				srv.respondJson(w, r, http.StatusBadRequest, responseErr{
+					Status: http.StatusBadRequest,
+					Error:  "File is not a valid image",
 				})
 				return
 			}
@@ -183,10 +187,19 @@ func (srv *server) handleApiImagePost() http.HandlerFunc {
 		}
 
 		l.Info("File Uploaded Successfully", "assigned id", id, "original filename", header.Filename, "upload size", header.Size)
-		response := response{
+
+		// var url string
+		// if srv.conf.Port == 0 || srv.conf.Port == 80 {
+		// 	url = fmt.Sprintf("http://%s/%d", srv.conf.Host, id)
+		// } else {
+		// 	url = fmt.Sprintf("http://%s:%d/%d", srv.conf.Host, srv.conf.Port, id)
+		// }
+
+		response := responseOK{
 			Status:  http.StatusCreated,
 			Message: "File Uploaded Successfully",
 			Id:      id,
+			Url:     fmt.Sprintf("/%d", id),
 		}
 
 		srv.respondJson(w, r, http.StatusCreated, response)

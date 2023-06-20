@@ -52,15 +52,15 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("GET", "/assets/", srv.handleAssets())
 
 	// API
-	srv.router.HandleFunc("GET", "/api/image", srv.handleApiImageGet())
-	srv.router.HandleFunc("POST", "/api/image", srv.handleApiImagePost())
-	srv.router.HandleFunc("DELETE", "/api/image/:id", srv.handleApiImageDelete())
+	srv.router.HandleFunc("GET", "/api/images", srv.handleApiImageGet())
+	srv.router.HandleFunc("POST", "/api/images", srv.handleApiImagePost())
+	srv.router.HandleFunc("DELETE", "/api/images/:id", srv.handleApiImageDelete())
 	srv.router.HandleFunc("*", "/api/", srv.handleNotAllowed())
 
 	// Admin
 	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
 	srv.router.HandleFunc("GET", "/admin/:template", srv.handleAdmin())
-	srv.router.HandleFunc("GET", "/admin/image/:id", srv.handleAdminImage())
+	srv.router.HandleFunc("GET", "/admin/images/:id", srv.handleAdminImage())
 
 	// Serve Images
 	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())

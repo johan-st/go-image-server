@@ -4,7 +4,7 @@
     {{range .MainData.Ids}}
     <div class="image">
         <p class="image__id">id: {{.}}</p>
-        <a href="/admin/image/{{.}}" target="_blank" rel="noopener noreferrer">
+        <a href="/admin/images/{{.}}">
             <img src="/{{.}}?h=200" />
         </a>
         <div class="image__actions">
@@ -22,7 +22,7 @@
             e.preventDefault();
             console.debug("deleteButtons click");
             const imageId = button.dataset.image_id;
-            fetch("/api/image/" + imageId, {
+            fetch("/api/images/" + imageId, {
                 method: "DELETE",
             }).then(function (response) {
                 if (response.ok) {
