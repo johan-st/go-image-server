@@ -26,13 +26,13 @@ A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD*
   - [Sprints](#sprints)
     - [MoSCoW](#moscow)
     - [June 2023](#june-2023)
-      - [todo (june 2023)](#todo-june-2023)
+      - [backlog (june 2023)](#backlog-june-2023)
       - [log (june 2023)](#log-june-2023)
     - [April \& May 2023](#april--may-2023)
-      - [todo (april \& may 2023)](#todo-april--may-2023)
+      - [backlog (april \& may 2023)](#backlog-april--may-2023)
       - [log (april \& may 2023)](#log-april--may-2023)
     - [Februari 2022](#februari-2022)
-      - [todo (februari 2022)](#todo-februari-2022)
+      - [backlog (februari 2022)](#backlog-februari-2022)
       - [log (februari 2022)](#log-februari-2022)
   - [Requirements](#requirements)
   - [Questions to answer](#questions-to-answer)
@@ -58,8 +58,11 @@ Images **MUST** be served in the size requested.
 Images **MUST** not be stretched or distorted.
 Images **SHOULD** not be scaled up from original.
 Images **SHUOLD** have quality-options
-Images **COULD** have added watermark
-Images **COULD** have added text
+Images **COULD** have option for added watermark
+Images **COULD** have option for added text
+Images **COULD** check for duplicates on upload (bloom filter?)
+Images **COULD** use AI for creating tags and metadata such as alt-text, description, title etc
+Images **COULD** have a search function for finding images based on tags, metadata etc
 Code **MUST** have relevant tests
 Code **SHOULD** be benchmarked for performance
 Code **COULD** be profiled for cpu and memory usage
@@ -82,7 +85,7 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] **COULD** have prototype admin for viewing and deleting cached images
 - [ ] **COULD** be benchmarked for performance
 
-#### todo (june 2023)
+#### backlog (june 2023)
 
 - [ ] decide on how to handle handle requests for images larger than original?
 - [x] crop should keep aspect ratio
@@ -108,7 +111,7 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] consider having a fallback image or a smaller image for quick response when the requested image is not cached
 - [ ] consider commiting to single executable? as of now I need docs folder and config file
 - [ ] add cacnelation context to "add folder on startup" and "load images and cache from disk on startup"?
-- [ ] decide on benchmark-method for single images
+- [X] decide on benchmark-method for single images
 - [X] asking for a non-exsistant id should give 404 (not 500)
 - [x] add usage log
 - [x] add cache reclaimation
@@ -124,6 +127,12 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] PROBLEM: benchmarks are broken...
 - [ ] consider migrating docs to templates instead of markdown?
 - [ ] refactor images package
+- [ ] refuse duplicate uploads
+- [ ] find similar images
+- [ ] add metadata to images
+- [ ] add tags to images
+- [ ] searchable tags and metadata
+- [ ] AI can create tags and metadata such as description, alt-text, title etc
 
 #### log (june 2023)
 
@@ -139,6 +148,8 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-06-12: add info page and have lru keep basic stats
 - 2023-06-12: fix bug with Size.String()
 - 2023-06-13: update info and add info for specific image
+- 2023-06-20: add openapi yaml definition
+- 2023-06-20: refactor api/image -> api/images
 
 ### April & May 2023
 
@@ -154,7 +165,7 @@ Requirements not mentioned should be regarded as **WONT**
 - [ ] **COULD** have a webpage for uploading images
 - [ ] **COULD** have a webpage for viewing and deleting images
 
-#### todo (april & may 2023)
+#### backlog (april & may 2023)
 
 - [X] Fix tests
 - [X] asking for a non-exsistant id should give 404 (not 500)
@@ -220,8 +231,8 @@ Requirements not mentioned should be regarded as **WONT**
 - 2023-05-19: hook in yaml config. All settings are not yet used.
 - 2023-05-19: create branch for working on a new config pattern for images package
 - 2023-05-24: branch: conf another way. refactoring and hook in config file
-- 2023-05-25: work on conf and update todos
-- 2023-05-26: work on conf and check a few todos
+- 2023-05-25: work on conf and update backlogs
+- 2023-05-26: work on conf and check a few backlogs
 - 2023-05-28: Fix bug and add access log as file
 - 2023-05-31: create image upload endpoint.
 
@@ -234,7 +245,7 @@ Requirements not mentioned should be regarded as **WONT**
 - [X] **COULD** cache processed images for future releases
 - [ ] **COULD** be fast
 
-#### todo (februari 2022)
+#### backlog (februari 2022)
 
 - [x] Planing
 - [x] Basic http server
