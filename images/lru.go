@@ -1,11 +1,8 @@
 package images
 
 import (
-	"os"
 	"sync"
 	"sync/atomic"
-
-	"github.com/johan-st/go-image-server/units/size"
 )
 
 // TimeSource is an interface to facilitate test
@@ -31,7 +28,6 @@ type lru struct {
 	cap           int
 	len           int
 	evictions     atomic.Uint32
-	diskSize      atomic.Uint64
 	hits          atomic.Uint32
 	misses        atomic.Uint32
 	head          *node
@@ -56,15 +52,6 @@ func newLru(cap int, trimedPathsChan chan<- string) *lru {
 		trimChan:      trimedPathsChan,
 	}
 }
-
-//	type lruWithStats struct {
-//		lru      *Lru
-// 		timeIntervals []time.Duration
-//		accesses map[time.Duration]int // hits during given timaspans
-//		misses   map[time.Duration]int // misses during given timaspans
-//		mruTime  time.Time
-//		lruTime  time.Time
-//	}
 
 type node struct {
 	prev, next *node
@@ -140,7 +127,6 @@ func (l *lru) Stat() CacheStat {
 	return CacheStat{
 		NumItems:  l.len,
 		Capacity:  l.cap,
-		Size:      size.S(l.diskSize.Load()),
 		Hit:       l.hits.Load(),
 		Miss:      l.misses.Load(),
 		Evictions: l.evictions.Load(),
@@ -300,11 +286,6 @@ func (l *lru) addToLookup(n *node, path string) {
 	l.reverseLookup[n] = path
 	l.lMutex.Unlock()
 	l.rlMutex.Unlock()
-	stat, err := os.Stat(path)
-	if err != nil {
-		panic(err) // TODO: handle error
-	}
-	l.diskSize.Add(uint64(stat.Size()))
 
 }
 
@@ -315,10 +296,4 @@ func (l *lru) removeFromLookup(n *node, path string) {
 	delete(l.reverseLookup, n)
 	l.lMutex.Unlock()
 	l.rlMutex.Unlock()
-	stat, err := os.Stat(path)
-	if err != nil {
-		panic(err) // TODO: handle error
-	}
-	l.diskSize.Add(-uint64(stat.Size()))
-
 }
