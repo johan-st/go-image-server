@@ -37,7 +37,7 @@ func run() error {
 	// parse flags
 	flagConf := flag.String("c", "imageServer_config.yaml", "path to configuration file")
 	flagDev := flag.Bool("dev", false, "enable source code debugging")
-	// flagLogFile := flag.String("log", "", "path to log file")
+	flagDebug := flag.Bool("debug", false, "enable debug logging regardless of configurations")
 	flag.Parse()
 
 	// load configuration
@@ -51,6 +51,10 @@ func run() error {
 	// i.e. report caller and set log level to debug
 	if *flagDev {
 		l.SetReportCaller(true)
+	}
+
+	// enable debug logging if flag is set
+	if *flagDebug {
 		l.SetLevel(log.DebugLevel)
 		conf.LogLevel = "debug"
 	}
