@@ -75,6 +75,13 @@ Code **SHOULD** be maintainable and easy to understand.
 Planing and prioritization of features and requirements to be implemented during each sprint.
 
 Requirements not mentioned should be regarded as **WONT**
+### July & August 2023
+_summer break_
+
+#### log (july & august 2023)
+- 2023-08-16: bugfix for lru, add debug flag, update readme
+
+
 
 ### June 2023
 
@@ -82,8 +89,8 @@ Requirements not mentioned should be regarded as **WONT**
 - [x] **MUST** have prototype admin for viewing and deleting images
 - [X] **SHOULD** have prototype info page for viewing server status, uptime, cache size etc
 - [x] **SHOULD** keep aspect ratio when cropping
-- [ ] **COULD** have prototype admin for viewing and deleting cached images
-- [ ] **COULD** be benchmarked for performance
+- [x] **COULD** have prototype admin for viewing and deleting cached images
+- [x] **COULD** be benchmarked for performance
 
 #### backlog (june 2023)
 
