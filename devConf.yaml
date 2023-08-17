@@ -1,7 +1,7 @@
 log_level: info
 http:
     port: 8080
-    host: localhost
+    host: ""
     documentation: true
     access_logfile: devconf-access.log
     max_upload_size: 20MB

@@ -80,6 +80,7 @@ _summer break_
 
 #### log (july & august 2023)
 - 2023-08-16: bugfix for lru, add debug flag, update readme
+- 2023-08-17: add dockerfile
 
 
 
