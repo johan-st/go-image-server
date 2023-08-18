@@ -34,3 +34,13 @@ scp:
 	scp bin/latest root@<ip-of-server>:~/img/jst.dev-img
 	scp -r www root@<ip-of-server>:~/img/www
 	scp -r docs root@<ip-of-server>:~/img/docs
+
+docker-build:
+	docker build -t img-server .
+
+docker-run:
+	docker run --rm -p 80:80 img-server
+
+docker-push:
+	docker tag img-server registry.digitalocean.com/johan-st/img-server
+	docker push registry.digitalocean.com/johan-st/img-server
