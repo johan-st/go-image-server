@@ -25,6 +25,8 @@ A MVP **MUST** be able to serve images in the requested pixel-size and **SHOULD*
       - [Server](#server)
   - [Sprints](#sprints)
     - [MoSCoW](#moscow)
+    - [July \& August 2023](#july--august-2023)
+      - [log (july \& august 2023)](#log-july--august-2023)
     - [June 2023](#june-2023)
       - [backlog (june 2023)](#backlog-june-2023)
       - [log (june 2023)](#log-june-2023)
@@ -75,14 +77,16 @@ Code **SHOULD** be maintainable and easy to understand.
 Planing and prioritization of features and requirements to be implemented during each sprint.
 
 Requirements not mentioned should be regarded as **WONT**
+
 ### July & August 2023
-_summer break_
+
+summer break
 
 #### log (july & august 2023)
+
 - 2023-08-16: bugfix for lru, add debug flag, update readme
 - 2023-08-17: add dockerfile
-
-
+- 2023-08-20: embed static files in binary.
 
 ### June 2023
 

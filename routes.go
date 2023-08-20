@@ -1,13 +1,16 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,6 +22,9 @@ import (
 	"github.com/johan-st/go-image-server/way"
 	"gitlab.com/golang-commonmark/markdown"
 )
+
+//go:embed docs www
+var staticFS embed.FS
 
 type server struct {
 	errorLogger  *log.Logger // *required
@@ -104,22 +110,22 @@ func (srv *server) handleAdmin() http.HandlerFunc {
 
 	files := []string{"www/layouts/base.html"}
 
-	mainTpl, err := template.ParseFiles(append(files, "www/pages/admin.html")...)
+	mainTpl, err := template.ParseFS(staticFS, append(files, "www/pages/admin.html")...)
 	if err != nil {
 		l.Fatal("Could not parse admin template", "error", err)
 	}
 
-	uploadTpl, err := template.ParseFiles(append(files, "www/pages/upload.html")...)
+	uploadTpl, err := template.ParseFS(staticFS, append(files, "www/pages/upload.html")...)
 	if err != nil {
 		l.Fatal("Could not parse admin/upload template", "error", err)
 	}
 
-	imagesTpl, err := template.ParseFiles(append(files, "www/pages/images.html")...)
+	imagesTpl, err := template.ParseFS(staticFS, append(files, "www/pages/images.html")...)
 	if err != nil {
 		l.Fatal("Could not parse admin/images template", "error", err)
 	}
 
-	infoTpl, err := template.ParseFiles(append(files, "www/pages/info.html")...)
+	infoTpl, err := template.ParseFS(staticFS, append(files, "www/pages/info.html")...)
 	if err != nil {
 		l.Fatal("Could not parse admin/info template", "error", err)
 	}
@@ -218,7 +224,7 @@ func (srv *server) handleAdminImage() http.HandlerFunc {
 		CacheSize     size.S
 	}
 
-	tpl, err := template.ParseFiles("www/layouts/base.html", "www/pages/image.html")
+	tpl, err := template.ParseFS(staticFS, "www/layouts/base.html", "www/pages/image.html")
 	if err != nil {
 		l.Fatal("Could not parse admin/info template", "error", err)
 	}
@@ -270,11 +276,24 @@ func (srv *server) handleAssets() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Debug("handling request", "path", r.URL.Path)
 		file := strings.TrimPrefix(r.URL.Path, "/assets/")
+
 		if file == "" {
 			srv.respondError(w, r, "not found", http.StatusNotFound)
 			return
 		}
-		http.ServeFile(w, r, "www/assets/"+file)
+
+		p, err := staticFS.ReadFile("www/assets/" + file)
+		if err != nil {
+			srv.respondError(w, r, "not found", http.StatusNotFound)
+			return
+		}
+
+		mimeType := mime.TypeByExtension(path.Ext(file))
+		l.Debug("serving asset", "file", file, "Content-Type", mimeType)
+		w.Header().Add("Content-Type", mimeType)
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(p)
 	}
 
 }
