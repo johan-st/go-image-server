@@ -16,15 +16,31 @@ import (
 
 	"github.com/a-h/templ"
 	log "github.com/charmbracelet/log"
-	components "github.com/johan-st/go-image-server/admin-pages/components"
 	"github.com/johan-st/go-image-server/images"
+	components "github.com/johan-st/go-image-server/pages/components"
 	"github.com/johan-st/go-image-server/units/size"
 	"github.com/johan-st/go-image-server/way"
-	"gitlab.com/golang-commonmark/markdown"
 )
 
-//go:embed admin-pages/assets
+//go:embed pages/assets
 var staticFS embed.FS
+var (
+	darkTheme = components.Theme{
+		ColorPrimary:    "#f90",
+		ColorSecondary:  "#fa3",
+		ColorBackground: "#333",
+		ColorText:       "#aaa",
+		ColorBorder:     "#666",
+		BorderRadius:    "1rem",
+	}
+	
+	metadata = map[string]string{
+		"Description": "img.jst.dev is a way for Johan Strand to learn more Go and web development.",
+		"Keywords":    "image, hosting",
+		"Author":      "Johan Strand",
+	}
+)
+
 
 type server struct {
 	errorLogger  *log.Logger // *required
@@ -84,23 +100,16 @@ func (srv *server) handleAdminTempl() http.HandlerFunc {
 	l := srv.errorLogger.With("handler", "handleAdminTempl")
 
 	// get base css styles
-	styles, err := os.ReadFile("admin-pages/assets/admin.css")
+	styles, err := os.ReadFile("pages/assets/admin.css")
 	if err != nil {
 		l.Fatal("Could not read admin.css", "error", err)
 	}
-	darkTheme := components.Theme{
-		PrimaryColor:    "#f90",
-		SecondaryColor:  "#fa3",
-		BackgroundColor: "#333",
-		TextColor:       "#aaa",
-	}
-	baseStyles := components.StyleTag(darkTheme, string(styles))
 
-	metadata := map[string]string{
-		"Description": "img.jst.dev is a way for Johan Strand to learn more Go and web development.",
-		"Keywords":    "image, hosting",
-		"Author":      "Johan Strand",
+	baseStyles,err := components.StyleTag(darkTheme, string(styles))
+	if err != nil {
+		l.Fatal("Could not create style tag", "error", err)
 	}
+
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -135,10 +144,15 @@ func (srv *server) handleAdminTempl() http.HandlerFunc {
 			}
 			content = components.Info(info)
 		default:
-			panic("not implemented")
+			file,err := os.ReadFile("docs/USAGE.md")
+			if err != nil {
+				l.Error("Could not read docs/USAGE.md", "error", err)
+			}
+
+			content = components.MarkdownFile(file)
 		}
 
-		layout := components.Main("img.jst.dev", metadata, baseStyles, content)
+		layout := components.Admin("img.jst.dev", metadata, baseStyles, content)
 
 		err = layout.Render(r.Context(), w)
 		if err != nil {
@@ -177,23 +191,12 @@ func (srv *server) handleAdminImage() http.HandlerFunc {
 	l := srv.errorLogger.With("handler", "handleAdminImage")
 
 	// get base css styles
-	styles, err := os.ReadFile("admin-pages/assets/admin.css")
+	styles, err := os.ReadFile("pages/assets/admin.css")
 	if err != nil {
 		l.Fatal("Could not read admin.css", "error", err)
 	}
 
-	darkTheme := components.Theme{
-		PrimaryColor:    "#f90",
-		SecondaryColor:  "#fa3",
-		BackgroundColor: "#333",
-		TextColor:       "#aaa",
-	}
 
-	metadata := map[string]string{
-		"Description": "img.jst.dev is a way for Johan Strand to learn more Go and web development.",
-		"Keywords":    "image, hosting",
-		"Author":      "Johan Strand",
-	}
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -225,8 +228,11 @@ func (srv *server) handleAdminImage() http.HandlerFunc {
 		}
 
 		content := components.Image(info)
-		baseStyles := components.StyleTag(darkTheme, string(styles))
-		layout := components.Main("img.jst.dev", metadata, baseStyles, content)
+		baseStyles,err := components.StyleTag(darkTheme, string(styles))
+		if err != nil {
+			l.Fatal("Could not create style tag", "error", err)
+		}
+		layout := components.Admin("img.jst.dev", metadata, baseStyles, content)
 
 		err = layout.Render(r.Context(),w)
 		if err != nil {
@@ -248,7 +254,7 @@ func (srv *server) handleAssets() http.HandlerFunc {
 			return
 		}
 
-		p, err := staticFS.ReadFile("admin-pages/assets/" + file)
+		p, err := staticFS.ReadFile("pages/assets/" + file)
 		if err != nil {
 			srv.respondError(w, r, "not found", http.StatusNotFound)
 			return
@@ -267,6 +273,7 @@ func (srv *server) handleAssets() http.HandlerFunc {
 // handleDocs responds to a request with USAGE.md parsed to html.
 // It also inlines some rudimentary css.
 func (srv *server) handleDocs() http.HandlerFunc {
+	var docsPath = "docs/USAGE.md"
 	// setup
 	l := srv.errorLogger.With("handler", "handleDocs")
 
@@ -275,18 +282,26 @@ func (srv *server) handleDocs() http.HandlerFunc {
 		l.Debug("docs rendered and ready to be served", "time", time.Since(t))
 	}(time.Now())
 
-	md := markdown.New(markdown.XHTMLOutput(true))
-
-	f, err := os.ReadFile("docs/USAGE.md")
+	f, err := os.ReadFile(docsPath)
 	if err != nil {
 		l.Fatalf("Could not read docs\n%s", err)
 	}
-	docs := md.RenderToString(f)
 
-	style, err := os.ReadFile("docs/dark.css")
+
+	// get base css styles
+	styles, err := os.ReadFile("pages/assets/admin.css")
 	if err != nil {
-		l.Fatalf("Could not read docs/dark.css\n%s", err)
+		l.Fatal("Could not read admin.css", "error", err)
 	}
+
+	baseStyles,err := components.StyleTag(darkTheme, string(styles))
+	if err != nil {
+		l.Fatal("Could not create style tag", "error", err)
+	}
+
+
+	mdComponent := components.MarkdownFile(f)
+	main := components.Docs("img.jst.dev", metadata, baseStyles, mdComponent)
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -295,9 +310,11 @@ func (srv *server) handleDocs() http.HandlerFunc {
 			srv.respondError(w, r, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		w.Header().Add("content-type", "text/html")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "<html><head><title>img.jst.dev | no hassle image hosting</title></head><body><style>%s</style>%s</body></html>", style, docs)
+		err := main.Render(r.Context(), w)
+		if err != nil {
+			l.Error("Could not render template", "error", err)
+			srv.respondError(w, r, "err", http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -386,7 +403,7 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Debug("handling request", "path", r.URL.Path)
-		http.ServeFile(w, r, "admin-pages/assets/favicon.ico")
+		http.ServeFile(w, r, "pages/assets/favicon.ico")
 	}
 }
 

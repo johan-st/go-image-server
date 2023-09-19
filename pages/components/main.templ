@@ -1,8 +1,15 @@
 package components
 
+css main() {
+	border: 1px solid var(--clr-border);
+	border-radius: var(--border-radius);
+	max-width: 1080px;
+	width: 90%;
+	margin: 0 auto;
+	padding: 1rem;
+}
 
-
-templ Main(docTitle string, metadata map[string]string, themeStyleTag, content templ.Component ){
+templ Admin(docTitle string, metadata map[string]string, themeStyleTag, content templ.Component ){
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -13,13 +20,32 @@ templ Main(docTitle string, metadata map[string]string, themeStyleTag, content t
     </head>
     <body>
         @header()
-        <main>
+        <main class={main}>
             {! content }
         </main>
         @footer()
     </body>
     </html>
 }
+
+templ Docs(docTitle string, metadata map[string]string, themeStyleTag, content templ.Component ){
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>{ docTitle }</title>
+        {! themeStyleTag }   
+    </head>
+    <body>
+        <main class={main}>
+            {! content }
+        </main>
+        @footer()
+    </body>
+    </html>
+}
+
+
 
 templ header() {
     <header>
