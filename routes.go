@@ -16,7 +16,7 @@ import (
 
 	"github.com/a-h/templ"
 	log "github.com/charmbracelet/log"
-	components "github.com/johan-st/go-image-server/admin-pages"
+	components "github.com/johan-st/go-image-server/admin-pages/components"
 	"github.com/johan-st/go-image-server/images"
 	"github.com/johan-st/go-image-server/units/size"
 	"github.com/johan-st/go-image-server/way"
