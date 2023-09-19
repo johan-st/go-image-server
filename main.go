@@ -59,24 +59,6 @@ func run() error {
 		conf.LogLevel = "debug"
 	}
 
-	// JUST REDIRECT STDOUT TO A FILE INSTEAD (./goImageServer >> file.log)
-	// Log to file
-	// if *flagLogFile != "" {
-	// 	l.Info("logging to file", "path", *flagLogFile)
-
-	// 	l := log.Default()
-
-	// 	logfile, err := os.OpenFile(*flagLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// 	if err != nil {
-	// 		l.Fatal("Could no set up logfile", "error", err)
-	// 	}
-	// 	defer logfile.Close()
-
-	// 	l.SetOutput(logfile)
-	// 	l.SetFormatter(log.TextFormatter)
-	// 	// l.SetFormatter(log.LogfmtFormatter)
-	// 	// l.SetFormatter(log.JSONFormatter)
-	// }
 	l.Info("starting server...")
 
 	// handle configuration errors
@@ -206,10 +188,10 @@ func run() error {
 	signal.Notify(signalChan, os.Interrupt)
 	go func() {
 		for sig := range signalChan {
-			l.Debug("signal recieved", "signal", sig)
+			l.Info("signal recieved", "signal", sig)
 			if conf.Files.ClearOnExit {
 				l.Warn(
-					"Removing folders",
+					"ClearOnExit is set. Removing folders",
 					"originals_dir", conf.Files.DirOriginals,
 					"cache_dir", conf.Files.DirCache,
 				)
@@ -306,7 +288,7 @@ func addFolder(ih *images.ImageHandler, folder string) error {
 		defer file.Close()
 		id, err := ih.Add(file)
 		if err != nil {
-			log.Default().Info("failed to add image", "file", info.Name(), "error", err)
+			log.Default().Warn("failed to add image", "file", info.Name(), "error", err)
 		} else {
 			log.Default().Debug("added image", "file", file.Name(), "id", id)
 		}

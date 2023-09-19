@@ -26,3 +26,6 @@ runningConfig.yaml
 
 # makefile
 makefile
+
+# templ files
+*_templ.go

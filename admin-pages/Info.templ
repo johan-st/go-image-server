@@ -1,0 +1,52 @@
+package components
+
+import "time"
+import "github.com/johan-st/go-image-server/units/size"
+import "strconv"
+
+type ServerInfo struct {
+    // if there is an error, this will be set
+    InfoCollectionError string
+
+    Uptime time.Duration
+    Requests int
+    Errors int
+    ImagesServed int
+    Originals int
+    OriginalsSize size.S
+    CachedNum int
+    CacheCapacity int
+    CacheSize size.S
+    CacheHit int
+    CacheMiss int
+    CacheEvictions int
+}
+
+templ Info(info ServerInfo) {
+<div>
+    <h2>Info</h2>
+    if info.InfoCollectionError != "" {
+        <div>
+            { info.InfoCollectionError }
+        </div>
+    }
+    <h3>Server</h3>
+    <ul>
+        <li>uptime: { info.Uptime.String() }</li>
+        <li>requests: { strconv.Itoa(info.Requests) }</li>
+        <li>errors: { strconv.Itoa(info.Errors) }</li>
+        <li>images served: { strconv.Itoa(info.ImagesServed) }</li>
+        <li>Originals: { strconv.Itoa(info.Originals) }</li>
+        <li>Originals Size: { info.OriginalsSize.String() }</li>
+    </ul>
+    <h3>Cache</h3>
+    <ul>
+        <li>Cached Images: { strconv.Itoa(info.CachedNum) }</li>
+        <li>Cache Capacity: { strconv.Itoa(info.CacheCapacity) }</li>
+        <li>Cache Size: { info.CacheSize.String() }</li>
+        <li>Cache Hits: { strconv.Itoa(info.CacheHit) }</li>
+        <li>Cache Misses: { strconv.Itoa(info.CacheMiss) }</li>
+        <li>Cache Evictions: { strconv.Itoa(info.CacheEvictions) }</li>
+    </ul>
+</div>
+}

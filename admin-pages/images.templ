@@ -1,0 +1,99 @@
+package components
+
+script deleteImage(imageId string) {
+        fetch("/api/images/" + imageId, {method: "DELETE"})
+            .then(function (response) {
+        if (response.ok) {
+            window.location.reload();
+            console.debug("image deleted");
+
+        } else {
+            console.error("error while deleting image", response);
+            window.location.reload();
+        }
+    });
+}
+
+templ Images(ids []string){
+<section class="images">
+    for _, id := range ids {
+        <div class="image">
+            <p class="image__id">id: {id}</p>
+            <a href={ templ.SafeURL("/admin/images/" + id) } >
+                <img src={ "/"+id+"?h=200" }/>
+            </a>
+            <div class="image__actions">
+                <input class="image__delete" onClick={deleteImage(id)} value="delete" />
+            </div>
+        </div>
+    }
+</section>
+}
+
+type ImageInfo struct {
+    Id string
+    OriginalsSize string
+    CachedNum string
+    CacheSize string
+}
+
+templ Image(image ImageInfo){
+<h2>Image { image.Id }</h2>
+<section class="images">
+    <img src={"/" + image.Id + "?h=600"} />
+    <ul>
+        <li>Id: {image.Id}</li>
+        <li>Original Size: {image.OriginalsSize}</li>
+        <li>Cached Variants: {image.CachedNum} </li>
+        <li>Cache Size: {image.CacheSize}</li>
+    </ul>
+</section>
+}
+
+templ AddImage(){
+addImage()
+<h2>Upload</h2>
+<form id="upload-form">
+    <input type="file" name="image" />
+    <input type="submit" value="upload" />
+</form>
+<output id="upload-result"></output>
+
+<script>
+    const uploadForm = document.getElementById("upload-form");
+    const uploadResult = document.getElementById("upload-result");
+    uploadForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        console.debug("uploadForm submit");
+        const formData = new FormData(uploadForm);
+        fetch("/api/images", {
+            method: "POST",
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                let innerHTML = "";
+                if (data.status === 201) {
+                    innerHTML = `
+                        <h3>Upload Result</h3>
+                        <ul>
+                            <li>status: ${data.status}</li>
+                            <li>Image ID: ${data.id}</li>
+                            <li><a href="${data.url}" target="_blank" rel="noopener noreferrer">Image URL: ${data.url}</a></li>
+                        </ul>`
+                } else {
+                    innerHTML = `
+                        <h3>Upload Result</h3>
+                        <ul>
+                            <li>status: ${data.status}</li>
+                            <li>error: ${data.error}</li>
+                        </ul>`
+                }
+
+                uploadResult.innerHTML = innerHTML;
+                uploadForm.reset();
+                console.debug(innerHTML);
+            })
+    });
+</script>
+}

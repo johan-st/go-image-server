@@ -5,25 +5,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"mime"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/a-h/templ"
 	log "github.com/charmbracelet/log"
+	components "github.com/johan-st/go-image-server/admin-pages"
 	"github.com/johan-st/go-image-server/images"
 	"github.com/johan-st/go-image-server/units/size"
 	"github.com/johan-st/go-image-server/way"
 	"gitlab.com/golang-commonmark/markdown"
 )
 
-//go:embed docs www
+//go:embed www
 var staticFS embed.FS
 
 type server struct {
@@ -65,8 +65,8 @@ func (srv *server) routes() {
 	srv.router.HandleFunc("*", "/api/", srv.handleNotAllowed())
 
 	// Admin
-	srv.router.HandleFunc("GET", "/admin", srv.handleAdmin())
-	srv.router.HandleFunc("GET", "/admin/:template", srv.handleAdmin())
+	srv.router.HandleFunc("GET", "/admin", srv.handleAdminTempl())
+	srv.router.HandleFunc("GET", "/admin/:page", srv.handleAdminTempl())
 	srv.router.HandleFunc("GET", "/admin/images/:id", srv.handleAdminImage())
 
 	// Serve Images
@@ -79,154 +79,120 @@ func (srv *server) routes() {
 
 // HANDLERS
 
-func (srv *server) handleAdmin() http.HandlerFunc {
-	// template datatypes
-	type pageData struct {
-		Title    string
-		MainData any
-	}
-	type dataImages struct {
-		Ids []int
-	}
-	type dataInfo struct {
-		Uptime         time.Duration
-		Requests       int
-		Errors         int
-		ImagesServed   int
-		Originals      int
-		OriginalsSize  size.S
-		CachedNum      int
-		CacheCapacity  int
-		CacheSize      size.S
-		CacheHit       int
-		CacheMiss      int
-		CacheEvictions int
-	}
+func (srv *server) handleAdminTempl() http.HandlerFunc {
 	// setup
-	l := srv.errorLogger.With("handler", "handleAdmin")
-	defer func(t time.Time) {
-		l.Debug("teplates parsed and ready to be served", "time", time.Since(t))
-	}(time.Now())
+	l := srv.errorLogger.With("handler", "handleAdminTempl")
 
-	files := []string{"www/layouts/base.html"}
-
-	mainTpl, err := template.ParseFS(staticFS, append(files, "www/pages/admin.html")...)
+	// get base css styles
+	styles, err := os.ReadFile("www/assets/admin.css")
 	if err != nil {
-		l.Fatal("Could not parse admin template", "error", err)
+		l.Fatal("Could not read admin.css", "error", err)
 	}
-
-	uploadTpl, err := template.ParseFS(staticFS, append(files, "www/pages/upload.html")...)
-	if err != nil {
-		l.Fatal("Could not parse admin/upload template", "error", err)
+	darkTheme := components.Theme{
+		PrimaryColor:    "#f90",
+		SecondaryColor:  "#fa3",
+		BackgroundColor: "#333",
+		TextColor:       "#aaa",
 	}
+	baseStyles := components.StyleTag(darkTheme, string(styles))
 
-	imagesTpl, err := template.ParseFS(staticFS, append(files, "www/pages/images.html")...)
-	if err != nil {
-		l.Fatal("Could not parse admin/images template", "error", err)
-	}
-
-	infoTpl, err := template.ParseFS(staticFS, append(files, "www/pages/info.html")...)
-	if err != nil {
-		l.Fatal("Could not parse admin/info template", "error", err)
+	metadata := map[string]string{
+		"Description": "img.jst.dev is a way for Johan Strand to learn more Go and web development.",
+		"Keywords":    "image, hosting",
+		"Author":      "Johan Strand",
 	}
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Debug("handling request", "path", r.URL.Path)
-		switch way.Param(r.Context(), "template") {
-		case "add":
-			data := pageData{
-				Title:    "Add Image",
-				MainData: nil,
-			}
-			uploadTpl.Execute(w, data)
-			if err != nil {
-				l.Fatal("Could not render template", "error", err)
-				srv.respondError(w, r, "err", http.StatusInternalServerError)
+		defer func(t time.Time) {
+			l.Debug("serving admin page",
+				"time", time.Since(t),
+				"path", r.URL.Path)
+		}(time.Now())
 
-			}
+		var content templ.Component
+		page := way.Param(r.Context(), "page")
+
+		switch page {
+		case "add":
+			content = components.AddImage()
 		case "images":
 			ids, err := srv.ih.Ids()
 			if err != nil {
+				srv.respondError(w, r, "Could not get image ids", http.StatusInternalServerError)
 				l.Fatal("Could not get image ids", "error", err)
-				srv.respondError(w, r, "err", http.StatusInternalServerError)
+			}
+			strIds := make([]string, len(ids))
+			for i, id := range ids {
+				strIds[i] = strconv.Itoa(id)
 			}
 
-			sort.Ints(ids)
-
-			data := pageData{
-				Title: "Images",
-				MainData: dataImages{
-					Ids: ids,
-				},
-			}
-			imagesTpl.Execute(w, data)
-			if err != nil {
-				l.Fatal("Could not render template", "error", err)
-				srv.respondError(w, r, "err", http.StatusInternalServerError)
-			}
+			content = components.Images(strIds)
 		case "info":
-			stat, err := srv.ih.Stat()
+			info, err := srv.getServerInfo()
 			if err != nil {
-				l.Fatal("Could not get stats from imagehandler", "error", err)
-				srv.respondError(w, r, "err", http.StatusInternalServerError)
+				l.Error("Could not get server info", "error", err)
 			}
-
-			data := pageData{
-				Title: "Info",
-				MainData: dataInfo{
-					Uptime:         time.Since(srv.Stats.StartTime).Round(time.Second),
-					Requests:       srv.Stats.Requests,
-					Errors:         srv.Stats.Errors,
-					ImagesServed:   srv.Stats.ImagesServed,
-					Originals:      len(stat.Ids),
-					OriginalsSize:  stat.SizeOrig,
-					CachedNum:      stat.Cache.NumItems,
-					CacheCapacity:  stat.Cache.Capacity,
-					CacheSize:      stat.Cache.Size,
-					CacheHit:       int(stat.Cache.Hit),
-					CacheMiss:      int(stat.Cache.Miss),
-					CacheEvictions: int(stat.Cache.Evictions),
-				},
-			}
-			infoTpl.Execute(w, data)
-			if err != nil {
-				l.Fatal("Could not render template", "error", err)
-				srv.respondError(w, r, "err", http.StatusInternalServerError)
-
-			}
-
+			content = components.Info(info)
 		default:
-			data := pageData{
-				Title:    "Admin",
-				MainData: nil,
-			}
-			mainTpl.Execute(w, data)
-			if err != nil {
-				l.Fatal("Could not render template", "error", err)
-				srv.respondError(w, r, "err", http.StatusInternalServerError)
-			}
+			panic("not implemented")
+		}
+
+		layout := components.Main("img.jst.dev", metadata, baseStyles, content)
+
+		err = layout.Render(r.Context(), w)
+		if err != nil {
+			l.Error("Could not render template", "error", err)
+			srv.respondError(w, r, "err", http.StatusInternalServerError)
 		}
 	}
 }
+
+func (srv *server) getServerInfo() (components.ServerInfo, error) {
+	stat, err := srv.ih.Stat()
+
+	info := components.ServerInfo{
+		Uptime:         time.Since(srv.Stats.StartTime).Round(time.Second),
+		Requests:       srv.Stats.Requests,
+		Errors:         srv.Stats.Errors,
+		ImagesServed:   srv.Stats.ImagesServed,
+		Originals:      len(stat.Ids),
+		OriginalsSize:  stat.SizeOrig,
+		CachedNum:      stat.Cache.NumItems,
+		CacheCapacity:  stat.Cache.Capacity,
+		CacheSize:      stat.Cache.Size,
+		CacheHit:       int(stat.Cache.Hit),
+		CacheMiss:      int(stat.Cache.Miss),
+		CacheEvictions: int(stat.Cache.Evictions),
+	}
+	if err != nil {
+		info.InfoCollectionError = err.Error()
+		return info, err
+	}
+	return info, nil
+}
+
 func (srv *server) handleAdminImage() http.HandlerFunc {
 	// setup
 	l := srv.errorLogger.With("handler", "handleAdminImage")
-	// template datatypes
-	type pageData struct {
-		Title    string
-		MainData any
-	}
-	type imageData struct {
-		Id            int
-		OriginalsSize size.S
-		CachedNum     int
-		CacheSize     size.S
+
+	// get base css styles
+	styles, err := os.ReadFile("www/assets/admin.css")
+	if err != nil {
+		l.Fatal("Could not read admin.css", "error", err)
 	}
 
-	tpl, err := template.ParseFS(staticFS, "www/layouts/base.html", "www/pages/image.html")
-	if err != nil {
-		l.Fatal("Could not parse admin/info template", "error", err)
+	darkTheme := components.Theme{
+		PrimaryColor:    "#f90",
+		SecondaryColor:  "#fa3",
+		BackgroundColor: "#333",
+		TextColor:       "#aaa",
+	}
+
+	metadata := map[string]string{
+		"Description": "img.jst.dev is a way for Johan Strand to learn more Go and web development.",
+		"Keywords":    "image, hosting",
+		"Author":      "Johan Strand",
 	}
 
 	// handler
@@ -251,22 +217,22 @@ func (srv *server) handleAdminImage() http.HandlerFunc {
 			return
 		}
 
-		data := pageData{
-			Title: "Image " + strconv.Itoa(id),
-			MainData: imageData{
-				Id:            id,
-				OriginalsSize: stat.OriginalSize,
-				CachedNum:     stat.CacheNum,
-				CacheSize:     stat.CacheSize,
-			},
+		info := components.ImageInfo{
+			Id:            strconv.Itoa(id),
+			OriginalsSize: stat.OriginalSize.String(),
+			CachedNum:     strconv.Itoa(stat.CacheNum),
+			CacheSize:     stat.CacheSize.String(),
 		}
 
-		tpl.Execute(w, data)
+		content := components.Image(info)
+		baseStyles := components.StyleTag(darkTheme, string(styles))
+		layout := components.Main("img.jst.dev", metadata, baseStyles, content)
+
+		err = layout.Render(r.Context(),w)
 		if err != nil {
-			l.Fatal("Could not render template", "error", err)
+			l.Error("Could not render template", "error", err)
 			srv.respondError(w, r, "err", http.StatusInternalServerError)
 		}
-
 	}
 }
 
