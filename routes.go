@@ -23,7 +23,7 @@ import (
 	"gitlab.com/golang-commonmark/markdown"
 )
 
-//go:embed www
+//go:embed admin-pages/assets
 var staticFS embed.FS
 
 type server struct {
@@ -84,7 +84,7 @@ func (srv *server) handleAdminTempl() http.HandlerFunc {
 	l := srv.errorLogger.With("handler", "handleAdminTempl")
 
 	// get base css styles
-	styles, err := os.ReadFile("www/assets/admin.css")
+	styles, err := os.ReadFile("admin-pages/assets/admin.css")
 	if err != nil {
 		l.Fatal("Could not read admin.css", "error", err)
 	}
@@ -177,7 +177,7 @@ func (srv *server) handleAdminImage() http.HandlerFunc {
 	l := srv.errorLogger.With("handler", "handleAdminImage")
 
 	// get base css styles
-	styles, err := os.ReadFile("www/assets/admin.css")
+	styles, err := os.ReadFile("admin-pages/assets/admin.css")
 	if err != nil {
 		l.Fatal("Could not read admin.css", "error", err)
 	}
@@ -248,7 +248,7 @@ func (srv *server) handleAssets() http.HandlerFunc {
 			return
 		}
 
-		p, err := staticFS.ReadFile("www/assets/" + file)
+		p, err := staticFS.ReadFile("admin-pages/assets/" + file)
 		if err != nil {
 			srv.respondError(w, r, "not found", http.StatusNotFound)
 			return
@@ -386,7 +386,7 @@ func (srv *server) handleFavicon() http.HandlerFunc {
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Debug("handling request", "path", r.URL.Path)
-		http.ServeFile(w, r, "www/assets/favicon.ico")
+		http.ServeFile(w, r, "admin-pages/assets/favicon.ico")
 	}
 }
 
