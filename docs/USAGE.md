@@ -63,7 +63,7 @@ Describing the image you want is done through query parameters added to the url.
 ![linked image example](/3?f=gif&q=4&w=700&h=100)
 
 
-## example code snippet
+## example code 
 
 ```go
 package main

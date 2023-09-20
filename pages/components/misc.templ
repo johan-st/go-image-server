@@ -1,0 +1,45 @@
+package components
+
+
+
+type Link struct {
+    Active      bool
+    Url         string
+    Text        string
+    External    bool
+}
+
+
+templ linkCss(){
+    <style>
+    a.link{
+        color: var(--clr-primary);
+        text-decoration: none;
+        padding: 0.5rem;
+        margin: 0.5rem;
+        border: 1px solid var(--clr-border);
+        border-radius: 0.5rem;
+    }        
+    a.link:hover,
+    a.link:active {
+        border-color: var(--clr-secondary);
+        text-decoration: underline;
+
+    }
+    a.link.active {
+        border-color: var(--clr-primary);
+        font-weight: bold;         
+    }
+    </style>
+}
+
+
+templ link(li Link){
+
+    <a href={templ.URL(li.Url)} 
+    if li.External{ 
+        target="_blank"
+    }
+    class={ "link",templ.KV("active",li.Active)}
+    >{li.Text}</a>
+}

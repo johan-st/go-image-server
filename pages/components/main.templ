@@ -1,13 +1,17 @@
 package components
 
-css main() {
-	border: 1px solid var(--clr-border);
-	border-radius: var(--border-radius);
-	max-width: 1080px;
-	width: 90%;
-	margin: 0 auto;
-	padding: 1rem;
-}
+var (
+    navLinks = []Link{
+        {false,"/admin", "docs", false},
+        {false,"/admin/images", "images", false},
+        {false,"/admin/add", "add", false},
+        {false,"/admin/info", "info", false},
+    }
+    footerLinks = []Link{
+        {false, "https://github.com/johan-st/", "github", true},
+        {false, "https://jst.dev", "jst.dev", true},
+    }
+)
 
 templ Layout(docTitle string, withNav bool, metadata map[string]string, themeStyleTag, content templ.Component ){
     <!DOCTYPE html>
@@ -21,7 +25,7 @@ templ Layout(docTitle string, withNav bool, metadata map[string]string, themeSty
     </head>
     <body>
         @header(withNav)
-        <main class={main}>
+        <main>
             {! content }
         </main>
         @footer()
@@ -41,19 +45,35 @@ templ header(withNav bool) {
     </header>
 }
 
+
+
 templ nav(){
+    @linkCss()
     <nav>
-        <ul>
-            <li><a href="/admin/images">images</a></li>
-            <li><a href="/admin/add">add</a></li>
-            <li><a href="/admin/info">info</a></li>
-        </ul>
+        for _, l := range navLinks {
+            @link(l)
+        }
     </nav>
 }
 
+
 templ footer() {
+    <style>
+        footer {
+            text-align: center;
+            margin-left: 0;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+    </style>
     <footer>
-        <p>img.jst.dev</p>
+        for _, l := range footerLinks {
+            @link(l)
+        }
     </footer>
 }
 
