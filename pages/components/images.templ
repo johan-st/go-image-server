@@ -20,10 +20,10 @@ templ Images(ids []string){
         <div class="image">
             <p class="image__id">id: {id}</p>
             <a href={ templ.SafeURL("/admin/images/" + id) } >
-                <img src={ "/"+id+"?h=200" }/>
+                <img loading="lazy" src={ "/"+id+"?h=200" }  style="height:200px;" />
             </a>
             <div class="image__actions">
-                <input class="image__delete" onClick={deleteImage(id)} value="delete" />
+                <input class="image__delete" type="button" onClick={deleteImage(id)} value="delete" />
             </div>
         </div>
     }

@@ -67,7 +67,6 @@ func (srv *server) routes() {
 	// Docs / root
 	if srv.conf.Docs {
 		srv.router.HandleFunc("GET", "", srv.handleDocs())
-		srv.router.HandleFunc("GET", "/api", srv.handleApiDocs())
 	}
 
 	// STATIC ASSETS
@@ -270,8 +269,6 @@ func (srv *server) handleAssets() http.HandlerFunc {
 
 }
 
-// handleDocs responds to a request with USAGE.md parsed to html.
-// It also inlines some rudimentary css.
 func (srv *server) handleDocs() http.HandlerFunc {
 	var docsPath = "docs/USAGE.md"
 	// setup
@@ -279,7 +276,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 
 	// time the handler initialization
 	defer func(t time.Time) {
-		l.Debug("docs rendered and ready to be served", "time", time.Since(t))
+		l.Debug("docs prepared", "time", time.Since(t))
 	}(time.Now())
 
 	f, err := os.ReadFile(docsPath)

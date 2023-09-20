@@ -22,8 +22,14 @@ type ServerInfo struct {
     CacheEvictions int
 }
 
+
 templ Info(info ServerInfo) {
-<div>
+<div id="infoWrapper" 
+    hx-get="/admin/info" 
+    hx-trigger="every 10s"
+    hx-select="#infoWrapper"
+    hx-swap="outerHTML"
+    > 
     <h2>Info</h2>
     if info.InfoCollectionError != "" {
         <div>

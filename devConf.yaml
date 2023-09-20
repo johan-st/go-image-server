@@ -14,8 +14,8 @@ files:
     clear_on_exit: false
     populate_from: test-data
 cache_rules:
-    max_objects: 5
-    max_size: 1 MB
+    max_objects: 100
+    max_size: 50 MB
 image_defaults:
     format: jpeg
     quality_jpeg: 80

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-go run . -c devConf.yaml -debug
+go run . -c devConf.yaml -dev

@@ -1,0 +1,54 @@
+log_level: info
+http:
+    port: 80
+    host: ""
+    documentation: false
+    access_logfile: ""
+    max_upload_size: "50MB"
+files:
+    clear_on_start: false
+    clear_on_exit: false
+    set_perms: true
+    create_dirs: true
+    originals_dir: img/originals
+    cache_dir: img/cached
+    populate_from: "test-data"
+cache_rules:
+    max_objects: 1000
+    max_size: 1 GB
+image_defaults:
+    format: jpeg
+    quality_jpeg: 80
+    quality_gif: 256
+    width: 0
+    height: 800
+    max_size: 1 MB
+    interpolation: nearestNeighbor
+image_presets:
+    - name: thumbnail
+      alias:
+        - thumb
+        - th
+      format: jpeg
+      quality: 80
+      width: 150
+      height: 150
+      max_size: 10 KB
+    - name: small
+      alias:
+        - small
+        - s
+      width: 0
+      height: 400
+    - name: medium
+      alias:
+        - medium
+        - m
+      width: 0
+      height: 800
+    - name: large
+      alias:
+        - large
+        - l
+      width: 0
+      height: 1600

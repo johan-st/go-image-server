@@ -237,7 +237,6 @@ func (h *ImageHandler) Ids() ([]int, error) {
 		}
 		id := idInt
 
-		h.opts.l.Debug("ListIds got", "id", id, "from", f.Name())
 		ids = append(ids, id)
 	}
 	return ids, nil

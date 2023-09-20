@@ -15,6 +15,7 @@ templ Admin(docTitle string, metadata map[string]string, themeStyleTag, content 
     <head>
         <meta charset="UTF-8" />
         @meta(metadata)
+        <script src="/assets/htmx.min.js"></script>
         <title>{ docTitle }</title>
         {! themeStyleTag }   
     </head>
