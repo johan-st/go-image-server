@@ -2,8 +2,8 @@ log_level: info
 http:
     port: 80
     host: ""
-    documentation: false
-    access_logfile: ""
+    documentation: true
+    access_logfile: "access.log"
     max_upload_size: "50MB"
 files:
     clear_on_start: false
