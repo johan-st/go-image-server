@@ -83,7 +83,8 @@ addImage()
                         <ul>
                             <li>status: ${data.status}</li>
                             <li>Image ID: ${data.id}</li>
-                            <li><a href="${data.url}" target="_blank" rel="noopener noreferrer">Image URL: ${data.url}</a></li>
+                            <li><a href="/admin/images/${data.id}" target="_blank" rel="noopener noreferrer">view image</a></li>
+                            <li><pre>url: ${data.url}</pre></li>
                         </ul>`
                 } else {
                     innerHTML = `
