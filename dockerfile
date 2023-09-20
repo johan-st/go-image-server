@@ -18,6 +18,7 @@ WORKDIR /usr/src/app
 
 # EMBED THESE FILES IN THE BINARY
 COPY pages/assets pages/assets
+COPY docs docs
 COPY test-data test-data
 
 

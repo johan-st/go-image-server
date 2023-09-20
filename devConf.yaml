@@ -11,7 +11,7 @@ files:
     originals_dir: test-fs/devconf/originals
     cache_dir: test-fs/devconf/cache
     clear_on_start: false
-    clear_on_exit: false
+    clear_on_exit: true
     populate_from: test-data
 cache_rules:
     max_objects: 100

@@ -151,7 +151,7 @@ func (srv *server) handleAdminTempl() http.HandlerFunc {
 			content = components.MarkdownFile(file)
 		}
 
-		layout := components.Admin("img.jst.dev", metadata, baseStyles, content)
+		layout := components.Layout("img.jst.dev",true, metadata, baseStyles, content)
 
 		err = layout.Render(r.Context(), w)
 		if err != nil {
@@ -231,7 +231,7 @@ func (srv *server) handleAdminImage() http.HandlerFunc {
 		if err != nil {
 			l.Fatal("Could not create style tag", "error", err)
 		}
-		layout := components.Admin("img.jst.dev", metadata, baseStyles, content)
+		layout := components.Layout("img.jst.dev",true,  metadata, baseStyles, content)
 
 		err = layout.Render(r.Context(),w)
 		if err != nil {
@@ -298,7 +298,7 @@ func (srv *server) handleDocs() http.HandlerFunc {
 
 
 	mdComponent := components.MarkdownFile(f)
-	main := components.Docs("img.jst.dev", metadata, baseStyles, mdComponent)
+	main := components.Layout("img.jst.dev",false, metadata, baseStyles, mdComponent)
 
 	// handler
 	return func(w http.ResponseWriter, r *http.Request) {

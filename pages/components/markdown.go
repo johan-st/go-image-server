@@ -24,7 +24,7 @@ func markdownFile(file []byte) templ.Component {
 		md = goldmark.New(
 			goldmark.WithExtensions(
 				highlighting.NewHighlighting(
-					highlighting.WithStyle("nord"),
+					highlighting.WithStyle("native"),
 				),
 				extension.GFM,
 				// md_meta.Meta,
@@ -37,7 +37,7 @@ func markdownFile(file []byte) templ.Component {
 
 	return templ.ComponentFunc(
 		func(ctx context.Context, w io.Writer) (err error) {
-			fmt.Println("markdownFile rendering...")
+			fmt.Println("markdownFile rendering... TODO: only call this once")
 			return md.Convert(file, w)
 		})
 }

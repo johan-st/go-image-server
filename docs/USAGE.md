@@ -61,3 +61,102 @@ Describing the image you want is done through query parameters added to the url.
 
 ### /3?f=gif&q=4&w=700&h=100
 ![linked image example](/3?f=gif&q=4&w=700&h=100)
+
+
+## example code snippet
+
+```go
+package main
+
+import (
+	"embed"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"mime"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/a-h/templ"
+	log "github.com/charmbracelet/log"
+	"github.com/johan-st/go-image-server/images"
+	components "github.com/johan-st/go-image-server/pages/components"
+	"github.com/johan-st/go-image-server/units/size"
+	"github.com/johan-st/go-image-server/way"
+)
+
+//go:embed pages/assets
+var staticFS embed.FS
+var (
+	darkTheme = components.Theme{
+		ColorPrimary:    "#f90",
+		ColorSecondary:  "#fa3",
+		ColorBackground: "#333",
+		ColorText:       "#aaa",
+		ColorBorder:     "#666",
+		BorderRadius:    "1rem",
+	}
+	
+	metadata = map[string]string{
+		"Description": "img.jst.dev is a way for Johan Strand to learn more Go and web development.",
+		"Keywords":    "image, hosting",
+		"Author":      "Johan Strand",
+	}
+)
+
+
+type server struct {
+	errorLogger  *log.Logger // *required
+	accessLogger *log.Logger // optional
+
+	conf   confHttp
+	ih     *images.ImageHandler
+	router way.Router
+
+	// TODO: make concurrent safe
+	Stats struct {
+		StartTime    time.Time
+		Requests     int
+		Errors       int
+		ImagesServed int
+	}
+}
+
+// Register handlers for routes
+func (srv *server) routes() {
+
+	srv.Stats.StartTime = time.Now()
+
+	// Docs / root
+	if srv.conf.Docs {
+		srv.router.HandleFunc("GET", "", srv.handleDocs())
+	}
+
+	// STATIC ASSETS
+	srv.router.HandleFunc("GET", "/favicon.ico", srv.handleFavicon())
+	srv.router.HandleFunc("GET", "/assets/", srv.handleAssets())
+
+	// API
+	srv.router.HandleFunc("GET", "/api/images", srv.handleApiImageGet())
+	srv.router.HandleFunc("POST", "/api/images", srv.handleApiImagePost())
+	srv.router.HandleFunc("DELETE", "/api/images/:id", srv.handleApiImageDelete())
+	srv.router.HandleFunc("*", "/api/", srv.handleNotAllowed())
+
+	// Admin
+	srv.router.HandleFunc("GET", "/admin", srv.handleAdminTempl())
+	srv.router.HandleFunc("GET", "/admin/:page", srv.handleAdminTempl())
+	srv.router.HandleFunc("GET", "/admin/images/:id", srv.handleAdminImage())
+
+	// Serve Images
+	srv.router.HandleFunc("GET", "/:id/:preset/", srv.handleImgWithPreset())
+	srv.router.HandleFunc("GET", "/:id/", srv.handleImg())
+
+	// 404
+	srv.router.NotFound = srv.handleNotFound()
+}
+```

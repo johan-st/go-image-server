@@ -9,7 +9,7 @@ css main() {
 	padding: 1rem;
 }
 
-templ Admin(docTitle string, metadata map[string]string, themeStyleTag, content templ.Component ){
+templ Layout(docTitle string, withNav bool, metadata map[string]string, themeStyleTag, content templ.Component ){
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -20,24 +20,7 @@ templ Admin(docTitle string, metadata map[string]string, themeStyleTag, content 
         {! themeStyleTag }   
     </head>
     <body>
-        @header()
-        <main class={main}>
-            {! content }
-        </main>
-        @footer()
-    </body>
-    </html>
-}
-
-templ Docs(docTitle string, metadata map[string]string, themeStyleTag, content templ.Component ){
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <title>{ docTitle }</title>
-        {! themeStyleTag }   
-    </head>
-    <body>
+        @header(withNav)
         <main class={main}>
             {! content }
         </main>
@@ -48,10 +31,13 @@ templ Docs(docTitle string, metadata map[string]string, themeStyleTag, content t
 
 
 
-templ header() {
+
+templ header(withNav bool) {
     <header>
-        <h1><a href='/'>img.jst.dev</a></h1>
-        @nav()
+        <h1><a href="/admin">img.jst.dev</a></h1>
+        if withNav { 
+            @nav()
+        }
     </header>
 }
 

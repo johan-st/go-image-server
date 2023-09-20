@@ -37,9 +37,13 @@ type ImageInfo struct {
     CacheSize string
 }
 
+css adminImage(){
+    display: flex;
+}
+
 templ Image(image ImageInfo){
 <h2>Image { image.Id }</h2>
-<section class="images">
+<section class={ adminImage, "images" }>
     <img src={"/" + image.Id + "?h=600"} />
     <ul>
         <li>Id: {image.Id}</li>
